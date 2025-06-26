@@ -105,11 +105,11 @@ public class GameModule
 
         return module;
     }
-    
+
     public static void Shutdown()
     {
         Log.Info("GameModule Shutdown");
-            
+
         _base = null;
         _debugger = null;
         _fsm = null;
@@ -120,5 +120,6 @@ public class GameModule
         _scene = null;
         _timer = null;
         _localization = null;
+        _network = null;
     }
 }
