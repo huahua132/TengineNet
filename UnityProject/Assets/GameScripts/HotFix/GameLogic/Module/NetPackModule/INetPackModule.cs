@@ -1,0 +1,7 @@
+namespace GameLogic
+{
+    interface INetPackModule
+    {
+        
+    }
+}

@@ -18,6 +18,7 @@ namespace TEngine
         private readonly INetPackageEncoder _encoder;  // 网络包编码器。
         private readonly INetPackageDecoder _decoder;  // 网络包解码器。
         private WebSocketChannel _channel;  // WebSocket通信通道管理实例。
+        private Action<SocketError> _connectCallback;
 
         /// <summary>
         /// 内部构造函数，初始化网络包处理配置。
@@ -34,6 +35,7 @@ namespace TEngine
         /// </summary>
         public override void Dispose()
         {
+            _connectCallback = null;
             // 确保连接关闭。
             if (_socket != null && _socket.ReadyState != WebSocketState.Closed)
             {
@@ -105,6 +107,7 @@ namespace TEngine
             _socket.OnMessage += Socket_OnMessage;
             _socket.OnClose += Socket_OnClose;
             _socket.OnError += Socket_OnError;
+            _connectCallback = callback;
             Log.Info("Connecting...");
             _socket.ConnectAsync();
         }
@@ -121,6 +124,11 @@ namespace TEngine
             _channel = new WebSocketChannel();
             _channel.InitChannel(_socket, _packageBodyMaxSize, _encoder, _decoder);
             Log.Info("Web Socket Connected.");
+            if (_connectCallback != null)
+            {
+                _connectCallback(SocketError.Success);
+                _connectCallback = null;
+            }
         }
 
         /// <summary>
@@ -140,6 +148,11 @@ namespace TEngine
         private void Socket_OnClose(object sender, CloseEventArgs e)
         {
             Log.Info("Socket closed.");
+            if (_connectCallback != null)
+            {
+                _connectCallback(SocketError.NetworkDown);
+                _connectCallback = null;
+            }
         }
 
         /// <summary>
@@ -147,7 +160,12 @@ namespace TEngine
         /// </summary>
         private void Socket_OnError(object sender, ErrorEventArgs e)
         {
-           Log.Error(e.Message);
+            Log.Error(e.Message);
+            if (_connectCallback != null)
+            {
+                _connectCallback(SocketError.SocketError);
+                _connectCallback = null;
+            }
         }
     }
 }

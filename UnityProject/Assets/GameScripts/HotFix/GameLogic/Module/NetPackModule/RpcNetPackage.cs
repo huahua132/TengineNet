@@ -1,6 +1,21 @@
 using TEngine;
 namespace GameLogic
 {
+    public enum PACK_TYPE
+    {
+        WHOLE = 0,  //整包
+        HEAD = 1,  //包头
+        BODY = 2,  //包体
+        TAIL = 3,  //包尾
+    }
+    public enum MSG_TYPE
+    {
+        SERVER_PUSH = 0,
+        CLIENT_PUSH = 1,
+        CLIENT_REQ = 2,
+        SERVER_RSP = 3,
+        SERVER_ERR = 4,
+    }
     /// <summary>
     /// 对接skynet_fly rpc 数据包实现。https://github.com/huahua132/skynet_fly
     /// 用于在网络通信中封装基础消息结构。
@@ -11,21 +26,6 @@ namespace GameLogic
     /// </remarks>
     public class RpcNetPackage : INetPackage
     {
-        public enum PACK_TYPE
-        {
-            WHOLE = 0,  //整包
-            HEAD = 1,  //包头
-            BODY = 2,  //包体
-            TAIL = 3,  //包尾
-        }
-        public enum MSG_TYPE
-        {
-            SERVER_PUSH = 0,
-            CLIENT_PUSH = 1,
-            CLIENT_REQ = 2,
-            SERVER_RSP = 3,
-            SERVER_ERR = 4,
-        }
         /// <summary>
         /// 包类型，字段描述: (0-整包  1包头  2包体  3包尾)
         /// </summary>
