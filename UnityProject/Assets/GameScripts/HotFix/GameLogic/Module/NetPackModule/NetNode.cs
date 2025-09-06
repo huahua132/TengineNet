@@ -1,61 +1,233 @@
+using System;
 using System.Net.Sockets;
 using TEngine;
 
 namespace GameLogic
 {
-    internal class NetNodeIDGenerator
+    /// <summary>
+    /// 网络节点 - 内部实现，完全封装
+    /// </summary>
+    internal class NetNode : IMemory
     {
-        private static ulong _incrID = 0;
-        public static ulong Next()
-        {
-            _incrID++;
-            return _incrID;
-        }
-    }
-    //网络节点
-    public class NetNode : IMemory
-    {
-        public void Clear()
-        {
-            _Guid = 0;
-            _NetWorkType = 0;
-            _Ip = "";
-            _Port = 0;
-        }
-
         public static readonly int PackageBodyMaxSize = ushort.MaxValue - 8;
-        public ulong _Guid { get; private set; }        //唯一ID
-        public NetworkType _NetWorkType { get; private set; }
-
+        
         private static readonly RpcNetPackageEncoder _netPackEncoder = new RpcNetPackageEncoder();
         private static readonly RpcNetPackageDecoder _netPackDecoder = new RpcNetPackageDecoder();
-        private AClient _conn;                         //网络连接
-        public string _Ip { get; private set; }
-        public int _Port { get; private set; }
+        
+        private ulong _guid;
+        private NetworkType _networkType;
+        private string _ip;
+        private int _port;
+        private AClient _conn;
+        private ConnectState _connectState = ConnectState.Disconnected;
+        private ConnectCallback _connectCallback;
+        private DisconnectCallback _disconnectCallback;
+        private float _reconnectTimer = 0f;
+        private const float RECONNECT_INTERVAL = 3f; // 重连间隔
+        private int _reconnectAttempts = 0;
+        private const int MAX_RECONNECT_ATTEMPTS = 5; // 最大重连次数
+        private bool _isActiveDisconnect = false; // 标记是否为主动断开
 
-        public void Init(NetworkType networkType, string ip, int port)
+        #region 属性访问器
+
+        public ulong Guid => _guid;
+        public NetworkType NetworkType => _networkType;
+        public string Ip => _ip;
+        public int Port => _port;
+        public ConnectState ConnectState => _connectState;
+
+        #endregion
+
+        #region IMemory实现
+
+        public void Clear()
         {
-            _Guid = NetNodeIDGenerator.Next();
-            _NetWorkType = networkType;
-            _Ip = ip;
-            _Port = port;
+            Disconnect();
+            _guid = 0;
+            _networkType = 0;
+            _ip = "";
+            _port = 0;
+            _connectState = ConnectState.Disconnected;
+            _connectCallback = null;
+            _disconnectCallback = null;
+            _reconnectTimer = 0f;
+            _reconnectAttempts = 0;
+            _isActiveDisconnect = false;
+        }
+
+        #endregion
+
+        #region 初始化和连接
+
+        /// <summary>
+        /// 初始化网络节点
+        /// </summary>
+        /// <param name="guid">节点唯一ID，由外部传入</param>
+        /// <param name="networkType">网络类型</param>
+        /// <param name="ip">服务器IP</param>
+        /// <param name="port">服务器端口</param>
+        public void Init(ulong guid, NetworkType networkType, string ip, int port)
+        {
+            _guid = guid;
+            _networkType = networkType;
+            _ip = ip;
+            _port = port;
+            _connectState = ConnectState.Disconnected;
+            _isActiveDisconnect = false;
+        }
+
+        public void SetCallbacks(ConnectCallback connectCallback, DisconnectCallback disconnectCallback)
+        {
+            _connectCallback = connectCallback;
+            _disconnectCallback = disconnectCallback;
         }
 
         public void Connect()
         {
-            _conn = GameModule.Network.CreateNetworkClient(_NetWorkType, PackageBodyMaxSize, _netPackEncoder, _netPackDecoder);
-            _conn.Connect(_Ip, _Port, ConnectCallBack);
+            if (_connectState == ConnectState.Connected || _connectState == ConnectState.Connecting)
+            {
+                return;
+            }
+
+            try
+            {
+                _connectState = ConnectState.Connecting;
+                _isActiveDisconnect = false; // 重置主动断开标记
+                _conn = GameModule.Network.CreateNetworkClient(_networkType, PackageBodyMaxSize, _netPackEncoder, _netPackDecoder);
+                _conn.Connect(_ip, _port, OnConnectResult);
+            }
+            catch (Exception ex)
+            {
+                _connectState = ConnectState.Disconnected;
+                _connectCallback?.Invoke(_guid, false, $"连接异常: {ex.Message}");
+            }
         }
 
         public void Reconnect()
         {
-            _conn = GameModule.Network.CreateNetworkClient(_NetWorkType, PackageBodyMaxSize, _netPackEncoder, _netPackDecoder);
-            _conn.Connect(_Ip, _Port, ConnectCallBack);
+            if (_connectState == ConnectState.Connecting || _connectState == ConnectState.Reconnecting)
+            {
+                return;
+            }
+
+            // 重连时先主动断开当前连接，但不触发断线回调
+            DisconnectInternal(false);
+            _connectState = ConnectState.Reconnecting;
+            _reconnectTimer = 0f;
+            _reconnectAttempts++;
         }
 
-        private void ConnectCallBack(SocketError error)
+        /// <summary>
+        /// 主动断开连接
+        /// </summary>
+        public void Disconnect()
         {
-
+            DisconnectInternal(true);
         }
+
+        /// <summary>
+        /// 内部断开连接方法
+        /// </summary>
+        /// <param name="triggerCallback">是否触发断线回调</param>
+        private void DisconnectInternal(bool triggerCallback)
+        {
+            var oldState = _connectState;
+            
+            if (_conn != null)
+            {
+                try
+                {
+                    _conn.Dispose();
+                    _conn = null;
+                }
+                catch (Exception ex)
+                {
+                    Log.Error($"断开连接异常: {ex}");
+                }
+            }
+            
+            _connectState = ConnectState.Disconnected;
+            
+            // 只有在已连接状态下的断开才触发回调
+            if (triggerCallback && oldState == ConnectState.Connected)
+            {
+                _isActiveDisconnect = true;
+                _disconnectCallback?.Invoke(_guid, DisconnectType.Active, "主动断开连接");
+            }
+        }
+
+        #endregion
+
+        #region 更新逻辑
+
+        public void Update(float elapseSeconds, float realElapseSeconds)
+        {
+            // 处理重连逻辑
+            if (_connectState == ConnectState.Reconnecting)
+            {
+                _reconnectTimer += elapseSeconds;
+                if (_reconnectTimer >= RECONNECT_INTERVAL)
+                {
+                    if (_reconnectAttempts <= MAX_RECONNECT_ATTEMPTS)
+                    {
+                        Log.Info($"尝试重连节点 {_guid}，第 {_reconnectAttempts} 次");
+                        Connect();
+                    }
+                    else
+                    {
+                        _connectState = ConnectState.Disconnected;
+                        _connectCallback?.Invoke(_guid, false, "重连次数超过限制");
+                    }
+                }
+            }
+
+            // 检查连接状态
+            if (_conn != null && _connectState == ConnectState.Connected)
+            {
+                if (!_conn.IsConnected())
+                {
+                    OnConnectionLost("连接丢失");
+                }
+            }
+        }
+
+        #endregion
+
+        #region 回调处理
+
+        private void OnConnectResult(SocketError error)
+        {
+            bool success = error == SocketError.Success;
+            
+            if (success)
+            {
+                _connectState = ConnectState.Connected;
+                _reconnectAttempts = 0; // 重置重连计数
+                _isActiveDisconnect = false; // 重置主动断开标记
+                Log.Info($"节点 {_guid} 连接成功");
+            }
+            else
+            {
+                _connectState = ConnectState.Disconnected;
+                _conn = null;
+                Log.Error($"节点 {_guid} 连接失败: {error}");
+            }
+            
+            _connectCallback?.Invoke(_guid, success, success ? "" : error.ToString());
+        }
+
+        private void OnConnectionLost(string reason)
+        {
+            if (_connectState == ConnectState.Connected && !_isActiveDisconnect)
+            {
+                _connectState = ConnectState.Disconnected;
+                _conn = null;
+                Log.Warning($"节点 {_guid} 被动断线: {reason}");
+                _disconnectCallback?.Invoke(_guid, DisconnectType.Passive, reason);
+            }
+        }
+
+        #endregion
     }
 }
+

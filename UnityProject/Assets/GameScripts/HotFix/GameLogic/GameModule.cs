@@ -93,6 +93,12 @@ public class GameModule
     private static INetworkModule _network;
 
     /// <summary>
+    /// 获取网络包模块。
+    /// </summary>
+    public static INetPackModule NetPack => _netPack ??= Get<INetPackModule>();
+    private static INetPackModule _netPack;
+
+    /// <summary>
     /// 获取游戏框架模块类。
     /// </summary>
     /// <typeparam name="T">游戏框架模块类。</typeparam>
@@ -121,5 +127,6 @@ public class GameModule
         _timer = null;
         _localization = null;
         _network = null;
+        _netPack = null;
     }
 }
