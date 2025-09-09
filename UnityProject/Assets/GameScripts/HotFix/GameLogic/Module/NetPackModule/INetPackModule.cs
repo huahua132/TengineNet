@@ -82,6 +82,16 @@ namespace GameLogic
         /// <param name="callback">回调函数</param>
         void UnregisterDisconnectCallback(DisconnectCallback callback);
 
+        /// <summary>
+        /// 关闭指定节点, 下一帧删除
+        /// </summary>
+        bool Close(ulong nodeId);
+
+        /// <summary
+        /// 获取重连失败次数，成功后次数会重置
+        /// </summary> 
+        int GetReconnectAttempts(ulong nodeId);
+
         #endregion
 
         #region 调试信息

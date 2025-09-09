@@ -22,10 +22,7 @@ namespace GameLogic
         private ConnectState _connectState = ConnectState.Disconnected;
         private ConnectCallback _connectCallback;
         private DisconnectCallback _disconnectCallback;
-        private float _reconnectTimer = 0f;
-        private const float RECONNECT_INTERVAL = 3f; // 重连间隔
-        private int _reconnectAttempts = 0;
-        private const int MAX_RECONNECT_ATTEMPTS = 5; // 最大重连次数
+        public int _ReconnectAttempts { get; private set; } = 0;
         private bool _isActiveDisconnect = false; // 标记是否为主动断开
 
         #region 属性访问器
@@ -50,8 +47,7 @@ namespace GameLogic
             _connectState = ConnectState.Disconnected;
             _connectCallback = null;
             _disconnectCallback = null;
-            _reconnectTimer = 0f;
-            _reconnectAttempts = 0;
+            _ReconnectAttempts = 0;
             _isActiveDisconnect = false;
         }
 
@@ -110,11 +106,10 @@ namespace GameLogic
                 return;
             }
 
-            // 重连时先主动断开当前连接，但不触发断线回调
+            // 重连时先主动断开当前连接
             DisconnectInternal(false);
             _connectState = ConnectState.Reconnecting;
-            _reconnectTimer = 0f;
-            _reconnectAttempts++;
+            _ReconnectAttempts++;
         }
 
         /// <summary>
@@ -165,20 +160,8 @@ namespace GameLogic
             // 处理重连逻辑
             if (_connectState == ConnectState.Reconnecting)
             {
-                _reconnectTimer += elapseSeconds;
-                if (_reconnectTimer >= RECONNECT_INTERVAL)
-                {
-                    if (_reconnectAttempts <= MAX_RECONNECT_ATTEMPTS)
-                    {
-                        Log.Info($"尝试重连节点 {_guid}，第 {_reconnectAttempts} 次");
-                        Connect();
-                    }
-                    else
-                    {
-                        _connectState = ConnectState.Disconnected;
-                        _connectCallback?.Invoke(_guid, false, "重连次数超过限制");
-                    }
-                }
+                Log.Info($"尝试重连节点 {_guid}，第 {_ReconnectAttempts} 次");
+                Connect();
             }
 
             // 检查连接状态
@@ -202,7 +185,7 @@ namespace GameLogic
             if (success)
             {
                 _connectState = ConnectState.Connected;
-                _reconnectAttempts = 0; // 重置重连计数
+                _ReconnectAttempts = 0; // 重置重连计数
                 _isActiveDisconnect = false; // 重置主动断开标记
                 Log.Info($"节点 {_guid} 连接成功");
             }

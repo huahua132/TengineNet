@@ -40,6 +40,7 @@ namespace GameLogic
     public class NetPackModule : Module, IUpdateModule, INetPackModule
     {
         private Dictionary<ulong, NetNode> _netNodes = new Dictionary<ulong, NetNode>();
+        private Dictionary<ulong, bool> _closeMap = new Dictionary<ulong, bool>();
         private List<ConnectCallback> _connectCallbacks = new List<ConnectCallback>();
         private List<DisconnectCallback> _disconnectCallbacks = new List<DisconnectCallback>();
 
@@ -47,7 +48,7 @@ namespace GameLogic
         {
             Log.Info("NetPackModule初始化完成");
         }
-
+        
         public override void Shutdown()
         {
             // 清理所有连接
@@ -57,12 +58,23 @@ namespace GameLogic
                 node.Clear();
             }
             _netNodes.Clear();
+            _closeMap.Clear();
             _connectCallbacks.Clear();
             _disconnectCallbacks.Clear();
         }
 
         public void Update(float elapseSeconds, float realElapseSeconds)
         {
+            foreach (var nodeId in _closeMap.Keys)
+            {
+                if (_netNodes.TryGetValue(nodeId, out var node))
+                {
+                    node.Disconnect();
+                    _netNodes.Remove(nodeId);
+                    MemoryPool.Release(node);
+                }
+            }
+            _closeMap.Clear();
             // 更新所有NetNode
             foreach (var node in _netNodes.Values)
             {
@@ -94,6 +106,11 @@ namespace GameLogic
             node.SetCallbacks(OnNodeConnected, OnNodeDisconnected);
 
             _netNodes[nodeId] = node;
+            //删除之后又添加了，就移出标记删除
+            if (_closeMap.ContainsKey(nodeId))
+            {
+                _closeMap.Remove(nodeId);
+            }
             node.Connect();
 
             Log.Info($"开始连接到服务器 {ip}:{port}，节点ID: {nodeId}");
@@ -162,6 +179,25 @@ namespace GameLogic
             return new List<ulong>(_netNodes.Keys);
         }
 
+        /// <summary>
+        /// 关闭指定节点, 下一帧删除
+        /// </summary>
+        public bool Close(ulong nodeId)
+        {
+            if (!_netNodes.TryGetValue(nodeId, out var netNode)) return false;
+            if (_closeMap.ContainsKey(nodeId)) return true;
+            _closeMap[nodeId] = true;
+            return true;
+        }
+
+        /// <summary
+        /// 获取重连失败次数，成功后次数会重置
+        /// </summary> 
+        public int GetReconnectAttempts(ulong nodeId)
+        {
+            if (!_netNodes.TryGetValue(nodeId, out var netNode)) return 0;
+            return netNode._ReconnectAttempts;
+        }
         #endregion
 
         #region 回调管理
@@ -238,16 +274,7 @@ namespace GameLogic
 
         private void OnNodeDisconnected(ulong nodeId, DisconnectType disconnectType, string reason)
         {
-            string typeStr = disconnectType == DisconnectType.Active ? "主动断开" : "被动断线";
-            Log.Info($"节点 {nodeId} {typeStr}: {reason}");
-            
-            // 从管理列表中移除
-            if (_netNodes.TryGetValue(nodeId, out var node))
-            {
-                _netNodes.Remove(nodeId);
-                MemoryPool.Release(node);
-            }
-            
+            Log.Info($"节点 {nodeId} {disconnectType}: {reason}");
             // 通知所有注册的回调
             foreach (var callback in _disconnectCallbacks)
             {
