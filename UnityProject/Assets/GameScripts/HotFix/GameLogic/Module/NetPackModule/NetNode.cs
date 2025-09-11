@@ -13,8 +13,9 @@ namespace GameLogic
         
         private static readonly RpcNetPackageEncoder _netPackEncoder = new RpcNetPackageEncoder();
         private static readonly RpcNetPackageDecoder _netPackDecoder = new RpcNetPackageDecoder();
+        private IMsgBodyHelper _msgBodyHelper;
         
-        private ulong _guid;
+        private uint _guid;
         private NetworkType _networkType;
         private string _ip;
         private int _port;
@@ -27,7 +28,7 @@ namespace GameLogic
 
         #region 属性访问器
 
-        public ulong Guid => _guid;
+        public uint Guid => _guid;
         public NetworkType NetworkType => _networkType;
         public string Ip => _ip;
         public int Port => _port;
@@ -62,7 +63,7 @@ namespace GameLogic
         /// <param name="networkType">网络类型</param>
         /// <param name="ip">服务器IP</param>
         /// <param name="port">服务器端口</param>
-        public void Init(ulong guid, NetworkType networkType, string ip, int port)
+        public void Init(uint guid, NetworkType networkType, string ip, int port)
         {
             _guid = guid;
             _networkType = networkType;
@@ -78,6 +79,23 @@ namespace GameLogic
             _disconnectCallback = disconnectCallback;
         }
 
+        private void MsgBodyErrHandle(string errorMsg = "")
+        {
+            Log.Error($"MsgBodyErrHandle nodeId = {_guid} connectState= {_connectState} errorMsg = {errorMsg}");
+            if (_connectState != ConnectState.Connected) return;
+            DisconnectInternal(true);
+        }
+
+        private void MsgBodyEncodeCb(INetPackage pack)
+        {
+            _conn.SendPackage(pack);
+        }
+
+        private void MsgBodyHandleCb(INetResponse response)
+        {
+            
+        }
+
         public void Connect()
         {
             if (_connectState == ConnectState.Connected || _connectState == ConnectState.Connecting)
@@ -87,6 +105,8 @@ namespace GameLogic
 
             try
             {
+                _msgBodyHelper = new ProtoBufMsgBodyHelper();
+                _msgBodyHelper.Init(MsgBodyErrHandle, MsgBodyEncodeCb, MsgBodyHandleCb);
                 _connectState = ConnectState.Connecting;
                 _isActiveDisconnect = false; // 重置主动断开标记
                 _conn = GameModule.Network.CreateNetworkClient(_networkType, PackageBodyMaxSize, _netPackEncoder, _netPackDecoder);
@@ -171,8 +191,17 @@ namespace GameLogic
                 {
                     OnConnectionLost("连接丢失");
                 }
+                else
+                {
+                    INetPackage netPack = _conn.PickPackage();
+                    if (netPack != null)
+                    {
+                        _msgBodyHelper.handleNetPack(netPack);
+                    }
+                }
             }
         }
+        
 
         #endregion
 

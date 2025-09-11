@@ -19,40 +19,50 @@ namespace GameLogic
         /// <param name="ip">服务器IP</param>
         /// <param name="port">服务器端口</param>
         /// <returns>节点ID</returns>
-        ulong Connect(ulong nodeId, NetworkType networkType, string ip, int port);
+        uint Connect(uint nodeId, NetworkType networkType, string ip, int port);
 
         /// <summary>
         /// 重连指定节点
         /// </summary>
         /// <param name="nodeId">节点ID</param>
         /// <returns>是否成功开始重连</returns>
-        bool Reconnect(ulong nodeId);
+        bool Reconnect(uint nodeId);
 
         /// <summary>
         /// 主动断开指定连接
         /// </summary>
         /// <param name="nodeId">节点ID</param>
-        void Disconnect(ulong nodeId);
+        void Disconnect(uint nodeId);
 
         /// <summary>
         /// 获取连接状态
         /// </summary>
         /// <param name="nodeId">节点ID</param>
         /// <returns>连接状态</returns>
-        ConnectState GetConnectState(ulong nodeId);
+        ConnectState GetConnectState(uint nodeId);
 
         /// <summary>
         /// 检查节点ID是否存在
         /// </summary>
         /// <param name="nodeId">节点ID</param>
         /// <returns>是否存在</returns>
-        bool IsNodeExists(ulong nodeId);
+        bool IsNodeExists(uint nodeId);
 
         /// <summary>
         /// 获取所有连接的节点ID
         /// </summary>
         /// <returns>节点ID列表</returns>
-        List<ulong> GetAllNodeIds();
+        List<uint> GetAllNodeIds();
+
+        /// <summary>
+        /// 关闭指定节点, 下一帧删除
+        /// </summary>
+        bool Close(uint nodeId);
+
+        /// <summary
+        /// 获取重连失败次数，成功后次数会重置
+        /// </summary> 
+        int GetReconnectAttempts(uint nodeId);
 
         #endregion
 
@@ -81,16 +91,6 @@ namespace GameLogic
         /// </summary>
         /// <param name="callback">回调函数</param>
         void UnregisterDisconnectCallback(DisconnectCallback callback);
-
-        /// <summary>
-        /// 关闭指定节点, 下一帧删除
-        /// </summary>
-        bool Close(ulong nodeId);
-
-        /// <summary
-        /// 获取重连失败次数，成功后次数会重置
-        /// </summary> 
-        int GetReconnectAttempts(ulong nodeId);
 
         #endregion
 

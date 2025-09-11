@@ -1,0 +1,44 @@
+syntax="proto3";
+package hallserver_player;
+
+//协议主码 本服独有协议 占用 101-654 公共占用1-50 游戏公共占用50-100
+enum main {
+	hallserver_player = 101;
+}
+//协议子码 req res 占用1-80  通知占用80-100
+enum sub {
+    ReqChangeNickName   = 1;              //请求修改昵称
+    ResChangeNickName   = 2;              //回复修复昵称
+    PlayerInfoNotice    = 80;             //玩家信息通知
+    PlayerInfoSynNotice = 81;             //玩家字段信息同步
+}
+
+//玩家信息通知
+message PlayerInfoNotice {
+    optional string nickname     = 1;       //昵称
+    optional int32 rank_score    = 2;      //段位积分
+    optional int32 level         = 3;      //玩家等级
+    optional int32 head_frame_id = 4;      //头像框ID
+    optional int32 head_id       = 5;      //头像ID
+}
+
+message oneSynInfo {
+    optional string field_name = 1;     //字段名
+    optional int32 is_str      = 2;     //是否字符串
+    optional string value_str  = 3;     //string值
+    optional int64 value       = 4;     //number值
+}
+
+//玩家信息字段同步通知
+message PlayerInfoSynNotice {
+    optional int64 player_id    = 1;    //玩家ID
+    repeated oneSynInfo synList = 2;    //同步信息
+}
+
+message ReqChangeNickName {
+    optional string nickname = 1;       //修改后的昵称
+}
+
+message ResChangeNickName {
+    optional string nickname = 2;       //修改后的昵称
+}

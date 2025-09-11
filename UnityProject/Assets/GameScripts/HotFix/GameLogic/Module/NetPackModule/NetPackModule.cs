@@ -27,20 +27,20 @@ namespace GameLogic
     /// <summary>
     /// 连接回调委托
     /// </summary>
-    public delegate void ConnectCallback(ulong nodeId, bool success, string errorMsg = "");
+    public delegate void ConnectCallback(uint nodeId, bool success, string errorMsg = "");
     
     /// <summary>
     /// 断线回调委托
     /// </summary>
-    public delegate void DisconnectCallback(ulong nodeId, DisconnectType disconnectType, string reason = "");
+    public delegate void DisconnectCallback(uint nodeId, DisconnectType disconnectType, string reason = "");
 
     /// <summary>
     /// 网络包模块管理类
     /// </summary>
     public class NetPackModule : Module, IUpdateModule, INetPackModule
     {
-        private Dictionary<ulong, NetNode> _netNodes = new Dictionary<ulong, NetNode>();
-        private Dictionary<ulong, bool> _closeMap = new Dictionary<ulong, bool>();
+        private Dictionary<uint, NetNode> _netNodes = new Dictionary<uint, NetNode>();
+        private Dictionary<uint, bool> _closeMap = new Dictionary<uint, bool>();
         private List<ConnectCallback> _connectCallbacks = new List<ConnectCallback>();
         private List<DisconnectCallback> _disconnectCallbacks = new List<DisconnectCallback>();
 
@@ -92,7 +92,7 @@ namespace GameLogic
         /// <param name="ip">服务器IP</param>
         /// <param name="port">服务器端口</param>
         /// <returns>节点ID</returns>
-        public ulong Connect(ulong nodeId, NetworkType networkType, string ip, int port)
+        public uint Connect(uint nodeId, NetworkType networkType, string ip, int port)
         {
             // 检查ID是否已被使用
             if (_netNodes.ContainsKey(nodeId))
@@ -122,7 +122,7 @@ namespace GameLogic
         /// </summary>
         /// <param name="nodeId">节点ID</param>
         /// <returns>是否成功开始重连</returns>
-        public bool Reconnect(ulong nodeId)
+        public bool Reconnect(uint nodeId)
         {
             if (_netNodes.TryGetValue(nodeId, out var node))
             {
@@ -138,7 +138,7 @@ namespace GameLogic
         /// 主动断开指定连接
         /// </summary>
         /// <param name="nodeId">节点ID</param>
-        public void Disconnect(ulong nodeId)
+        public void Disconnect(uint nodeId)
         {
             if (_netNodes.TryGetValue(nodeId, out var node))
             {
@@ -151,7 +151,7 @@ namespace GameLogic
         /// </summary>
         /// <param name="nodeId">节点ID</param>
         /// <returns>连接状态</returns>
-        public ConnectState GetConnectState(ulong nodeId)
+        public ConnectState GetConnectState(uint nodeId)
         {
             if (_netNodes.TryGetValue(nodeId, out var node))
             {
@@ -165,7 +165,7 @@ namespace GameLogic
         /// </summary>
         /// <param name="nodeId">节点ID</param>
         /// <returns>是否存在</returns>
-        public bool IsNodeExists(ulong nodeId)
+        public bool IsNodeExists(uint nodeId)
         {
             return _netNodes.ContainsKey(nodeId);
         }
@@ -174,15 +174,15 @@ namespace GameLogic
         /// 获取所有连接的节点ID
         /// </summary>
         /// <returns>节点ID列表</returns>
-        public List<ulong> GetAllNodeIds()
+        public List<uint> GetAllNodeIds()
         {
-            return new List<ulong>(_netNodes.Keys);
+            return new List<uint>(_netNodes.Keys);
         }
 
         /// <summary>
         /// 关闭指定节点, 下一帧删除
         /// </summary>
-        public bool Close(ulong nodeId)
+        public bool Close(uint nodeId)
         {
             if (!_netNodes.TryGetValue(nodeId, out var netNode)) return false;
             if (_closeMap.ContainsKey(nodeId)) return true;
@@ -193,11 +193,14 @@ namespace GameLogic
         /// <summary
         /// 获取重连失败次数，成功后次数会重置
         /// </summary> 
-        public int GetReconnectAttempts(ulong nodeId)
+        public int GetReconnectAttempts(uint nodeId)
         {
             if (!_netNodes.TryGetValue(nodeId, out var netNode)) return 0;
             return netNode._ReconnectAttempts;
         }
+
+        
+
         #endregion
 
         #region 回调管理
@@ -254,7 +257,7 @@ namespace GameLogic
 
         #region 内部回调处理
 
-        private void OnNodeConnected(ulong nodeId, bool success, string errorMsg)
+        private void OnNodeConnected(uint nodeId, bool success, string errorMsg)
         {
             Log.Info($"节点 {nodeId} 连接结果: {(success ? "成功" : "失败")} {errorMsg}");
             
@@ -272,7 +275,7 @@ namespace GameLogic
             }
         }
 
-        private void OnNodeDisconnected(ulong nodeId, DisconnectType disconnectType, string reason)
+        private void OnNodeDisconnected(uint nodeId, DisconnectType disconnectType, string reason)
         {
             Log.Info($"节点 {nodeId} {disconnectType}: {reason}");
             // 通知所有注册的回调

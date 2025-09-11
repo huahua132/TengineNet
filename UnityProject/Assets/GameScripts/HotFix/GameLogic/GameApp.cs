@@ -26,7 +26,7 @@ public partial class GameApp
         StartGameLogic();
     }
 
-    private static void ConnectCallback(ulong nodeId, bool success, string errorMsg = "")
+    private static void ConnectCallback(uint nodeId, bool success, string errorMsg = "")
     {
         Log.Info($"ConnectCallback {nodeId} {success} {errorMsg}");
         if (!success)
@@ -39,7 +39,7 @@ public partial class GameApp
         }
     }
 
-    private static void DisconnectCallback(ulong nodeId, DisconnectType disconnectType, string reason = "")
+    private static void DisconnectCallback(uint nodeId, DisconnectType disconnectType, string reason = "")
     {
         Log.Info($"ConnectCallback {nodeId} {disconnectType} {reason}");
         GameModule.NetPack.Close(nodeId);
@@ -50,7 +50,7 @@ public partial class GameApp
         GameEvent.Get<ILoginUI>().ShowLoginUI();
         GameModule.UI.ShowUIAsync<BattleMainUI>();
         ModuleSystem.RegisterModule<INetPackModule>(new NetPackModule());
-        GameModule.NetPack.RegisterConnectCallback(ConnectCallback);            
+        GameModule.NetPack.RegisterConnectCallback(ConnectCallback);
         GameModule.NetPack.RegisterDisconnectCallback(DisconnectCallback);
         GameModule.NetPack.Connect(1, NetworkType.WebSocket, "ws://127.0.0.1", 11012);
     }

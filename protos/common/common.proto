@@ -1,0 +1,7 @@
+syntax="proto3";
+package common;
+
+message Item {
+    optional int64 id = 1;
+    optional int64 count = 2;
+}
