@@ -94,7 +94,7 @@ namespace GameLogic
 
         #endregion
 
-        #region 新增：消息处理功能
+        #region 消息处理功能
         /// <summary>
         /// 注册消息监听器
         /// </summary>
@@ -125,6 +125,74 @@ namespace GameLogic
         /// <param name="timeoutMs">超时时间（毫秒）</param>
         /// <returns>响应对象</returns>
         UniTask<INetResponse> SendRpcRequest(uint nodeId, INetRequest request, int timeoutMs = 5000);
+        #endregion
+
+        #region 认证功能
+        /// <summary>
+        /// 设置节点的认证请求提供者
+        /// </summary>
+        /// <param name="nodeId">节点ID</param>
+        /// <param name="authRequestProvider">认证请求提供者</param>
+        /// <param name="config">认证配置</param>
+        void SetAuthRequestProvider(uint nodeId, AuthRequestProvider authRequestProvider, AuthConfig config = default);
+
+        /// <summary>
+        /// 注册认证成功回调
+        /// </summary>
+        /// <param name="callback">认证成功回调</param>
+        void RegisterAuthSuccessCallback(AuthSuccessCallback callback);
+
+        /// <summary>
+        /// 注销认证成功回调
+        /// </summary>
+        /// <param name="callback">认证成功回调</param>
+        void UnregisterAuthSuccessCallback(AuthSuccessCallback callback);
+
+        /// <summary>
+        /// 注册认证失败回调
+        /// </summary>
+        /// <param name="callback">认证失败回调</param>
+        void RegisterAuthFailureCallback(AuthFailureCallback callback);
+
+        /// <summary>
+        /// 注销认证失败回调
+        /// </summary>
+        /// <param name="callback">认证失败回调</param>
+        void UnregisterAuthFailureCallback(AuthFailureCallback callback);
+
+        /// <summary>
+        /// 获取节点认证状态
+        /// </summary>
+        /// <param name="nodeId">节点ID</param>
+        /// <returns>是否已认证</returns>
+        bool IsNodeAuthenticated(uint nodeId);
+
+        #endregion
+
+        #region 心跳功能
+
+        /// <summary>
+        /// 设置节点的心跳请求提供者
+        /// </summary>
+        /// <param name="nodeId">节点ID</param>
+        /// <param name="heartbeatRequestProvider">心跳请求提供者</param>
+        /// <param name="config">心跳配置</param>
+        void SetHeartbeatRequestProvider(uint nodeId, HeartbeatRequestProvider heartbeatRequestProvider, HeartbeatConfig config = default);
+
+        /// <summary>
+        /// 更新节点心跳配置
+        /// </summary>
+        /// <param name="nodeId">节点ID</param>
+        /// <param name="config">新的心跳配置</param>
+        void UpdateHeartbeatConfig(uint nodeId, HeartbeatConfig config);
+
+        /// <summary>
+        /// 获取节点心跳配置
+        /// </summary>
+        /// <param name="nodeId">节点ID</param>
+        /// <returns>心跳配置</returns>
+        HeartbeatConfig? GetHeartbeatConfig(uint nodeId);
+
         #endregion
 
         #region 调试信息

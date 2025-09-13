@@ -79,6 +79,18 @@ public partial class GameApp
         Log.Info("PlayerInfoNotice >>> {0} {1}", rsp.nickname, rsp);
     }
 
+    private static int NetResponseErrCode(INetResponse response)
+    {
+        errors.Error err = response.GetResponse<errors.Error>();
+        return err.code;
+    }
+
+    private static string NetResponseErrMsg(INetResponse response)
+    {
+        errors.Error err = response.GetResponse<errors.Error>();
+        return err.msg;
+    }
+
     private static async Task StartGameLogic()
     {
         try
@@ -105,22 +117,33 @@ public partial class GameApp
             Log.Info($"rsp Str {rspStr} {httpRsp.data.host}");
             string host = loginRes.host;
             var (ip, port) = (host.Split(':')[0], int.Parse(host.Split(':')[1]));
+            var authConfig = new AuthConfig(10000, 3, 3000);
+            GameModule.NetPack.SetAuthRequestProvider(1, (nodeId) =>
+            {
+                ProtoBufRequest netReq = new ProtoBufRequest();
+                netReq.PackId = 201;
+                var loginReq = new login.LoginReq();
+                loginReq.player_id = loginRes.player_id;
+                loginReq.token = loginRes.token;
+                netReq.MsgBody = loginReq;
+                return netReq;
+            }, authConfig);
+
+            GameModule.NetPack.SetHeartbeatRequestProvider(1, (nodeId) =>
+            {
+                ProtoBufRequest netReq = new ProtoBufRequest();
+                netReq.PackId = 203;
+                var heartReq = new login.HeartReq();
+                heartReq.time = DateTime.Now.Second;
+                netReq.MsgBody = heartReq;
+                return netReq;
+            });
+            INetResponse.GetRspErrCode = NetResponseErrCode;
+            INetResponse.GetRspErrMsg = NetResponseErrMsg;
             GameModule.NetPack.RegisterConnectCallback(ConnectCallback);
             GameModule.NetPack.RegisterDisconnectCallback(DisconnectCallback);
             GameModule.NetPack.RegisterMessageListener(10180, OnMessageReceived);
             GameModule.NetPack.Connect(1, NetworkType.WebSocket, "ws://127.0.0.1", port, new ProtoBufMsgBodyHelper());
-            Log.Info("delay start");
-            await UniTask.Delay(3000);
-            Log.Info("delay over");
-            ProtoBufRequest netReq = new ProtoBufRequest();
-            netReq.PackId = 201;
-            var loginReq = new login.LoginReq();
-            loginReq.player_id = loginRes.player_id;
-            loginReq.token = loginRes.token;
-            netReq.MsgBody = loginReq;
-            INetResponse netRsp = await GameModule.NetPack.SendRpcRequest(1, netReq);
-            login.LoginRes res = netRsp.GetResponse<login.LoginRes>();
-            Log.Info($"Login Res >>> {res.isreconnect}");
         }
         catch (Exception ex)
         {
