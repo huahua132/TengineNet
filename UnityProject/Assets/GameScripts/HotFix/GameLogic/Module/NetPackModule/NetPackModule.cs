@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using TEngine;
+using Cysharp.Threading.Tasks;
 
 namespace GameLogic
 {
@@ -33,6 +34,10 @@ namespace GameLogic
     /// 断线回调委托
     /// </summary>
     public delegate void DisconnectCallback(uint nodeId, DisconnectType disconnectType, string reason = "");
+    /// <summary>
+    /// 消息监听回调委托
+    /// </summary>
+    public delegate void MessageCallback(uint nodeId, INetResponse response);
 
     /// <summary>
     /// 网络包模块管理类
@@ -43,6 +48,12 @@ namespace GameLogic
         private Dictionary<uint, bool> _closeMap = new Dictionary<uint, bool>();
         private List<ConnectCallback> _connectCallbacks = new List<ConnectCallback>();
         private List<DisconnectCallback> _disconnectCallbacks = new List<DisconnectCallback>();
+        
+        // 新增：消息监听器
+        private Dictionary<ushort, List<MessageCallback>> _messageListeners = new Dictionary<ushort, List<MessageCallback>>();
+        
+        // 新增：RPC等待队列
+        private Dictionary<uint, Dictionary<uint, UniTaskCompletionSource<INetResponse>>> _rpcWaitingMap = new Dictionary<uint, Dictionary<uint, UniTaskCompletionSource<INetResponse>>>();
 
         public override void OnInit()
         {
@@ -61,6 +72,17 @@ namespace GameLogic
             _closeMap.Clear();
             _connectCallbacks.Clear();
             _disconnectCallbacks.Clear();
+            _messageListeners.Clear();
+            
+            // 取消所有等待的RPC
+            foreach (var nodeRpcs in _rpcWaitingMap.Values)
+            {
+                foreach (var rpc in nodeRpcs.Values)
+                {
+                    rpc.TrySetCanceled();
+                }
+            }
+            _rpcWaitingMap.Clear();
         }
 
         public void Update(float elapseSeconds, float realElapseSeconds)
@@ -71,10 +93,22 @@ namespace GameLogic
                 {
                     node.Disconnect();
                     _netNodes.Remove(nodeId);
+                    
+                    // 取消该节点所有等待的RPC
+                    if (_rpcWaitingMap.TryGetValue(nodeId, out var nodeRpcs))
+                    {
+                        foreach (var rpc in nodeRpcs.Values)
+                        {
+                            rpc.TrySetException(new Exception($"节点 {nodeId} 已关闭"));
+                        }
+                        _rpcWaitingMap.Remove(nodeId);
+                    }
+                    
                     MemoryPool.Release(node);
                 }
             }
             _closeMap.Clear();
+            
             // 更新所有NetNode
             foreach (var node in _netNodes.Values)
             {
@@ -82,19 +116,10 @@ namespace GameLogic
             }
         }
 
-        #region 连接管理
+        #region 连接管理 (保持原有代码不变)
         
-        /// <summary>
-        /// 使用指定ID创建并连接到服务器
-        /// </summary>
-        /// <param name="nodeId">指定的节点ID</param>
-        /// <param name="networkType">网络类型</param>
-        /// <param name="ip">服务器IP</param>
-        /// <param name="port">服务器端口</param>
-        /// <returns>节点ID</returns>
         public uint Connect(uint nodeId, NetworkType networkType, string ip, int port)
         {
-            // 检查ID是否已被使用
             if (_netNodes.ContainsKey(nodeId))
             {
                 Log.Error($"节点ID {nodeId} 已存在，无法重复创建");
@@ -104,9 +129,11 @@ namespace GameLogic
             var node = MemoryPool.Acquire<NetNode>();
             node.Init(nodeId, networkType, ip, port);
             node.SetCallbacks(OnNodeConnected, OnNodeDisconnected);
+            
+            // 新增：设置消息处理回调
+            node.SetMessageHandleCallback(OnMessageReceived);
 
             _netNodes[nodeId] = node;
-            //删除之后又添加了，就移出标记删除
             if (_closeMap.ContainsKey(nodeId))
             {
                 _closeMap.Remove(nodeId);
@@ -117,11 +144,6 @@ namespace GameLogic
             return nodeId;
         }
 
-        /// <summary>
-        /// 重连指定节点
-        /// </summary>
-        /// <param name="nodeId">节点ID</param>
-        /// <returns>是否成功开始重连</returns>
         public bool Reconnect(uint nodeId)
         {
             if (_netNodes.TryGetValue(nodeId, out var node))
@@ -134,23 +156,15 @@ namespace GameLogic
             return false;
         }
 
-        /// <summary>
-        /// 主动断开指定连接
-        /// </summary>
-        /// <param name="nodeId">节点ID</param>
         public void Disconnect(uint nodeId)
         {
             if (_netNodes.TryGetValue(nodeId, out var node))
             {
-                node.Disconnect(); // 这会触发主动断开回调
+                node.Disconnect();
                 Log.Info($"主动断开连接节点 {nodeId}");
             }
         }
-        /// <summary>
-        /// 获取连接状态
-        /// </summary>
-        /// <param name="nodeId">节点ID</param>
-        /// <returns>连接状态</returns>
+
         public ConnectState GetConnectState(uint nodeId)
         {
             if (_netNodes.TryGetValue(nodeId, out var node))
@@ -160,28 +174,16 @@ namespace GameLogic
             return ConnectState.Disconnected;
         }
 
-        /// <summary>
-        /// 检查节点ID是否存在
-        /// </summary>
-        /// <param name="nodeId">节点ID</param>
-        /// <returns>是否存在</returns>
         public bool IsNodeExists(uint nodeId)
         {
             return _netNodes.ContainsKey(nodeId);
         }
 
-        /// <summary>
-        /// 获取所有连接的节点ID
-        /// </summary>
-        /// <returns>节点ID列表</returns>
         public List<uint> GetAllNodeIds()
         {
             return new List<uint>(_netNodes.Keys);
         }
 
-        /// <summary>
-        /// 关闭指定节点, 下一帧删除
-        /// </summary>
         public bool Close(uint nodeId)
         {
             if (!_netNodes.TryGetValue(nodeId, out var netNode)) return false;
@@ -190,25 +192,16 @@ namespace GameLogic
             return true;
         }
 
-        /// <summary
-        /// 获取重连失败次数，成功后次数会重置
-        /// </summary> 
         public int GetReconnectAttempts(uint nodeId)
         {
             if (!_netNodes.TryGetValue(nodeId, out var netNode)) return 0;
             return netNode._ReconnectAttempts;
         }
 
-        
-
         #endregion
 
-        #region 回调管理
+        #region 回调管理 (保持原有代码不变)
 
-        /// <summary>
-        /// 注册连接成功回调
-        /// </summary>
-        /// <param name="callback">回调函数</param>
         public void RegisterConnectCallback(ConnectCallback callback)
         {
             if (callback != null && !_connectCallbacks.Contains(callback))
@@ -217,10 +210,6 @@ namespace GameLogic
             }
         }
 
-        /// <summary>
-        /// 注销连接成功回调
-        /// </summary>
-        /// <param name="callback">回调函数</param>
         public void UnregisterConnectCallback(ConnectCallback callback)
         {
             if (callback != null)
@@ -229,10 +218,6 @@ namespace GameLogic
             }
         }
 
-        /// <summary>
-        /// 注册断线回调
-        /// </summary>
-        /// <param name="callback">回调函数</param>
         public void RegisterDisconnectCallback(DisconnectCallback callback)
         {
             if (callback != null && !_disconnectCallbacks.Contains(callback))
@@ -241,15 +226,145 @@ namespace GameLogic
             }
         }
 
-        /// <summary>
-        /// 注销断线回调
-        /// </summary>
-        /// <param name="callback">回调函数</param>
         public void UnregisterDisconnectCallback(DisconnectCallback callback)
         {
             if (callback != null)
             {
                 _disconnectCallbacks.Remove(callback);
+            }
+        }
+
+        #endregion
+
+        #region 新增：消息处理功能
+
+        /// <summary>
+        /// 注册消息监听器
+        /// </summary>
+        /// <param name="packId">消息包ID</param>
+        /// <param name="callback">回调函数</param>
+        public void RegisterMessageListener(ushort packId, MessageCallback callback)
+        {
+            if (callback == null) return;
+            
+            if (!_messageListeners.TryGetValue(packId, out var listeners))
+            {
+                listeners = new List<MessageCallback>();
+                _messageListeners[packId] = listeners;
+            }
+            
+            if (!listeners.Contains(callback))
+            {
+                listeners.Add(callback);
+            }
+        }
+
+        /// <summary>
+        /// 注销消息监听器
+        /// </summary>
+        /// <param name="packId">消息包ID</param>
+        /// <param name="callback">回调函数</param>
+        public void UnregisterMessageListener(ushort packId, MessageCallback callback)
+        {
+            if (callback == null) return;
+            
+            if (_messageListeners.TryGetValue(packId, out var listeners))
+            {
+                listeners.Remove(callback);
+                if (listeners.Count == 0)
+                {
+                    _messageListeners.Remove(packId);
+                }
+            }
+        }
+
+        /// <summary>
+        /// 发送消息（Send模式，不等待响应）
+        /// </summary>
+        /// <param name="nodeId">节点ID</param>
+        /// <param name="request">请求对象</param>
+        /// <returns>是否发送成功</returns>
+        public bool SendMessage(uint nodeId, INetRequest request)
+        {
+            if (!_netNodes.TryGetValue(nodeId, out var node))
+            {
+                Log.Error($"SendMessage失败，找不到节点 {nodeId}");
+                return false;
+            }
+
+            if (node.ConnectState != ConnectState.Connected)
+            {
+                Log.Error($"SendMessage失败，节点 {nodeId} 未连接");
+                return false;
+            }
+
+            try
+            {
+                node.SendMessage(request);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Log.Error($"SendMessage异常: {ex}");
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// 发送RPC请求（等待响应）
+        /// </summary>
+        /// <param name="nodeId">节点ID</param>
+        /// <param name="request">请求对象</param>
+        /// <param name="timeoutMs">超时时间（毫秒）</param>
+        /// <returns>响应对象</returns>
+        public async UniTask<INetResponse> SendRpcRequest(uint nodeId, INetRequest request, int timeoutMs = 5000)
+        {
+            if (!_netNodes.TryGetValue(nodeId, out var node))
+            {
+                throw new Exception($"SendRpcRequest失败，找不到节点 {nodeId}");
+            }
+
+            if (node.ConnectState != ConnectState.Connected)
+            {
+                throw new Exception($"SendRpcRequest失败，节点 {nodeId} 未连接");
+            }
+
+            // 发送请求并获取session
+            uint session = node.SendRpcRequest(request);
+            
+            // 创建等待任务
+            var completionSource = new UniTaskCompletionSource<INetResponse>();
+            
+            if (!_rpcWaitingMap.TryGetValue(nodeId, out var nodeRpcs))
+            {
+                nodeRpcs = new Dictionary<uint, UniTaskCompletionSource<INetResponse>>();
+                _rpcWaitingMap[nodeId] = nodeRpcs;
+            }
+            
+            nodeRpcs[session] = completionSource;
+
+            try
+            {
+                // 等待响应或超时
+                var response = await completionSource.Task.Timeout(TimeSpan.FromMilliseconds(timeoutMs));
+                return response;
+            }
+            catch (TimeoutException)
+            {
+                // 清理超时的RPC
+                if (nodeRpcs.TryGetValue(session, out var timeoutRpc))
+                {
+                    nodeRpcs.Remove(session);
+                }
+                throw new Exception($"RPC请求超时，节点 {nodeId}，session {session}");
+            }
+            finally
+            {
+                // 清理完成的RPC
+                if (nodeRpcs.TryGetValue(session, out var finishedRpc))
+                {
+                    nodeRpcs.Remove(session);
+                }
             }
         }
 
@@ -261,7 +376,6 @@ namespace GameLogic
         {
             Log.Info($"节点 {nodeId} 连接结果: {(success ? "成功" : "失败")} {errorMsg}");
             
-            // 通知所有注册的回调
             foreach (var callback in _connectCallbacks)
             {
                 try
@@ -278,7 +392,17 @@ namespace GameLogic
         private void OnNodeDisconnected(uint nodeId, DisconnectType disconnectType, string reason)
         {
             Log.Info($"节点 {nodeId} {disconnectType}: {reason}");
-            // 通知所有注册的回调
+            
+            // 取消该节点所有等待的RPC
+            if (_rpcWaitingMap.TryGetValue(nodeId, out var nodeRpcs))
+            {
+                foreach (var rpc in nodeRpcs.Values)
+                {
+                    rpc.TrySetException(new Exception($"节点 {nodeId} 断开连接: {reason}"));
+                }
+                _rpcWaitingMap.Remove(nodeId);
+            }
+            
             foreach (var callback in _disconnectCallbacks)
             {
                 try
@@ -292,14 +416,47 @@ namespace GameLogic
             }
         }
 
+        /// <summary>
+        /// 新增：处理接收到的消息
+        /// </summary>
+        private void OnMessageReceived(uint nodeId, INetResponse response)
+        {
+            var protoBufResponse = (ProtoBufResponse)response;
+            ushort packId = protoBufResponse._PackId;
+            uint session = protoBufResponse._Session - 1;
+
+            if (!protoBufResponse._IsPush)
+            {
+                if (_rpcWaitingMap.TryGetValue(nodeId, out var nodeRpcs) && 
+                    nodeRpcs.TryGetValue(session, out var completionSource))
+                {
+                    completionSource.TrySetResult(response);
+                    nodeRpcs.Remove(session);
+                    return;
+                }
+            }
+
+            // 触发消息监听器
+            if (_messageListeners.TryGetValue(packId, out var listeners))
+            {
+                foreach (var listener in listeners)
+                {
+                    try
+                    {
+                        listener?.Invoke(nodeId, response);
+                    }
+                    catch (Exception ex)
+                    {
+                        Log.Error($"消息监听器执行异常: {ex}");
+                    }
+                }
+            }
+        }
+
         #endregion
 
-        #region 调试信息
+        #region 调试信息 (保持原有代码不变)
 
-        /// <summary>
-        /// 获取所有连接信息
-        /// </summary>
-        /// <returns>连接信息字符串</returns>
         public string GetConnectionsInfo()
         {
             var info = $"当前连接数: {_netNodes.Count}\n";

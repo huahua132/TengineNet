@@ -44,7 +44,7 @@ namespace GameLogic
                     break;
                 ringBuffer.MarkReaderIndex();
                 // 读取消息包长度
-                ushort msgsz = ringBuffer.ReadUShort();
+                ushort msgsz = ringBuffer.ReadUShort(ByteOrder.BigEndian);
 
                 // 如果剩余可读数据小于包体长度。
                 if (ringBuffer.ReadableBytes < msgsz)
@@ -56,8 +56,8 @@ namespace GameLogic
                 RpcNetPackage package = new RpcNetPackage();
                 package.packtype = ringBuffer.ReadByte(); //包类型
                 package.msgtype = ringBuffer.ReadByte();  //消息类型
-                package.packid = ringBuffer.ReadUShort(); //协议号
-                package.session = ringBuffer.ReadUInt();  //会话号
+                package.packid = ringBuffer.ReadUShort(ByteOrder.BigEndian); //协议号
+                package.session = ringBuffer.ReadUInt(ByteOrder.BigEndian);  //会话号
 
                 int msgBodyLength = msgsz - HeaderFiledsSize;
 
@@ -69,10 +69,16 @@ namespace GameLogic
                 }
 
                 // 读取包体。
+                if ((PACK_TYPE)package.packtype != PACK_TYPE.HEAD)
                 {
                     package.msgbody = ringBuffer.ReadBytes(msgBodyLength);
-                    outputPackages.Add(package);
                 }
+                else
+                {
+                    package.sz = ringBuffer.ReadUInt(ByteOrder.BigEndian);
+                }
+                    
+                outputPackages.Add(package);
             }
 
             // 注意：将剩余数据移至起始。

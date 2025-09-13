@@ -47,5 +47,6 @@ namespace GameLogic
         /// 消息内容 字段描述：包头时为4字节的消息内容长度
         /// </summary>
         public byte[] msgbody { set; get; }
+        public uint sz { set; get; }
     }
 }

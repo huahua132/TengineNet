@@ -1,4 +1,5 @@
-﻿using TEngine;
+﻿using System.Diagnostics;
+using TEngine;
 
 namespace GameLogic
 {
@@ -71,20 +72,17 @@ namespace GameLogic
                 return;
             }
             //写入消息总长度 
-            ringBuffer.WriteUShort((ushort)(HeaderFiledsSize + bodyData.Length));
-            // 写入包头。
-            {
-                // 写入包类型
-                ringBuffer.WriteByte(package.packtype);
-                // 写入消息类型
-                ringBuffer.WriteByte(package.msgtype);
-                // 写入消息ID
-                ringBuffer.WriteUShort(package.packid);
-                // 写入session
-                ringBuffer.WriteUInt(package.session);
-            }
-
-            // 写入包体。
+            ringBuffer.WriteUShort((ushort)(HeaderFiledsSize + bodyData.Length), ByteOrder.BigEndian);
+            // 写入包类型
+            ringBuffer.WriteByte(package.packtype);
+            // 写入消息类型
+            ringBuffer.WriteByte(package.msgtype);
+            // 写入消息ID
+            ringBuffer.WriteUShort(package.packid, ByteOrder.BigEndian);
+            // 写入session
+            ringBuffer.WriteUInt(package.session, ByteOrder.BigEndian);
+            //Log.Info($" {package.packtype}  {package.msgtype} {package.packid} {package.session}");
+            // 写入包体
             ringBuffer.WriteBytes(bodyData, 0, bodyData.Length);
         }
     }

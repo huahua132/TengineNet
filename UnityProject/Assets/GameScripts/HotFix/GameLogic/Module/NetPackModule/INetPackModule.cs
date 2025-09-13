@@ -1,6 +1,6 @@
-using System;
-using System.Collections.Generic;
 using TEngine;
+using System.Collections.Generic;
+using Cysharp.Threading.Tasks;
 
 namespace GameLogic
 {
@@ -92,6 +92,39 @@ namespace GameLogic
         /// <param name="callback">回调函数</param>
         void UnregisterDisconnectCallback(DisconnectCallback callback);
 
+        #endregion
+
+        #region 新增：消息处理功能
+        /// <summary>
+        /// 注册消息监听器
+        /// </summary>
+        /// <param name="packId">消息包ID</param>
+        /// <param name="callback">回调函数</param>
+        void RegisterMessageListener(ushort packId, MessageCallback callback);
+
+        /// <summary>
+        /// 注销消息监听器
+        /// </summary>
+        /// <param name="packId">消息包ID</param>
+        /// <param name="callback">回调函数</param>
+        void UnregisterMessageListener(ushort packId, MessageCallback callback);
+
+        /// <summary>
+        /// 发送消息（Send模式，不等待响应）
+        /// </summary>
+        /// <param name="nodeId">节点ID</param>
+        /// <param name="request">请求对象</param>
+        /// <returns>是否发送成功</returns>
+        bool SendMessage(uint nodeId, INetRequest request);
+
+        /// <summary>
+        /// 发送RPC请求（等待响应）
+        /// </summary>
+        /// <param name="nodeId">节点ID</param>
+        /// <param name="request">请求对象</param>
+        /// <param name="timeoutMs">超时时间（毫秒）</param>
+        /// <returns>响应对象</returns>
+        UniTask<INetResponse> SendRpcRequest(uint nodeId, INetRequest request, int timeoutMs = 5000);
         #endregion
 
         #region 调试信息

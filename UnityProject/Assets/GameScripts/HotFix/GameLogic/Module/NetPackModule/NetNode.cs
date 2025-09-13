@@ -4,17 +4,19 @@ using TEngine;
 
 namespace GameLogic
 {
+    public delegate void MessageHandleCallback(uint nodeId, INetResponse response);
     /// <summary>
     /// 网络节点 - 内部实现，完全封装
     /// </summary>
     internal class NetNode : IMemory
     {
         public static readonly int PackageBodyMaxSize = ushort.MaxValue - 8;
-        
+
         private static readonly RpcNetPackageEncoder _netPackEncoder = new RpcNetPackageEncoder();
         private static readonly RpcNetPackageDecoder _netPackDecoder = new RpcNetPackageDecoder();
         private IMsgBodyHelper _msgBodyHelper;
-        
+        private MessageHandleCallback _messageHandleCallback; 
+
         private uint _guid;
         private NetworkType _networkType;
         private string _ip;
@@ -79,6 +81,12 @@ namespace GameLogic
             _disconnectCallback = disconnectCallback;
         }
 
+        // 新增：设置消息处理回调
+        public void SetMessageHandleCallback(MessageHandleCallback callback)
+        {
+            _messageHandleCallback = callback;
+        }
+
         private void MsgBodyErrHandle(string errorMsg = "")
         {
             Log.Error($"MsgBodyErrHandle nodeId = {_guid} connectState= {_connectState} errorMsg = {errorMsg}");
@@ -86,14 +94,24 @@ namespace GameLogic
             DisconnectInternal(true);
         }
 
-        private void MsgBodyEncodeCb(INetPackage pack)
-        {
-            _conn.SendPackage(pack);
-        }
-
         private void MsgBodyHandleCb(INetResponse response)
         {
-            
+            _messageHandleCallback?.Invoke(_guid, response);
+        }
+
+        // 新增：发送消息（Send模式）
+        public void SendMessage(INetRequest request)
+        {
+            var package = _msgBodyHelper.EncodePush(request);
+            _conn.SendPackage(package);
+        }
+
+        // 新增：发送RPC请求（返回session用于匹配响应）
+        public uint SendRpcRequest(INetRequest request)
+        {
+            var package = (RpcNetPackage)_msgBodyHelper.EncodeRpc(request);
+            _conn.SendPackage(package);
+            return package.session;
         }
 
         public void Connect()
@@ -106,7 +124,7 @@ namespace GameLogic
             try
             {
                 _msgBodyHelper = new ProtoBufMsgBodyHelper();
-                _msgBodyHelper.Init(MsgBodyErrHandle, MsgBodyEncodeCb, MsgBodyHandleCb);
+                _msgBodyHelper.Init(MsgBodyErrHandle, MsgBodyHandleCb);
                 _connectState = ConnectState.Connecting;
                 _isActiveDisconnect = false; // 重置主动断开标记
                 _conn = GameModule.Network.CreateNetworkClient(_networkType, PackageBodyMaxSize, _netPackEncoder, _netPackDecoder);
@@ -147,7 +165,7 @@ namespace GameLogic
         private void DisconnectInternal(bool triggerCallback)
         {
             var oldState = _connectState;
-            
+
             if (_conn != null)
             {
                 try
@@ -160,9 +178,9 @@ namespace GameLogic
                     Log.Error($"断开连接异常: {ex}");
                 }
             }
-            
+
             _connectState = ConnectState.Disconnected;
-            
+
             // 只有在已连接状态下的断开才触发回调
             if (triggerCallback && oldState == ConnectState.Connected)
             {
@@ -201,7 +219,7 @@ namespace GameLogic
                 }
             }
         }
-        
+
 
         #endregion
 
@@ -210,7 +228,7 @@ namespace GameLogic
         private void OnConnectResult(SocketError error)
         {
             bool success = error == SocketError.Success;
-            
+
             if (success)
             {
                 _connectState = ConnectState.Connected;
@@ -224,7 +242,7 @@ namespace GameLogic
                 _conn = null;
                 Log.Error($"节点 {_guid} 连接失败: {error}");
             }
-            
+
             _connectCallback?.Invoke(_guid, success, success ? "" : error.ToString());
         }
 
