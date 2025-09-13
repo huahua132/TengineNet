@@ -5,15 +5,19 @@ namespace GameLogic
 {
     public interface INetResponse
     {
+        ushort _PackId { get; set; }
+        uint _Session { get; set; }
+        bool _IsError { get; set; }
+        bool _IsPush { get; set; }
         T GetResponse<T>();
     }
 
     public class ProtoBufResponse : INetResponse
     {
-        public ushort _PackId { get; private set; }
-        public uint _Session { get; private set; }
-        public bool _IsError { get; private set; }
-        public bool _IsPush { get; private set; }
+        public ushort _PackId { get; set; }
+        public uint _Session { get; set; }
+        public bool _IsError { get; set; }
+        public bool _IsPush { get; set; }
         private byte[] _msgBody;
         private MemoryStream _stream;
 

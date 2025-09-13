@@ -19,7 +19,7 @@ namespace GameLogic
         /// <param name="ip">服务器IP</param>
         /// <param name="port">服务器端口</param>
         /// <returns>节点ID</returns>
-        uint Connect(uint nodeId, NetworkType networkType, string ip, int port);
+        uint Connect(uint nodeId, NetworkType networkType, string ip, int port, IMsgBodyHelper msgBodyHelper);
 
         /// <summary>
         /// 重连指定节点

@@ -108,7 +108,7 @@ public partial class GameApp
             GameModule.NetPack.RegisterConnectCallback(ConnectCallback);
             GameModule.NetPack.RegisterDisconnectCallback(DisconnectCallback);
             GameModule.NetPack.RegisterMessageListener(10180, OnMessageReceived);
-            GameModule.NetPack.Connect(1, NetworkType.WebSocket, "ws://127.0.0.1", port);
+            GameModule.NetPack.Connect(1, NetworkType.WebSocket, "ws://127.0.0.1", port, new ProtoBufMsgBodyHelper());
             Log.Info("delay start");
             await UniTask.Delay(3000);
             Log.Info("delay over");

@@ -8,12 +8,14 @@ namespace GameLogic
     public delegate void MsgBodyErrHandle(string errorMsg = "");
     public delegate void MsgBodyHandleCb(INetResponse response);
 
-    interface IMsgBodyHelper
+    public interface IMsgBodyHelper
     {
         void Init(MsgBodyErrHandle errhandle, MsgBodyHandleCb handleCb);
         INetPackage EncodePush(INetRequest Request);
         INetPackage EncodeRpc(INetRequest Request);
         void handleNetPack(INetPackage netPackage);
+        void ClearSession(uint session);
+        void ClearAll();
     }
 
     public class ProtoBufMsgBodyHelper : IMsgBodyHelper
@@ -218,7 +220,7 @@ namespace GameLogic
                     return;
             }
         }
-        
+
         public void ClearSession(uint session)
         {
             if (_pushStreams.TryGetValue(session, out var pushStream))
@@ -227,13 +229,21 @@ namespace GameLogic
                 _pushStreams.Remove(session);
                 _pushPackageHeads.Remove(session);
             }
-            
+
             if (_rspStreams.TryGetValue(session, out var rspStream))
             {
                 rspStream?.Dispose();
                 _rspStreams.Remove(session);
                 _rspPackageHeads.Remove(session);
             }
+        }
+
+        public void ClearAll()
+        {
+            _pushPackageHeads.Clear();
+            _pushStreams.Clear();
+            _rspPackageHeads.Clear();
+            _rspStreams.Clear();
         }
     }
 }

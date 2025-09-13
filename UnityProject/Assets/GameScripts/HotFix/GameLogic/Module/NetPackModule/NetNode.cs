@@ -65,7 +65,7 @@ namespace GameLogic
         /// <param name="networkType">网络类型</param>
         /// <param name="ip">服务器IP</param>
         /// <param name="port">服务器端口</param>
-        public void Init(uint guid, NetworkType networkType, string ip, int port)
+        public void Init(uint guid, NetworkType networkType, string ip, int port, IMsgBodyHelper msgBodyHelper)
         {
             _guid = guid;
             _networkType = networkType;
@@ -73,6 +73,8 @@ namespace GameLogic
             _port = port;
             _connectState = ConnectState.Disconnected;
             _isActiveDisconnect = false;
+            _msgBodyHelper = msgBodyHelper;
+            _msgBodyHelper.Init(MsgBodyErrHandle, MsgBodyHandleCb);
         }
 
         public void SetCallbacks(ConnectCallback connectCallback, DisconnectCallback disconnectCallback)
@@ -123,8 +125,6 @@ namespace GameLogic
 
             try
             {
-                _msgBodyHelper = new ProtoBufMsgBodyHelper();
-                _msgBodyHelper.Init(MsgBodyErrHandle, MsgBodyHandleCb);
                 _connectState = ConnectState.Connecting;
                 _isActiveDisconnect = false; // 重置主动断开标记
                 _conn = GameModule.Network.CreateNetworkClient(_networkType, PackageBodyMaxSize, _netPackEncoder, _netPackDecoder);
@@ -170,6 +170,7 @@ namespace GameLogic
             {
                 try
                 {
+                    _msgBodyHelper.ClearAll();
                     _conn.Dispose();
                     _conn = null;
                 }

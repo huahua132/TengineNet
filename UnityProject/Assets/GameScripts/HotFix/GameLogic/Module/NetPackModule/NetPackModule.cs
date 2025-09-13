@@ -118,7 +118,7 @@ namespace GameLogic
 
         #region 连接管理 (保持原有代码不变)
         
-        public uint Connect(uint nodeId, NetworkType networkType, string ip, int port)
+        public uint Connect(uint nodeId, NetworkType networkType, string ip, int port, IMsgBodyHelper msgBodyHelper)
         {
             if (_netNodes.ContainsKey(nodeId))
             {
@@ -127,7 +127,7 @@ namespace GameLogic
             }
 
             var node = MemoryPool.Acquire<NetNode>();
-            node.Init(nodeId, networkType, ip, port);
+            node.Init(nodeId, networkType, ip, port, msgBodyHelper);
             node.SetCallbacks(OnNodeConnected, OnNodeDisconnected);
             
             // 新增：设置消息处理回调
@@ -421,11 +421,10 @@ namespace GameLogic
         /// </summary>
         private void OnMessageReceived(uint nodeId, INetResponse response)
         {
-            var protoBufResponse = (ProtoBufResponse)response;
-            ushort packId = protoBufResponse._PackId;
-            uint session = protoBufResponse._Session - 1;
+            ushort packId = response._PackId;
+            uint session = response._Session - 1;
 
-            if (!protoBufResponse._IsPush)
+            if (!response._IsPush)
             {
                 if (_rpcWaitingMap.TryGetValue(nodeId, out var nodeRpcs) && 
                     nodeRpcs.TryGetValue(session, out var completionSource))
