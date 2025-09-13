@@ -14,17 +14,24 @@ namespace GameLogic
         INetPackage EncodePush(INetRequest Request);
         INetPackage EncodeRpc(INetRequest Request);
         void handleNetPack(INetPackage netPackage);
-        void ClearSession(uint session);
         void ClearAll();
+        void CheckTimeouts(); // 新增：检查超时
     }
 
     public class ProtoBufMsgBodyHelper : IMsgBodyHelper
     {
         private uint _incrSession = 1;
-        private readonly Dictionary<uint, RpcNetPackage> _pushPackageHeads = new();   // 服务器推送的消息头
+        private readonly Dictionary<uint, RpcNetPackage> _pushPackageHeads = new();   
         private readonly Dictionary<uint, MemoryStream> _pushStreams = new();
-        private readonly Dictionary<uint, RpcNetPackage> _rspPackageHeads = new();    // 服务器回复的消息头
+        private readonly Dictionary<uint, RpcNetPackage> _rspPackageHeads = new();    
         private readonly Dictionary<uint, MemoryStream> _rspStreams = new();
+        
+        // 新增：记录每个session的开始时间
+        private readonly Dictionary<uint, DateTime> _pushSessionTimes = new();
+        private readonly Dictionary<uint, DateTime> _rspSessionTimes = new();
+        
+        // 新增：超时配置（秒）
+        private readonly int _timeoutSeconds = 30; // 默认30秒超时
 
         private uint allocSession()
         {
@@ -86,7 +93,6 @@ namespace GameLogic
             var packId = pack.packid;
             var msgType = (MSG_TYPE)pack.msgtype;
 
-            // 服务端不应发送 CLIENT_* 类型
             if (msgType == MSG_TYPE.CLIENT_REQ || msgType == MSG_TYPE.CLIENT_PUSH)
             {
                 _errHandle?.Invoke($"handleNetPack invalid msgType from server? packId={packId} msgType={msgType}");
@@ -94,7 +100,6 @@ namespace GameLogic
             }
 
             uint session = pack.session;
-            // 按约定：服务端回复为偶数 session
             if (msgType == MSG_TYPE.SERVER_RSP && (session == 0 || session % 2 == 1))
             {
                 _errHandle?.Invoke($"handleNetPack rpc rsp err session packId={packId} msgType={msgType} session={session}");
@@ -106,10 +111,12 @@ namespace GameLogic
 
             var packages = _rspPackageHeads;
             var streams = _rspStreams;
+            var sessionTimes = _rspSessionTimes; // 新增
             if (msgType == MSG_TYPE.SERVER_PUSH)
             {
                 packages = _pushPackageHeads;
                 streams = _pushStreams;
+                sessionTimes = _pushSessionTimes; // 新增
             }
 
             switch (packType)
@@ -141,6 +148,7 @@ namespace GameLogic
 
                         packages[session] = pack;
                         streams[session] = new MemoryStream((int)expectedSize);
+                        sessionTimes[session] = DateTime.Now; // 新增：记录开始时间
                     }
                     break;
 
@@ -167,12 +175,10 @@ namespace GameLogic
                         if ((ulong)stream.Length + (ulong)pack.msgbody.Length > expectedSz)
                         {
                             _errHandle?.Invoke($"handleNetPack BODY overflow packId={packId} session={session} expected={expectedSz} wouldBe={(stream.Length + pack.msgbody.Length)}");
-                            packages.Remove(session);
-                            streams.Remove(session);
+                            ClearSessionInternal(session, packages, streams, sessionTimes); // 修改：使用内部清理方法
                             return;
                         }
 
-                        // 正确地把当前 BODY 包的数据写入流
                         stream.Write(pack.msgbody, 0, pack.msgbody.Length);
                     }
                     break;
@@ -187,7 +193,7 @@ namespace GameLogic
                         if (!streams.TryGetValue(session, out var streamTail))
                         {
                             _errHandle?.Invoke($"handleNetPack TAIL stream missing packId={packId} session={session}");
-                            packages.Remove(session);
+                            ClearSessionInternal(session, packages, streams, sessionTimes); // 修改
                             return;
                         }
 
@@ -196,8 +202,7 @@ namespace GameLogic
                         if ((uint)streamTail.Length != expectedSz)
                         {
                             _errHandle?.Invoke($"handleNetPack TAIL size mismatch packId={packId} session={session} expected={expectedSz} real={streamTail.Length}");
-                            packages.Remove(session);
-                            streams.Remove(session);
+                            ClearSessionInternal(session, packages, streams, sessionTimes); // 修改
                             return;
                         }
 
@@ -208,8 +213,7 @@ namespace GameLogic
                         streamTail.Position = 0;
                         rsp.Init(headPackTail.packid, headPackTail.session, isErr, isPush, streamTail);
 
-                        packages.Remove(session);
-                        streams.Remove(session);
+                        ClearSessionInternal(session, packages, streams, sessionTimes, false); // 修改：完成后清理
 
                         _handleCb?.Invoke(rsp);
                     }
@@ -221,29 +225,94 @@ namespace GameLogic
             }
         }
 
-        public void ClearSession(uint session)
+        // 新增：内部清理方法
+        private void ClearSessionInternal(uint session, 
+            Dictionary<uint, RpcNetPackage> packages, 
+            Dictionary<uint, MemoryStream> streams,
+            Dictionary<uint, DateTime> sessionTimes, bool isClearStream = true)
         {
-            if (_pushStreams.TryGetValue(session, out var pushStream))
+            if (streams.TryGetValue(session, out var stream))
             {
-                pushStream?.Dispose();
-                _pushStreams.Remove(session);
-                _pushPackageHeads.Remove(session);
+                if (isClearStream)
+                {
+                    stream?.Dispose();
+                }
+                streams.Remove(session);
             }
-
-            if (_rspStreams.TryGetValue(session, out var rspStream))
-            {
-                rspStream?.Dispose();
-                _rspStreams.Remove(session);
-                _rspPackageHeads.Remove(session);
-            }
+            packages.Remove(session);
+            sessionTimes.Remove(session);
         }
 
         public void ClearAll()
         {
+            // 释放所有流资源
+            foreach (var stream in _pushStreams.Values)
+            {
+                stream?.Dispose();
+            }
+            foreach (var stream in _rspStreams.Values)
+            {
+                stream?.Dispose();
+            }
+
             _pushPackageHeads.Clear();
             _pushStreams.Clear();
             _rspPackageHeads.Clear();
             _rspStreams.Clear();
+            _pushSessionTimes.Clear(); // 新增
+            _rspSessionTimes.Clear(); // 新增
+        }
+
+        // 新增：检查并清理超时的包
+        public void CheckTimeouts()
+        {
+            var now = DateTime.Now;
+            var timeoutSessions = new List<uint>();
+
+            // 检查推送包的超时
+            foreach (var kvp in _pushSessionTimes)
+            {
+                if ((now - kvp.Value).TotalSeconds > _timeoutSeconds)
+                {
+                    timeoutSessions.Add(kvp.Key);
+                }
+            }
+
+            foreach (uint session in timeoutSessions)
+            {
+                Log.Warning($"CheckTimeouts: Clearing timeout push session {session}");
+                ClearSessionInternal(session, _pushPackageHeads, _pushStreams, _pushSessionTimes);
+                _errHandle?.Invoke($"Push session {session} timeout and cleared");
+            }
+
+            timeoutSessions.Clear();
+
+            // 检查回复包的超时
+            foreach (var kvp in _rspSessionTimes)
+            {
+                if ((now - kvp.Value).TotalSeconds > _timeoutSeconds)
+                {
+                    timeoutSessions.Add(kvp.Key);
+                }
+            }
+
+            foreach (uint session in timeoutSessions)
+            {
+                Log.Warning($"CheckTimeouts: Clearing timeout rsp session {session}");
+                ClearSessionInternal(session, _rspPackageHeads, _rspStreams, _rspSessionTimes);
+                _errHandle?.Invoke($"Rsp session {session} timeout and cleared");
+            }
+        }
+
+        // 新增：设置超时时间（可选）
+        public void SetTimeout(int timeoutSeconds)
+        {
+            if (timeoutSeconds > 0)
+            {
+                System.Reflection.FieldInfo field = typeof(ProtoBufMsgBodyHelper).GetField("_timeoutSeconds", 
+                    System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                field?.SetValue(this, timeoutSeconds);
+            }
         }
     }
 }

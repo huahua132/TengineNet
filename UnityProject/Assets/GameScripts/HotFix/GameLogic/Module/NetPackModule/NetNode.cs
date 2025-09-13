@@ -217,6 +217,7 @@ namespace GameLogic
                     {
                         _msgBodyHelper.handleNetPack(netPack);
                     }
+                    _msgBodyHelper.CheckTimeouts();
                 }
             }
         }
