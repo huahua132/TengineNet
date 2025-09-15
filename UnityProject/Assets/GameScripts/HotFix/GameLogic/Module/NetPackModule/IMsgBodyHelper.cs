@@ -127,10 +127,10 @@ namespace GameLogic
                         bool isPush = msgType == MSG_TYPE.SERVER_PUSH;
                         var rsp = new ProtoBufResponse();
                         rsp.Init(packId, pack.session, isErr, isPush, pack.msgbody);
+                        MemoryPool.Release(pack);
                         _handleCb?.Invoke(rsp);
                     }
                     break;
-
                 case PACK_TYPE.HEAD:
                     {
                         if (packages.ContainsKey(session))
@@ -180,6 +180,7 @@ namespace GameLogic
                         }
 
                         stream.Write(pack.msgbody, 0, pack.msgbody.Length);
+                        MemoryPool.Release(pack);
                     }
                     break;
 
@@ -198,6 +199,7 @@ namespace GameLogic
                         }
 
                         streamTail.Write(pack.msgbody, 0, pack.msgbody.Length);
+                        MemoryPool.Release(pack);
                         uint expectedSz = headPackTail.sz;
                         if ((uint)streamTail.Length != expectedSz)
                         {
@@ -239,8 +241,12 @@ namespace GameLogic
                 }
                 streams.Remove(session);
             }
-            packages.Remove(session);
-            sessionTimes.Remove(session);
+            if (packages.TryGetValue(session, out var pack))
+            {
+                MemoryPool.Release(pack);
+                packages.Remove(session);
+                sessionTimes.Remove(session);
+            }
         }
 
         public void ClearAll()

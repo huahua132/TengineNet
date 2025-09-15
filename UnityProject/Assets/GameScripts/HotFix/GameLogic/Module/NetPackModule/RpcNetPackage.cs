@@ -24,7 +24,7 @@ namespace GameLogic
     /// 实现 <see cref="INetPackage"/> 接口，提供消息ID与二进制载荷的标准容器。
     /// 通常配合编解码器（Encoder/Decoder）进行序列化与反序列化操作。
     /// </remarks>
-    public class RpcNetPackage : INetPackage
+    public class RpcNetPackage : INetPackage, IMemory
     {
         /// <summary>
         /// 包类型，字段描述: (0-整包  1包头  2包体  3包尾)
@@ -48,5 +48,15 @@ namespace GameLogic
         /// </summary>
         public byte[] msgbody { set; get; }
         public uint sz { set; get; }
+
+        public void Clear()
+        {
+            packtype = 0;
+            msgtype = 0;
+            packid = 0;
+            session = 0;
+            sz = 0;
+            msgbody = null;
+        }
     }
 }

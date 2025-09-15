@@ -53,7 +53,7 @@ namespace GameLogic
                     break; //需要退出读够数据再解包。
                 }
 
-                RpcNetPackage package = new RpcNetPackage();
+                RpcNetPackage package = MemoryPool.Acquire<RpcNetPackage>();
                 package.packtype = ringBuffer.ReadByte(); //包类型
                 package.msgtype = ringBuffer.ReadByte();  //消息类型
                 package.packid = ringBuffer.ReadUShort(ByteOrder.BigEndian); //协议号
