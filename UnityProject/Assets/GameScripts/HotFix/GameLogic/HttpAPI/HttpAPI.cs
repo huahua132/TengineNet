@@ -41,6 +41,13 @@ namespace GameLogic
     {
         public string account;
         public string password;
+    }
+
+    [Serializable]
+    public class HttpSignUpReq
+    {
+        public string account;
+        public string password;
         public int channel;
     }
 
