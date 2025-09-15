@@ -35,7 +35,7 @@ namespace GameLogic
         }
     }
 
-    public class ProtoBufResponse : INetResponse
+    public class ProtoBufResponse : INetResponse, IMemory
     {
         public ushort _PackId { get; set; }
         public uint _Session { get; set; }
@@ -44,6 +44,20 @@ namespace GameLogic
         private ProtoBuf.IExtensible _Body;
         private byte[] _msgBody;
         private MemoryStream _stream;
+        public void Clear()
+        {
+            _PackId = 0;
+            _Session = 0;
+            _IsError = false;
+            _IsPush = false;
+            _Body = null;
+            _msgBody = null;
+            if (_stream != null)
+            {
+                _stream.Dispose();
+                _stream = null;
+            }
+        }
 
         public void Init(ushort packId, uint session, bool isError, bool isPush, byte[] msgbody)
         {
@@ -72,6 +86,8 @@ namespace GameLogic
             else
             {
                 _Body = (ProtoBuf.IExtensible)ProtoBufHelper.FromStream<T>(_stream);
+                _stream.Dispose();
+                _stream = null;
             }
             return (T)_Body;
         }

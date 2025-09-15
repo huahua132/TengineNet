@@ -125,10 +125,11 @@ namespace GameLogic
                     {
                         bool isErr = msgType == MSG_TYPE.SERVER_ERR;
                         bool isPush = msgType == MSG_TYPE.SERVER_PUSH;
-                        var rsp = new ProtoBufResponse();
+                        var rsp = MemoryPool.Acquire<ProtoBufResponse>();
                         rsp.Init(packId, pack.session, isErr, isPush, pack.msgbody);
                         MemoryPool.Release(pack);
                         _handleCb?.Invoke(rsp);
+                        MemoryPool.Release(rsp);
                     }
                     break;
                 case PACK_TYPE.HEAD:
@@ -208,7 +209,7 @@ namespace GameLogic
                             return;
                         }
 
-                        var rsp = new ProtoBufResponse();
+                        var rsp = MemoryPool.Acquire<ProtoBufResponse>();
                         var msgTypeHead = (MSG_TYPE)headPackTail.msgtype;
                         bool isErr = msgTypeHead == MSG_TYPE.SERVER_ERR;
                         bool isPush = msgTypeHead == MSG_TYPE.SERVER_PUSH;
@@ -218,6 +219,7 @@ namespace GameLogic
                         ClearSessionInternal(session, packages, streams, sessionTimes, false); // 修改：完成后清理
 
                         _handleCb?.Invoke(rsp);
+                        MemoryPool.Release(rsp);
                     }
                     break;
 
