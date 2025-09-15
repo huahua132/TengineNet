@@ -98,6 +98,7 @@ public partial class GameApp
             GameEvent.Get<ILoginUI>().ShowLoginUI();
             GameModule.UI.ShowUIAsync<BattleMainUI>();
             ModuleSystem.RegisterModule<INetPackModule>(new NetPackModule());
+            ModuleSystem.RegisterModule<ISystemModule>(new SystemModule());
             var cts = new CancellationTokenSource();
             cts.CancelAfterSlim(TimeSpan.FromSeconds(5f));
             var req = new LoginReq();
