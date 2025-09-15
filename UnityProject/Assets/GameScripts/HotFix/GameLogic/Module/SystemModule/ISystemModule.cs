@@ -1,6 +1,6 @@
 namespace GameLogic
 {
-    interface ISystemModule
+    public interface ISystemModule
     {
         // 手动注册系统（可选功能）
         void RegisterSystem<T>() where T : class, ISystem, new();

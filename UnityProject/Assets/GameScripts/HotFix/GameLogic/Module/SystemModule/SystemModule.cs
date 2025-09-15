@@ -33,7 +33,7 @@ namespace GameLogic
     }
 
     // 系统模块管理器
-    public class SystemModule : TEngine.Module, IUpdateModule
+    public class SystemModule : TEngine.Module, IUpdateModule, ISystemModule
     {
         // 存储所有系统实例
         private readonly List<ISystem> _systems = new List<ISystem>();

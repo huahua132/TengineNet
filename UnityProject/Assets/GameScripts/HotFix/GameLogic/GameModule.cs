@@ -99,6 +99,12 @@ public class GameModule
     private static INetPackModule _netPack;
 
     /// <summary>
+    /// 系统模块
+    /// </summary>
+    public static ISystemModule System => _system ??= Get<ISystemModule>();
+    private static ISystemModule _system;
+
+    /// <summary>
     /// 获取游戏框架模块类。
     /// </summary>
     /// <typeparam name="T">游戏框架模块类。</typeparam>
