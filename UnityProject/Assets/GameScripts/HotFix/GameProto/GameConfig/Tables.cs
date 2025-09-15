@@ -13,17 +13,41 @@ namespace GameConfig
 {
 public partial class Tables
 {
-    public item.TbItem TbItem {get; }
+    public player.tb_player_level TbPlayerLevel {get; }
+    public item.tb_item_info TbItemInfo {get; }
+    public chess.tb_chess_type TbChessType {get; }
+    public chess.tb_chess_param TbChessParam {get; }
+    public chess.tb_chess_rank TbChessRank {get; }
+    public match.tb_match_game TbMatchGame {get; }
+    public email.tb_email_sys TbEmailSys {get; }
+    public email.tb_email_friend TbEmailFriend {get; }
+    public misc.tb_misc_param TbMiscParam {get; }
 
     public Tables(System.Func<string, ByteBuf> loader)
     {
-        TbItem = new item.TbItem(loader("item_tbitem"));
+        TbPlayerLevel = new player.tb_player_level(loader("player_level"));
+        TbItemInfo = new item.tb_item_info(loader("item_info"));
+        TbChessType = new chess.tb_chess_type(loader("chess_type"));
+        TbChessParam = new chess.tb_chess_param(loader("chess_param"));
+        TbChessRank = new chess.tb_chess_rank(loader("chess_rank"));
+        TbMatchGame = new match.tb_match_game(loader("match_game"));
+        TbEmailSys = new email.tb_email_sys(loader("email_sys"));
+        TbEmailFriend = new email.tb_email_friend(loader("email_friend"));
+        TbMiscParam = new misc.tb_misc_param(loader("misc_param"));
         ResolveRef();
     }
     
     private void ResolveRef()
     {
-        TbItem.ResolveRef(this);
+        TbPlayerLevel.ResolveRef(this);
+        TbItemInfo.ResolveRef(this);
+        TbChessType.ResolveRef(this);
+        TbChessParam.ResolveRef(this);
+        TbChessRank.ResolveRef(this);
+        TbMatchGame.ResolveRef(this);
+        TbEmailSys.ResolveRef(this);
+        TbEmailFriend.ResolveRef(this);
+        TbMiscParam.ResolveRef(this);
     }
 }
 
