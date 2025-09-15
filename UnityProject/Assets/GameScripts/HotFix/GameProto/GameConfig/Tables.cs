@@ -22,6 +22,7 @@ public partial class Tables
     public email.tb_email_sys TbEmailSys {get; }
     public email.tb_email_friend TbEmailFriend {get; }
     public misc.tb_misc_param TbMiscParam {get; }
+    public app.tb_app_config TbAppConfig {get; }
 
     public Tables(System.Func<string, ByteBuf> loader)
     {
@@ -34,6 +35,7 @@ public partial class Tables
         TbEmailSys = new email.tb_email_sys(loader("email_sys"));
         TbEmailFriend = new email.tb_email_friend(loader("email_friend"));
         TbMiscParam = new misc.tb_misc_param(loader("misc_param"));
+        TbAppConfig = new app.tb_app_config(loader("app_config"));
         ResolveRef();
     }
     
@@ -48,6 +50,7 @@ public partial class Tables
         TbEmailSys.ResolveRef(this);
         TbEmailFriend.ResolveRef(this);
         TbMiscParam.ResolveRef(this);
+        TbAppConfig.ResolveRef(this);
     }
 }
 
