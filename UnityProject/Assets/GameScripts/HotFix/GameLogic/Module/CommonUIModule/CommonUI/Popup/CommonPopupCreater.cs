@@ -41,7 +41,6 @@ namespace GameLogic
             // 绑定按钮事件
             _cancel.onClick.AddListener(OnCancelClick);
             _confirm.onClick.AddListener(OnConfirmClick);
-            Log.Info($"_confirm >>> {_confirm}");
         }
 
         //回收
@@ -105,14 +104,12 @@ namespace GameLogic
         }
         private void OnCancelClick()
         {
-            Log.Info($"OnCancelClick >>>");
             _onCancel?.Invoke();
             _isCanClose = true;
         }
 
         private void OnConfirmClick()
         {
-            Log.Info($"OnConfirmClick >>>");
             _onConfirm?.Invoke();
             _isCanClose = true;
         }
