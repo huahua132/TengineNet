@@ -80,7 +80,7 @@ namespace GameLogic
                 }
                 catch (Exception ex)
                 {
-                    Log.Error($"System update error: {ex.Message}");
+                    Log.Error($"System update error: {ex.Message} {ex.StackTrace}");
                 }
             }
         }
@@ -128,7 +128,7 @@ namespace GameLogic
                 }
                 catch (Exception ex)
                 {
-                    Log.Error($"Failed to create system {type.Name}: {ex.Message}");
+                    Log.Error($"Failed to create system {type.Name}: {ex.Message} {ex.StackTrace}");
                 }
             }
         }
@@ -167,7 +167,7 @@ namespace GameLogic
                 }
                 catch (Exception ex)
                 {
-                    Log.Error($"Failed to initialize system {system.GetType().Name}: {ex.Message}");
+                    Log.Error($"Failed to initialize system {system.GetType().Name}: {ex.Message} {ex.StackTrace}");
                 }
             }
         }
@@ -184,7 +184,7 @@ namespace GameLogic
                 }
                 catch (Exception ex)
                 {
-                    Log.Error($"Failed to start system {system.GetType().Name}: {ex.Message}");
+                    Log.Error($"Failed to start system {system.GetType().Name}: {ex.Message} {ex.StackTrace}");
                 }
             }
         }
@@ -201,7 +201,7 @@ namespace GameLogic
                 }
                 catch (Exception ex)
                 {
-                    Log.Error($"Failed to destroy system {_systems[i].GetType().Name}: {ex.Message}");
+                    Log.Error($"Failed to destroy system {_systems[i].GetType().Name}: {ex.Message} {ex.StackTrace}");
                 }
             }
         }

@@ -105,6 +105,12 @@ public class GameModule
     private static ISystemModule _system;
 
     /// <summary>
+    /// 公共UI
+    /// </summary>
+    public static ICommonUIModule CommonUI => _commonUI ??= Get<ICommonUIModule>();
+    private static ICommonUIModule _commonUI;
+
+    /// <summary>
     /// 获取游戏框架模块类。
     /// </summary>
     /// <typeparam name="T">游戏框架模块类。</typeparam>

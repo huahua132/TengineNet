@@ -15,6 +15,7 @@ namespace GameLogic
         public void OnStart()
         {
             Log.Info("LoginSystem OnStart");
+            GameModule.CommonUI.ShowToast("LoginSystem OnStart");
         }
 
         public void OnDestroy()

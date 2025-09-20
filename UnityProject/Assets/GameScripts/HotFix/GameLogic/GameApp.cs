@@ -92,8 +92,10 @@ public partial class GameApp
 
     private static void StartGameLogic()
     {
+        ModuleSystem.RegisterModule<ICommonUIModule>(new CommonUIModule());
         ModuleSystem.RegisterModule<INetPackModule>(new NetPackModule());
         ModuleSystem.RegisterModule<ISystemModule>(new SystemModule());
+
         GameEvent.Get<ILoginUI>().ShowLoginUI();
 
         // var cts = new CancellationTokenSource();
