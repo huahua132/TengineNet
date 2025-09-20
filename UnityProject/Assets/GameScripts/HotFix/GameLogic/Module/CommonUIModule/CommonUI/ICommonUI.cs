@@ -36,6 +36,7 @@ namespace GameLogic
         {
             _ShowTime = GameTime.time;
             _Trf.gameObject.SetActive(true);
+            _Trf.SetAsLastSibling();
             OnReuse();
         }
         public void Release()
