@@ -2,6 +2,7 @@ using System;
 using Cysharp.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.UI;
+using TEngine;
 using Object = UnityEngine.Object;
 
 namespace GameLogic
@@ -39,7 +40,7 @@ namespace GameLogic
 
         protected override bool OnUpdate()
         {
-            float elapsedTime = Time.time - _ShowTime;
+            float elapsedTime = GameTime.time - _ShowTime;
             
             // 前1秒停顿显示
             if (elapsedTime <= _waitTime)

@@ -47,7 +47,7 @@ namespace GameLogic
                 }
             }
             
-            var curTime = Time.time;
+            var curTime = GameTime.time;
             if (curTime > _preCheckTime)
             {
                 _preCheckTime = curTime + _releaseCheckInval;

@@ -1,4 +1,5 @@
 using UnityEngine;
+using TEngine;
 
 namespace GameLogic
 {
@@ -22,18 +23,18 @@ namespace GameLogic
             _Trf = trans;
             _Trf.gameObject.SetActive(true);
             _RecycleTime = 0;
-            _ShowTime = Time.time;
+            _ShowTime = GameTime.time;
             OnInit();
         }
         public void Recycle()
         {
             _Trf.gameObject.SetActive(false);
             OnRecycle();
-            _RecycleTime = Time.time;
+            _RecycleTime = GameTime.time;
         }
         public void Reuse()
         {
-            _ShowTime = Time.time;
+            _ShowTime = GameTime.time;
             _Trf.gameObject.SetActive(true);
             OnReuse();
         }
