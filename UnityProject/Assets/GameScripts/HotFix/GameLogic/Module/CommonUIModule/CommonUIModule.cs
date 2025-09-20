@@ -11,28 +11,32 @@ namespace GameLogic
         private float _preCheckTime;
         private List<ICommonUI> _activeList = new List<ICommonUI>();
         private Dictionary<Type, List<ICommonUI>> _idlePools = new();
-        private CommonToastCreater _ToastCreater;
+        private CommonToastCreater _toastCreater;
+        private CommonPopupCreater _popupCreater;
         public override void OnInit()
         {
-            _ToastCreater = new CommonToastCreater();
-            _ToastCreater.Init();
-            _idlePools[typeof(Toast)] = new List<ICommonUI>();
             _preCheckTime = 0;
+            _toastCreater = new CommonToastCreater();
+            _toastCreater.Init();
+            _idlePools[typeof(Toast)] = new List<ICommonUI>();
+            _popupCreater = new CommonPopupCreater();
+            _popupCreater.Init();
+            _idlePools[typeof(Popup)] = new List<ICommonUI>();
         }
 
         public override void Shutdown()
         {
-            if (_ToastCreater != null)
+            if (_toastCreater != null)
             {
-                _ToastCreater.Release();
-                _ToastCreater = null;
+                _toastCreater.Release();
+                _toastCreater = null;
             }
             _preCheckTime = 0;
         }
 
         public void Update(float elapseSeconds, float realElapseSeconds)
         {
-            
+
             for (int i = _activeList.Count - 1; i >= 0; i--)
             {
                 var ui = _activeList[i];
@@ -45,7 +49,7 @@ namespace GameLogic
                     list.Add(ui);
                 }
             }
-            
+
             var curTime = GameTime.time;
             if (curTime > _preCheckTime)
             {
@@ -63,14 +67,15 @@ namespace GameLogic
                     }
                 }
             }
-            
+
         }
 
-        private void CreateSuccCallback(ICommonUI toast)
+        private void CreateSuccCallback(ICommonUI ui)
         {
-            _activeList.Add(toast);
+            _activeList.Add(ui);
         }
 
+        #region Toast提示
         public void ShowToast(string txt)
         {
             var list = _idlePools[typeof(Toast)];
@@ -88,8 +93,13 @@ namespace GameLogic
             }
             else
             {
-                _ToastCreater.Create(CreateSuccCallback, txt).Forget();
+                _toastCreater.Create(CreateSuccCallback, txt).Forget();
             }
         }
+        #endregion
+
+        #region Popup弹窗
+
+        #endregion
     }
 }
