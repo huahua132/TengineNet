@@ -85,6 +85,7 @@ namespace GameLogic
                 {
                     itoast.SetTxt(txt);
                 }
+                CreateSuccCallback(toast);
             }
             else
             {

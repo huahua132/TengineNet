@@ -15,7 +15,6 @@ namespace GameLogic
         public void OnStart()
         {
             Log.Info("LoginSystem OnStart");
-            GameModule.CommonUI.ShowToast("LoginSystem OnStart");
         }
 
         public void OnDestroy()
@@ -32,15 +31,16 @@ namespace GameLogic
 
         public async UniTask Login(string account, string password)
         {
-            HttpLoginReq req = new HttpLoginReq();
-            req.account = account;
-            req.password = password;
-            httpRsp rsp = await HttpAPI.Request("/user/login", "POST", req);
-            if (rsp.code != HttpCode.OK)
-            {
-                Log.Error($"Login err {rsp.code} {rsp.message}");
-                return;
-            }
+            GameModule.CommonUI.ShowToast($"LoginSystem OnStart {GameTime.time}");
+            // HttpLoginReq req = new HttpLoginReq();
+            // req.account = account;
+            // req.password = password;
+            // httpRsp rsp = await HttpAPI.Request("/user/login", "POST", req);
+            // if (rsp.code != HttpCode.OK)
+            // {
+            //     Log.Error($"Login err {rsp.code} {rsp.message}");
+            //     return;
+            // }
         }
 
         public async UniTask SignUp(string account, string password)

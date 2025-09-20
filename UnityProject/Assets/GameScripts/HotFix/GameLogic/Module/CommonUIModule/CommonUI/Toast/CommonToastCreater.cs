@@ -30,39 +30,41 @@ namespace GameLogic
             // 添加动画组件初始化
             _rectTransform = _Trf.GetComponent<RectTransform>();
             _canvasGroup = _Trf.GetComponent<CanvasGroup>();
-            if (_canvasGroup == null)
-            {
-                _canvasGroup = _Trf.gameObject.AddComponent<CanvasGroup>();
-            }
             _startPos = _rectTransform.anchoredPosition;
             _canvasGroup.alpha = 1f;
+        }
+
+        protected override void OnRecycle()
+        {
+            _canvasGroup.alpha = 1f;
+            _rectTransform.anchoredPosition = _startPos;
         }
 
         protected override bool OnUpdate()
         {
             float elapsedTime = GameTime.time - _ShowTime;
-            
+
             // 前1秒停顿显示
             if (elapsedTime <= _waitTime)
             {
                 return false;
             }
-            
+
             // 1秒后开始向上移动并淡出
             float animProgress = (elapsedTime - _waitTime) / _animTime;
-            
+
             if (animProgress <= 1f)
             {
                 // 向上移动
                 float moveY = _startPos.y + _moveDistance * animProgress;
                 _rectTransform.anchoredPosition = new Vector3(_startPos.x, moveY, _startPos.z);
-                
+
                 // 淡出
                 _canvasGroup.alpha = 1f - animProgress;
-                
+
                 return false;
             }
-            
+
             // 动画完成，可以销毁
             return true;
         }
