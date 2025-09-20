@@ -95,7 +95,7 @@ namespace GameLogic
             isRelease = true;
         }
 
-        public async UniTaskVoid Create(Action<Toast> callback, string txt)
+        public async UniTaskVoid Create(Action<ICommonUI> callback, string txt)
         {
             if (isRelease) return;
             if (_window == null)

@@ -2,12 +2,18 @@ using System;
 using Cysharp.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.UI;
+using TEngine;
 using Object = UnityEngine.Object;
 
 namespace GameLogic
 {
     public interface IPopup
     {
+        void SetTitle(string title);
+        void SetContent(string content);
+        void SetButtons(string cancelText = "取消", string confirmText = "确定");
+        void SetCallbacks(Action onCancel = null, Action onConfirm = null);
+        void HideCancelButton();
     }
 
     public class Popup : CommonUIBase, IPopup
@@ -18,6 +24,10 @@ namespace GameLogic
         private Text _cancelTxt;
         private Button _confirm;
         private Text _confirmTxt;
+        private Action _onCancel;
+        private Action _onConfirm;
+        private bool _isCanClose;
+
         //初始化
         protected override void OnInit()
         {
@@ -27,26 +37,88 @@ namespace GameLogic
             _cancelTxt = _Trf.Find("CancelBtn").GetComponentInChildren<Text>();
             _confirm = _Trf.Find("ConfirmBtn").GetComponent<Button>();
             _confirmTxt = _Trf.Find("ConfirmBtn").GetComponentInChildren<Text>();
+            _isCanClose = false;
+            // 绑定按钮事件
+            _cancel.onClick.AddListener(OnCancelClick);
+            _confirm.onClick.AddListener(OnConfirmClick);
+            Log.Info($"_confirm >>> {_confirm}");
         }
+
         //回收
         protected override void OnRecycle()
         {
+            // 清理回调
+            _onCancel = null;
+            _onConfirm = null;
+            _isCanClose = false;
 
+            // 重置文本
+            _titile.text = "";
+            _content.text = "";
+            _cancelTxt.text = "取消";
+            _confirmTxt.text = "确定";
+            _cancel.gameObject.SetActive(true);
         }
+
         //重用
         protected override void OnReuse()
         {
 
         }
+
         //更新为true则回收
         protected override bool OnUpdate()
         {
-            return false;
+            return _isCanClose;
         }
+
         //释放
         protected override void OnRelease()
         {
-            
+            // 移除按钮监听
+            if (_cancel != null)
+                _cancel.onClick.RemoveListener(OnCancelClick);
+            if (_confirm != null)
+                _confirm.onClick.RemoveListener(OnConfirmClick);
+        }
+
+        public void SetTitle(string title)
+        {
+            _titile.text = title;
+        }
+
+        public void SetContent(string content)
+        {
+            _content.text = content;
+        }
+
+        public void SetButtons(string cancelText = "取消", string confirmText = "确定")
+        {
+            _cancelTxt.text = cancelText;
+            _confirmTxt.text = confirmText;
+        }
+
+        public void SetCallbacks(Action onCancel = null, Action onConfirm = null)
+        {
+            _onCancel = onCancel;
+            _onConfirm = onConfirm;
+        }
+        private void OnCancelClick()
+        {
+            Log.Info($"OnCancelClick >>>");
+            _onCancel?.Invoke();
+            _isCanClose = true;
+        }
+
+        private void OnConfirmClick()
+        {
+            Log.Info($"OnConfirmClick >>>");
+            _onConfirm?.Invoke();
+            _isCanClose = true;
+        }
+        public void HideCancelButton()
+        {
+            _cancel.gameObject.SetActive(false);
         }
     }
 
@@ -54,6 +126,7 @@ namespace GameLogic
     {
         private CommonPopupUI _window;
         private bool isRelease = false;
+
         public void Init()
         {
             GameModule.UI.ShowUI<CommonPopupUI>();
@@ -66,7 +139,7 @@ namespace GameLogic
             isRelease = true;
         }
 
-        public async UniTaskVoid Create(Action<Popup> callback)
+        public async UniTaskVoid Create(Action<ICommonUI> callback)
         {
             if (isRelease) return;
             if (_window == null)

@@ -13,12 +13,15 @@ namespace GameLogic
         private Dictionary<Type, List<ICommonUI>> _idlePools = new();
         private CommonToastCreater _toastCreater;
         private CommonPopupCreater _popupCreater;
+        
         public override void OnInit()
         {
             _preCheckTime = 0;
+            
             _toastCreater = new CommonToastCreater();
             _toastCreater.Init();
             _idlePools[typeof(Toast)] = new List<ICommonUI>();
+            
             _popupCreater = new CommonPopupCreater();
             _popupCreater.Init();
             _idlePools[typeof(Popup)] = new List<ICommonUI>();
@@ -31,12 +34,18 @@ namespace GameLogic
                 _toastCreater.Release();
                 _toastCreater = null;
             }
+            
+            if (_popupCreater != null)
+            {
+                _popupCreater.Release();
+                _popupCreater = null;
+            }
+            
             _preCheckTime = 0;
         }
 
         public void Update(float elapseSeconds, float realElapseSeconds)
         {
-
             for (int i = _activeList.Count - 1; i >= 0; i--)
             {
                 var ui = _activeList[i];
@@ -67,7 +76,6 @@ namespace GameLogic
                     }
                 }
             }
-
         }
 
         private void CreateSuccCallback(ICommonUI ui)
@@ -99,7 +107,86 @@ namespace GameLogic
         #endregion
 
         #region Popup弹窗
+        
+        /// <summary>
+        /// 显示确认弹窗（有取消和确定按钮）
+        /// </summary>
+        public void ShowConfirm(string title, string content, 
+            Action onConfirm = null, Action onCancel = null,
+            string confirmText = "确定", string cancelText = "取消")
+        {
+            ShowPopup(popup =>
+            {
+                popup.SetTitle(title);
+                popup.SetContent(content);
+                popup.SetButtons(cancelText, confirmText);
+                popup.SetCallbacks(onCancel, onConfirm);
+            });
+        }
+
+        /// <summary>
+        /// 显示提示弹窗（只有确定按钮）
+        /// </summary>
+        public void ShowAlert(string title, string content, 
+            Action onConfirm = null, string confirmText = "确定")
+        {
+            ShowPopup(popup =>
+            {
+                popup.SetTitle(title);
+                popup.SetContent(content);
+                popup.SetButtons("", confirmText);
+                popup.SetCallbacks(null, onConfirm);
+                popup.HideCancelButton();
+            });
+        }
+
+        /// <summary>
+        /// 显示自定义弹窗
+        /// </summary>
+        public void ShowPopup(Action<IPopup> setupCallback)
+        {
+            var list = _idlePools[typeof(Popup)];
+            ICommonUI popup = null;
+            
+            if (list.Count > 0)
+            {
+                popup = list[list.Count - 1];
+                list.RemoveAt(list.Count - 1);
+                popup.Reuse();
+                
+                if (popup is IPopup ipopup)
+                {
+                    setupCallback?.Invoke(ipopup);
+                }
+                CreateSuccCallback(popup);
+            }
+            else
+            {
+                _popupCreater.Create(popup =>
+                {
+                    setupCallback?.Invoke((IPopup)popup);
+                    CreateSuccCallback(popup);
+                }).Forget();
+            }
+        }
+
+        /// <summary>
+        /// 显示简单确认弹窗（快捷方法）
+        /// </summary>
+        public void ShowConfirm(string content, Action onConfirm = null, Action onCancel = null)
+        {
+            ShowConfirm("确认", content, onConfirm, onCancel);
+        }
+
+        /// <summary>
+        /// 显示简单提示弹窗（快捷方法）
+        /// </summary>
+        public void ShowAlert(string content, Action onConfirm = null)
+        {
+            ShowAlert("提示", content, onConfirm);
+        }
 
         #endregion
     }
 }
+

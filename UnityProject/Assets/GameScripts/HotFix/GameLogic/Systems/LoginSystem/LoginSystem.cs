@@ -31,7 +31,8 @@ namespace GameLogic
 
         public async UniTask Login(string account, string password)
         {
-            GameModule.CommonUI.ShowToast($"LoginSystem OnStart {GameTime.time}");
+            //GameModule.CommonUI.ShowToast($"LoginSystem OnStart {GameTime.time}");
+            GameModule.CommonUI.ShowAlert("操作成功");
             // HttpLoginReq req = new HttpLoginReq();
             // req.account = account;
             // req.password = password;
