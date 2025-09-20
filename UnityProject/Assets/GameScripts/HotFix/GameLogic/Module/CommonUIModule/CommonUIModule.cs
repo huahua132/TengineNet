@@ -7,7 +7,9 @@ namespace GameLogic
 {
     public class CommonUIModule : Module, IUpdateModule, ICommonUIModule
     {
-        private float _releaseTime = 60f;
+        private const float _releaseTime = 60f;
+        private const float _releaseCheckInval = 60f;
+        private float _preCheckTime;
         private List<ICommonUI> _activeList = new List<ICommonUI>();
         private Dictionary<Type, List<ICommonUI>> _idlePools = new();
         private CommonToastCreater _ToastCreater;
@@ -16,6 +18,7 @@ namespace GameLogic
             _ToastCreater = new CommonToastCreater();
             _ToastCreater.Init();
             _idlePools[typeof(Toast)] = new List<ICommonUI>();
+            _preCheckTime = 0;
         }
 
         public override void Shutdown()
@@ -25,6 +28,7 @@ namespace GameLogic
                 _ToastCreater.Release();
                 _ToastCreater = null;
             }
+            _preCheckTime = 0;
         }
 
         public void Update(float elapseSeconds, float realElapseSeconds)
@@ -42,20 +46,25 @@ namespace GameLogic
                     list.Add(ui);
                 }
             }
-
+            
             var curTime = Time.time;
-            foreach (var kv in _idlePools)
+            if (curTime > _preCheckTime)
             {
-                for (int i = kv.Value.Count - 1; i >= 0; i--)
+                _preCheckTime = curTime + _releaseCheckInval;
+                foreach (var kv in _idlePools)
                 {
-                    var ui = kv.Value[i];
-                    if (ui._RecycleTime + _releaseTime > curTime)
+                    for (int i = kv.Value.Count - 1; i >= 0; i--)
                     {
-                        kv.Value.RemoveAt(i);
-                        ui.Release();
+                        var ui = kv.Value[i];
+                        if (ui._RecycleTime + _releaseTime > curTime)
+                        {
+                            kv.Value.RemoveAt(i);
+                            ui.Release();
+                        }
                     }
                 }
             }
+            
         }
 
         private void CreateSuccCallback(ICommonUI toast)
