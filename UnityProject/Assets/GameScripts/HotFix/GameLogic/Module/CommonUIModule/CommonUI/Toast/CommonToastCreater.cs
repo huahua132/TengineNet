@@ -18,10 +18,11 @@ namespace GameLogic
         // 添加动画相关变量
         private CanvasGroup _canvasGroup;
         private RectTransform _rectTransform;
-        private Vector3 _startPos;
-        private float _waitTime = 1.0f;      // 停顿时间
-        private float _animTime = 0.5f;      // 向上移动动画时间
-        private float _moveDistance = 150f;   // 向上移动距离
+        private Vector2 _startPos;              // 改为Vector2，RectTransform用的是Vector2
+        private Vector2 _currentPos;            // 缓存当前位置，避免重复创建
+        private float _waitTime = 1.0f;         // 停顿时间
+        private float _animTime = 0.5f;         // 向上移动动画时间
+        private float _moveDistance = 150f;     // 向上移动距离
 
         protected override void OnInit()
         {
@@ -31,6 +32,7 @@ namespace GameLogic
             _rectTransform = _Trf.GetComponent<RectTransform>();
             _canvasGroup = _Trf.GetComponent<CanvasGroup>();
             _startPos = _rectTransform.anchoredPosition;
+            _currentPos = _startPos;                    // 初始化当前位置
             _canvasGroup.alpha = 1f;
         }
 
@@ -38,6 +40,7 @@ namespace GameLogic
         {
             _canvasGroup.alpha = 1f;
             _rectTransform.anchoredPosition = _startPos;
+            _currentPos = _startPos;                    // 重置当前位置
         }
 
         protected override bool OnUpdate()
@@ -55,9 +58,10 @@ namespace GameLogic
 
             if (animProgress <= 1f)
             {
-                // 向上移动
-                float moveY = _startPos.y + _moveDistance * animProgress;
-                _rectTransform.anchoredPosition = new Vector3(_startPos.x, moveY, _startPos.z);
+                // 向上移动 - 直接修改缓存的Vector2
+                _currentPos.x = _startPos.x;
+                _currentPos.y = _startPos.y + _moveDistance * animProgress;
+                _rectTransform.anchoredPosition = _currentPos;
 
                 // 淡出
                 _canvasGroup.alpha = 1f - animProgress;
