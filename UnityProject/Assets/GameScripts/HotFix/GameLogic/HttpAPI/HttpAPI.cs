@@ -2,6 +2,7 @@ using System.Threading;
 using Cysharp.Threading.Tasks;
 using UnityEngine.Networking;
 using System;
+using System.Collections.Generic;
 using Utility = TEngine.Utility;
 
 namespace GameLogic
@@ -60,8 +61,9 @@ namespace GameLogic
     }
     public class HttpAPI
     {
-        static httpRsp NULLRESULT = new httpRsp();
-        public static async UniTask<httpRsp> Request(string url, string method, object reqData)
+        private static httpRsp NULLRESULT = new httpRsp();
+        private static Dictionary<string, bool> doubleCheck = new();
+        public static async UniTask<httpRsp> Request(string url, string method, object reqData, bool isDoubleCheck = true)
         {
             var cts = new CancellationTokenSource();
             cts.CancelAfterSlim(TimeSpan.FromSeconds(10f));
@@ -73,11 +75,25 @@ namespace GameLogic
             unityWebRequest.downloadHandler = new DownloadHandlerBuffer();
             unityWebRequest.SetRequestHeader("Content-Type", "application/json");
 
-            var rspStr = await Utility.Http.SendWebRequest(unityWebRequest, cts);
-            if (rspStr == string.Empty)
+            if (isDoubleCheck)
             {
-                return NULLRESULT;
+                if (doubleCheck.TryGetValue(url, out var b))
+                {
+                    GameModule.CommonUI.ShowToast("请求中，请稍等！");
+                    return NULLRESULT;
+                }
+                doubleCheck[url] = true;
             }
+
+            var rspStr = await Utility.Http.SendWebRequest(unityWebRequest, cts);
+            if (isDoubleCheck)
+            {
+                doubleCheck.Remove(url);
+            }
+            if (rspStr == string.Empty)
+                {
+                    return NULLRESULT;
+                }
 
             return Utility.Json.ToObject<httpRsp>(rspStr);
         }

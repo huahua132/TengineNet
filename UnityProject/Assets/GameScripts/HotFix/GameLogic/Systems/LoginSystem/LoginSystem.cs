@@ -32,16 +32,15 @@ namespace GameLogic
         public async UniTask Login(string account, string password)
         {
             //GameModule.CommonUI.ShowToast($"LoginSystem OnStart {GameTime.time}");
-            GameModule.CommonUI.ShowAlert("操作成功");
-            // HttpLoginReq req = new HttpLoginReq();
-            // req.account = account;
-            // req.password = password;
-            // httpRsp rsp = await HttpAPI.Request("/user/login", "POST", req);
-            // if (rsp.code != HttpCode.OK)
-            // {
-            //     Log.Error($"Login err {rsp.code} {rsp.message}");
-            //     return;
-            // }
+            HttpLoginReq req = new HttpLoginReq();
+            req.account = account;
+            req.password = password;
+            httpRsp rsp = await HttpAPI.Request("/user/login", "POST", req);
+            if (rsp.code != HttpCode.OK)
+            {
+                Log.Error($"Login err {rsp.code} {rsp.message}");
+                return;
+            }
         }
 
         public async UniTask SignUp(string account, string password)
