@@ -8,24 +8,20 @@ namespace GameLogic
     {
         public void OnInit()
         {
-            Log.Info("LoginSystem OnInit");
             GameEvent.AddEventListener(ILoginUI_Event.ShowLoginUI, OnShowLoginUI);
         }
 
         public void OnStart()
         {
-            Log.Info("LoginSystem OnStart");
         }
 
         public void OnDestroy()
         {
-            Log.Info("LoginSystem OnDestroy");
             GameEvent.RemoveEventListener(ILoginUI_Event.ShowLoginUI, OnShowLoginUI);
         }
 
         private void OnShowLoginUI()
         {
-            Log.Info("LoginSystem OnShowLoginUI");
             GameModule.UI.ShowUI<LoginUI>();
         }
 
@@ -35,11 +31,22 @@ namespace GameLogic
             HttpLoginReq req = new HttpLoginReq();
             req.account = account;
             req.password = password;
-            httpRsp rsp = await HttpAPI.Request("/user/login", "POST", req);
+            var rsp = await HttpAPI.Request<HttpLoginRes>("/user/login", "POST", req);
+            if (rsp.code == HttpCode.DOBILE_REQ) return;
             if (rsp.code != HttpCode.OK)
             {
+                GameModule.CommonUI.ShowToast($"网络错误 请求登录失败 {rsp.code} {rsp.message}");
                 Log.Error($"Login err {rsp.code} {rsp.message}");
                 return;
+            }
+            else
+            {
+                Log.Info($" httpRsp >>> {rsp.code}   {rsp.message}   {rsp.data}");
+                HttpLoginRes HttpLoginRes = rsp.data;
+                Log.Info($"Login res {HttpLoginRes.player_id}  {HttpLoginRes.host} {HttpLoginRes.token}");
+                var host = HttpLoginRes.host;
+                var (ip, port) = (host.Split(':')[0], int.Parse(host.Split(':')[1]));
+                GameModule.NetHall.SetConnect("ws://" + ip, port, HttpLoginRes.player_id, HttpLoginRes.token);
             }
         }
 
@@ -49,11 +56,16 @@ namespace GameLogic
             req.account = account;
             req.password = password;
             req.channel = 1;
-            httpRsp rsp = await HttpAPI.Request("/user/signup", "POST", req);
+            var rsp = await HttpAPI.Request<HttpSignUpRes>("/user/signup", "POST", req);
             if (rsp.code != HttpCode.OK)
             {
+                GameModule.CommonUI.ShowToast($"网络错误 请求注册失败 {rsp.code} {rsp.message}");
                 Log.Error($"SignUp err {rsp.code} {rsp.message}");
                 return;
+            }
+            else
+            {
+                GameModule.CommonUI.ShowToast("注册成功!");
             }
         }
     }

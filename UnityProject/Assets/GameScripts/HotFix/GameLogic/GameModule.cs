@@ -111,6 +111,18 @@ public class GameModule
     private static ICommonUIModule _commonUI;
 
     /// <summary>
+    /// 大厅网络结点
+    /// </summary>
+    public static INetProxy NetHall => _netHall ??= new NetProxy(NetNodeID.hall);
+    private static INetProxy _netHall;
+
+    /// <summary>
+    /// 游戏网络结点
+    /// </summary>
+    public static INetProxy NetGame => _netGame ??= new NetProxy(NetNodeID.game);
+    private static INetProxy _netGame;
+
+    /// <summary>
     /// 获取游戏框架模块类。
     /// </summary>
     /// <typeparam name="T">游戏框架模块类。</typeparam>
@@ -140,5 +152,9 @@ public class GameModule
         _localization = null;
         _network = null;
         _netPack = null;
+        _system = null;
+        _commonUI = null;
+        _netHall = null;
+        _netGame = null;
     }
 }

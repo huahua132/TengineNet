@@ -4,11 +4,13 @@ using UnityEngine.Networking;
 using System;
 using System.Collections.Generic;
 using Utility = TEngine.Utility;
+using TEngine;
 
 namespace GameLogic
 {
     public enum HttpCode
     {
+        DOBILE_REQ = -1,              //重复请求
         OK = 20000,
         ILLEGAL_TOKEN = 50008,        //无效token
         OTHER_LOGINED = 50012,        //重复登录
@@ -24,17 +26,33 @@ namespace GameLogic
         ACCOUNT_LEN = 50036,          //账号长度不符合要求
         SERVER_CLOSE = 50037,         //已关服
     }
-    public interface HttpData
+
+    public interface IHttpData
     {
 
     }
 
+    // 新增：泛型版本的httpRsp
+    [Serializable]
+    public class httpRsp<T> where T : IHttpData
+    {
+        public HttpCode code;
+        public string message;
+        public T data;
+    }
+
+    // 保留：原有的httpRsp（向后兼容）
     [Serializable]
     public class httpRsp
     {
         public HttpCode code;
         public string message;
-        public HttpData data;
+        public string data;
+
+        public T GetData<T>() where T : IHttpData
+        {
+            return Utility.Json.ToObject<T>(data);
+        }
     }
 
     [Serializable]
@@ -53,17 +71,27 @@ namespace GameLogic
     }
 
     [Serializable]
-    public class HttpLoginRes : HttpData
+    public class HttpLoginRes : IHttpData
     {
         public string token;
         public string host;
         public long player_id;
     }
+    
+    [Serializable]
+    public class HttpSignUpRes : IHttpData
+    {
+        public string account;
+        public string password;
+        public int channel;
+    }
+
     public class HttpAPI
     {
-        private static httpRsp NULLRESULT = new httpRsp();
         private static Dictionary<string, bool> doubleCheck = new();
-        public static async UniTask<httpRsp> Request(string url, string method, object reqData, bool isDoubleCheck = true)
+
+        public static async UniTask<httpRsp<T>> Request<T>(string url, string method, object reqData, bool isDoubleCheck = true)
+            where T : IHttpData
         {
             var cts = new CancellationTokenSource();
             cts.CancelAfterSlim(TimeSpan.FromSeconds(10f));
@@ -80,7 +108,8 @@ namespace GameLogic
                 if (doubleCheck.TryGetValue(url, out var b))
                 {
                     GameModule.CommonUI.ShowToast("请求中，请稍等！");
-                    return NULLRESULT;
+                    // 返回一个空的泛型结果
+                    return new httpRsp<T> { code = HttpCode.DOBILE_REQ, message = "重复请求" };
                 }
                 doubleCheck[url] = true;
             }
@@ -91,11 +120,13 @@ namespace GameLogic
                 doubleCheck.Remove(url);
             }
             if (rspStr == string.Empty)
-                {
-                    return NULLRESULT;
-                }
+            {
+                return new httpRsp<T> { code = HttpCode.ERR_SERVER, message = "网络错误" };
+            }
 
-            return Utility.Json.ToObject<httpRsp>(rspStr);
+            // 直接反序列化为泛型类型，一次性完成
+            return Utility.Json.ToObject<httpRsp<T>>(rspStr);
         }
     }
 }
+
