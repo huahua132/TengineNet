@@ -259,8 +259,7 @@ namespace GameLogic
         {
             if (_netNodes.ContainsKey(nodeId))
             {
-                Log.Error($"节点ID {nodeId} 已存在，无法重复创建");
-                return 0;
+                Disconnect(nodeId);
             }
 
             var node = MemoryPool.Acquire<NetNode>();
