@@ -1,5 +1,6 @@
 using TEngine;
 using System;
+using UnityEngine;
 
 namespace GameLogic
 {
@@ -48,20 +49,51 @@ namespace GameLogic
             GameModule.NetPack.RegisterDisconnectCallback(DisconnectCallback);
         }
 
-        private static void ConnectCallback(uint nodeId, bool success, string errorMsg = "")
+        private void ReconnectTimeOut(object[] args)
+        {
+            int attempts = GameModule.NetPack.GetReconnectAttempts((uint)_nodeID);
+            GameModule.CommonUI.ShowToast($"重试重连中第{attempts}次");
+            GameModule.NetPack.Reconnect((uint)_nodeID);
+        }
+
+        private void OnBtnConfirm()
+        {
+            Log.Info("OnBtnConfirm");
+            GameModule.NetPack.Reconnect((uint)_nodeID);
+        }
+
+        private void OnBtnCancel()
+        {
+            Log.Info("OnBtnCancel");
+            #if UNITY_EDITOR
+                UnityEditor.EditorApplication.isPlaying = false;
+            #else
+                Application.Quit();
+            #endif
+        }
+
+        private void ConnectCallback(uint nodeId, bool success, string errorMsg = "")
         {
             Log.Info($"ConnectCallback {nodeId} {success} {errorMsg}");
             if (!success)
             {
                 int attempts = GameModule.NetPack.GetReconnectAttempts(nodeId);
-                if (attempts <= 3)
+                if (attempts % 3 == 0)
                 {
-                    GameModule.NetPack.Reconnect(nodeId);
+                    GameModule.Timer.AddTimer(ReconnectTimeOut, 0.1f, false);
                 }
+                else
+                {
+                    GameModule.CommonUI.ShowConfirm("网络连接异常", "是否尝试重新连接", OnBtnConfirm, OnBtnCancel, "重试", "退出");
+                }
+            }
+            else
+            {
+                GameModule.CommonUI.ShowToast($"连接服务器成功 结点{_nodeID}");
             }
         }
 
-        private static void DisconnectCallback(uint nodeId, DisconnectType disconnectType, string reason = "")
+        private void DisconnectCallback(uint nodeId, DisconnectType disconnectType, string reason = "")
         {
             Log.Info($"ConnectCallback {nodeId} {disconnectType} {reason}");
             GameModule.NetPack.Close(nodeId);

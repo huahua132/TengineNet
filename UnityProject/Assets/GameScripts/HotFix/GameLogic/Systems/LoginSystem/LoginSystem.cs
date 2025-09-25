@@ -41,7 +41,7 @@ namespace GameLogic
             }
             else
             {
-                Log.Info($" httpRsp >>> {rsp.code}   {rsp.message}   {rsp.data}");
+                Log.Info($" httpRsp >>> {rsp.code}   {rsp.message} {rsp.data}");
                 HttpLoginRes HttpLoginRes = rsp.data;
                 Log.Info($"Login res {HttpLoginRes.player_id}  {HttpLoginRes.host} {HttpLoginRes.token}");
                 var host = HttpLoginRes.host;
