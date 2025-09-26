@@ -58,7 +58,7 @@ namespace GameLogic
     /// <summary>
     /// 认证失败回调委托
     /// </summary>
-    public delegate void AuthFailureCallback(uint nodeId, INetResponse response, string error);
+    public delegate void AuthFailureCallback(uint nodeId, INetResponse response);
 
     /// <summary>
     /// 心跳配置
@@ -668,7 +668,7 @@ namespace GameLogic
                         {
                             try
                             {
-                                callback?.Invoke(nodeId, response, errorMsg);
+                                callback?.Invoke(nodeId, response);
                             }
                             catch (Exception ex)
                             {

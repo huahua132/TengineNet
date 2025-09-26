@@ -58,23 +58,20 @@ namespace GameLogic
 
         private void OnBtnConfirm()
         {
-            Log.Info("OnBtnConfirm");
             GameModule.NetPack.Reconnect((uint)_nodeID);
         }
 
         private void OnBtnCancel()
         {
-            Log.Info("OnBtnCancel");
-            #if UNITY_EDITOR
-                UnityEditor.EditorApplication.isPlaying = false;
-            #else
+#if UNITY_EDITOR
+            UnityEditor.EditorApplication.isPlaying = false;
+#else
                 Application.Quit();
-            #endif
+#endif
         }
 
         private void ConnectCallback(uint nodeId, bool success, string errorMsg = "")
         {
-            Log.Info($"ConnectCallback {nodeId} {success} {errorMsg}");
             if (!success)
             {
                 int attempts = GameModule.NetPack.GetReconnectAttempts(nodeId);
@@ -95,7 +92,6 @@ namespace GameLogic
 
         private void DisconnectCallback(uint nodeId, DisconnectType disconnectType, string reason = "")
         {
-            Log.Info($"ConnectCallback {nodeId} {disconnectType} {reason}");
             GameModule.NetPack.Close(nodeId);
         }
 
@@ -118,6 +114,11 @@ namespace GameLogic
             _playerId = playerId;
             _token = token;
             GameModule.NetPack.Connect((uint)_nodeID, NetworkType.WebSocket, host, port, _bufHelper);
+        }
+
+        public void Close()
+        {
+            GameModule.NetPack.Close((uint)_nodeID);
         }
     }
 }

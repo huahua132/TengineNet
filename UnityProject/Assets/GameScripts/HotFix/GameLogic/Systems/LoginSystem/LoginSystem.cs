@@ -3,12 +3,15 @@ using Cysharp.Threading.Tasks;
 
 namespace GameLogic
 {
-    [System(1)]
+    [System((int)SystemPriority.Login)]
     public class LoginSystem : ILoginSystem
     {
         public void OnInit()
         {
             GameModule.System.AddEvent(ILoginUI_Event.ShowLoginUI, OnShowLoginUI);
+            GameModule.System.AddEvent(ILoginUI_Event.CloseLoginUI, OnCloseLoginUI);
+            GameModule.NetPack.RegisterAuthSuccessCallback(OnLoginAuthSuccess);
+            GameModule.NetPack.RegisterAuthFailureCallback(OnLoginAuthFailed);
         }
 
         public void OnStart()
@@ -17,11 +20,47 @@ namespace GameLogic
 
         public void OnDestroy()
         {
+            GameModule.NetPack.UnregisterAuthSuccessCallback(OnLoginAuthSuccess);
+            GameModule.NetPack.UnregisterAuthFailureCallback(OnLoginAuthFailed);
+        }
+
+        //登录认证成功
+        private void OnLoginAuthSuccess(uint nodeID, INetResponse response)
+        {
+            login.LoginRes loginRes = response.GetResponse<login.LoginRes>();
+            GameModule.CommonUI.ShowToast($"登录认证成功 {nodeID} 是否 重连 {loginRes.isreconnect}");
+            NetNodeID netNodeID = (NetNodeID)nodeID;
+            bool isreconnect = loginRes.isreconnect == 1 ? true : false;
+            switch (netNodeID)
+            {
+                case NetNodeID.hall: GameEvent.Get<ILoginLogic>().HallLoginAuthSuccess(isreconnect); break;
+                case NetNodeID.game: GameEvent.Get<ILoginLogic>().GameLoginAuthSuccess(isreconnect); break;
+                default: break;
+            }
+            
+        }
+
+        //登录认证失败
+        private void OnLoginAuthFailed(uint nodeID, INetResponse response)
+        {
+            NetNodeID netNodeID = (NetNodeID)nodeID;
+            GameModule.CommonUI.ShowAlert("登录认证失败", $"{netNodeID} code={response.ErrorCode} msg={response.ErrorMsg}");
+            switch (netNodeID)
+            {
+                case NetNodeID.hall: GameEvent.Get<ILoginLogic>().HallLoginAuthFailed(); break;
+                case NetNodeID.game: GameEvent.Get<ILoginLogic>().GameLoginAuthFailed(); break;
+                default: break;
+            }
         }
 
         private void OnShowLoginUI()
         {
             GameModule.UI.ShowUI<LoginUI>();
+        }
+
+        private void OnCloseLoginUI()
+        {
+            GameModule.UI.CloseUI<LoginUI>();
         }
 
         public async UniTask Login(string account, string password)
