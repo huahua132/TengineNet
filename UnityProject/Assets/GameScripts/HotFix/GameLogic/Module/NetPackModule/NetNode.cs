@@ -4,6 +4,15 @@ using TEngine;
 
 namespace GameLogic
 {
+    /// <summary>
+    /// 连接回调委托
+    /// </summary>
+    public delegate void NodeConnectCallback(uint nodeID, bool success, string errorMsg = "");
+    
+    /// <summary>
+    /// 断线回调委托
+    /// </summary>
+    public delegate void NodeDisconnectCallback(uint nodeID, DisconnectType disconnectType, string reason = "");
     public delegate void MessageHandleCallback(uint nodeId, INetResponse response);
     /// <summary>
     /// 网络节点 - 内部实现，完全封装
@@ -23,8 +32,8 @@ namespace GameLogic
         private int _port;
         private AClient _conn;
         private ConnectState _connectState = ConnectState.Disconnected;
-        private ConnectCallback _connectCallback;
-        private DisconnectCallback _disconnectCallback;
+        private NodeConnectCallback _connectCallback;
+        private NodeDisconnectCallback _disconnectCallback;
         public int _ReconnectAttempts { get; private set; } = 0;
         private bool _isActiveDisconnect = false; // 标记是否为主动断开
 
@@ -77,7 +86,7 @@ namespace GameLogic
             _msgBodyHelper.Init(MsgBodyErrHandle, MsgBodyHandleCb);
         }
 
-        public void SetCallbacks(ConnectCallback connectCallback, DisconnectCallback disconnectCallback)
+        public void SetCallbacks(NodeConnectCallback connectCallback, NodeDisconnectCallback disconnectCallback)
         {
             _connectCallback = connectCallback;
             _disconnectCallback = disconnectCallback;

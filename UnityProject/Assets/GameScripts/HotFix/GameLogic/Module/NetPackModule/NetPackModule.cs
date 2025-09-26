@@ -28,17 +28,17 @@ namespace GameLogic
     /// <summary>
     /// 连接回调委托
     /// </summary>
-    public delegate void ConnectCallback(uint nodeId, bool success, string errorMsg = "");
+    public delegate void ConnectCallback(bool success, string errorMsg = "");
     
     /// <summary>
     /// 断线回调委托
     /// </summary>
-    public delegate void DisconnectCallback(uint nodeId, DisconnectType disconnectType, string reason = "");
+    public delegate void DisconnectCallback(DisconnectType disconnectType, string reason = "");
     
     /// <summary>
     /// 消息监听回调委托
     /// </summary>
-    public delegate void MessageCallback(uint nodeId, INetResponse response);
+    public delegate void MessageCallback(INetResponse response);
 
     /// <summary>
     /// 认证函数委托 - 返回认证请求对象
@@ -53,12 +53,12 @@ namespace GameLogic
     /// <summary>
     /// 认证成功回调委托
     /// </summary>
-    public delegate void AuthSuccessCallback(uint nodeId, INetResponse response);
+    public delegate void AuthSuccessCallback(INetResponse response);
 
     /// <summary>
     /// 认证失败回调委托
     /// </summary>
-    public delegate void AuthFailureCallback(uint nodeId, INetResponse response);
+    public delegate void AuthFailureCallback(INetResponse response);
 
     /// <summary>
     /// 心跳配置
@@ -152,11 +152,13 @@ namespace GameLogic
 
         private Dictionary<uint, NetNode> _netNodes = new Dictionary<uint, NetNode>();
         private Dictionary<uint, bool> _closeMap = new Dictionary<uint, bool>();
-        private List<ConnectCallback> _connectCallbacks = new List<ConnectCallback>();
-        private List<DisconnectCallback> _disconnectCallbacks = new List<DisconnectCallback>();
         
-        // 消息监听器
-        private Dictionary<ushort, List<MessageCallback>> _messageListeners = new Dictionary<ushort, List<MessageCallback>>();
+        // 基于nodeId的回调管理
+        private Dictionary<uint, List<ConnectCallback>> _connectCallbacks = new Dictionary<uint, List<ConnectCallback>>();
+        private Dictionary<uint, List<DisconnectCallback>> _disconnectCallbacks = new Dictionary<uint, List<DisconnectCallback>>();
+        
+        // 消息监听器 - nodeId -> packId -> callbacks
+        private Dictionary<uint, Dictionary<ushort, List<MessageCallback>>> _messageListeners = new Dictionary<uint, Dictionary<ushort, List<MessageCallback>>>();
         
         // RPC等待队列
         private Dictionary<uint, Dictionary<uint, UniTaskCompletionSource<INetResponse>>> _rpcWaitingMap = new Dictionary<uint, Dictionary<uint, UniTaskCompletionSource<INetResponse>>>();
@@ -164,8 +166,8 @@ namespace GameLogic
         // 认证相关
         private Dictionary<uint, AuthRequestProvider> _authRequestProviders = new Dictionary<uint, AuthRequestProvider>();
         private Dictionary<uint, NodeAuthState> _authStates = new Dictionary<uint, NodeAuthState>();
-        private List<AuthSuccessCallback> _authSuccessCallbacks = new List<AuthSuccessCallback>();
-        private List<AuthFailureCallback> _authFailureCallbacks = new List<AuthFailureCallback>();
+        private Dictionary<uint, List<AuthSuccessCallback>> _authSuccessCallbacks = new Dictionary<uint, List<AuthSuccessCallback>>();
+        private Dictionary<uint, List<AuthFailureCallback>> _authFailureCallbacks = new Dictionary<uint, List<AuthFailureCallback>>();
         private Dictionary<uint, bool> _nodeAuthStatus = new Dictionary<uint, bool>(); // 节点认证状态
         
         // 心跳相关
@@ -238,6 +240,11 @@ namespace GameLogic
                     _nodeAuthStatus.Remove(nodeId);
                     _authStates.Remove(nodeId);
                     _heartbeatStates.Remove(nodeId);
+                    _connectCallbacks.Remove(nodeId);
+                    _disconnectCallbacks.Remove(nodeId);
+                    _messageListeners.Remove(nodeId);
+                    _authSuccessCallbacks.Remove(nodeId);
+                    _authFailureCallbacks.Remove(nodeId);
                     
                     MemoryPool.Release(node);
                 }
@@ -356,35 +363,63 @@ namespace GameLogic
 
         #region 回调管理
 
-        public void RegisterConnectCallback(ConnectCallback callback)
+        public void RegisterConnectCallback(uint nodeId, ConnectCallback callback)
         {
-            if (callback != null && !_connectCallbacks.Contains(callback))
+            if (callback == null) return;
+            
+            if (!_connectCallbacks.TryGetValue(nodeId, out var callbacks))
             {
-                _connectCallbacks.Add(callback);
+                callbacks = new List<ConnectCallback>();
+                _connectCallbacks[nodeId] = callbacks;
+            }
+            
+            if (!callbacks.Contains(callback))
+            {
+                callbacks.Add(callback);
             }
         }
 
-        public void UnregisterConnectCallback(ConnectCallback callback)
+        public void UnregisterConnectCallback(uint nodeId, ConnectCallback callback)
         {
-            if (callback != null)
+            if (callback == null) return;
+            
+            if (_connectCallbacks.TryGetValue(nodeId, out var callbacks))
             {
-                _connectCallbacks.Remove(callback);
+                callbacks.Remove(callback);
+                if (callbacks.Count == 0)
+                {
+                    _connectCallbacks.Remove(nodeId);
+                }
             }
         }
 
-        public void RegisterDisconnectCallback(DisconnectCallback callback)
+        public void RegisterDisconnectCallback(uint nodeId, DisconnectCallback callback)
         {
-            if (callback != null && !_disconnectCallbacks.Contains(callback))
+            if (callback == null) return;
+            
+            if (!_disconnectCallbacks.TryGetValue(nodeId, out var callbacks))
             {
-                _disconnectCallbacks.Add(callback);
+                callbacks = new List<DisconnectCallback>();
+                _disconnectCallbacks[nodeId] = callbacks;
+            }
+            
+            if (!callbacks.Contains(callback))
+            {
+                callbacks.Add(callback);
             }
         }
 
-        public void UnregisterDisconnectCallback(DisconnectCallback callback)
+        public void UnregisterDisconnectCallback(uint nodeId, DisconnectCallback callback)
         {
-            if (callback != null)
+            if (callback == null) return;
+            
+            if (_disconnectCallbacks.TryGetValue(nodeId, out var callbacks))
             {
-                _disconnectCallbacks.Remove(callback);
+                callbacks.Remove(callback);
+                if (callbacks.Count == 0)
+                {
+                    _disconnectCallbacks.Remove(nodeId);
+                }
             }
         }
 
@@ -395,16 +430,23 @@ namespace GameLogic
         /// <summary>
         /// 注册消息监听器
         /// </summary>
+        /// <param name="nodeId">节点ID</param>
         /// <param name="packId">消息包ID</param>
         /// <param name="callback">回调函数</param>
-        public void RegisterMessageListener(ushort packId, MessageCallback callback)
+        public void RegisterMessageListener(uint nodeId, ushort packId, MessageCallback callback)
         {
             if (callback == null) return;
             
-            if (!_messageListeners.TryGetValue(packId, out var listeners))
+            if (!_messageListeners.TryGetValue(nodeId, out var nodeListeners))
+            {
+                nodeListeners = new Dictionary<ushort, List<MessageCallback>>();
+                _messageListeners[nodeId] = nodeListeners;
+            }
+            
+            if (!nodeListeners.TryGetValue(packId, out var listeners))
             {
                 listeners = new List<MessageCallback>();
-                _messageListeners[packId] = listeners;
+                nodeListeners[packId] = listeners;
             }
             
             if (!listeners.Contains(callback))
@@ -416,18 +458,24 @@ namespace GameLogic
         /// <summary>
         /// 注销消息监听器
         /// </summary>
+        /// <param name="nodeId">节点ID</param>
         /// <param name="packId">消息包ID</param>
         /// <param name="callback">回调函数</param>
-        public void UnregisterMessageListener(ushort packId, MessageCallback callback)
+        public void UnregisterMessageListener(uint nodeId, ushort packId, MessageCallback callback)
         {
             if (callback == null) return;
             
-            if (_messageListeners.TryGetValue(packId, out var listeners))
+            if (_messageListeners.TryGetValue(nodeId, out var nodeListeners) &&
+                nodeListeners.TryGetValue(packId, out var listeners))
             {
                 listeners.Remove(callback);
                 if (listeners.Count == 0)
                 {
-                    _messageListeners.Remove(packId);
+                    nodeListeners.Remove(packId);
+                    if (nodeListeners.Count == 0)
+                    {
+                        _messageListeners.Remove(nodeId);
+                    }
                 }
             }
         }
@@ -560,48 +608,80 @@ namespace GameLogic
         /// <summary>
         /// 注册认证成功回调
         /// </summary>
+        /// <param name="nodeId">节点ID</param>
         /// <param name="callback">认证成功回调</param>
-        public void RegisterAuthSuccessCallback(AuthSuccessCallback callback)
+        public void RegisterAuthSuccessCallback(uint nodeId, AuthSuccessCallback callback)
         {
-            if (callback != null && !_authSuccessCallbacks.Contains(callback))
+            if (callback == null) return;
+            
+            if (!_authSuccessCallbacks.TryGetValue(nodeId, out var callbacks))
             {
-                _authSuccessCallbacks.Add(callback);
+                callbacks = new List<AuthSuccessCallback>();
+                _authSuccessCallbacks[nodeId] = callbacks;
+            }
+            
+            if (!callbacks.Contains(callback))
+            {
+                callbacks.Add(callback);
             }
         }
 
         /// <summary>
         /// 注销认证成功回调
         /// </summary>
+        /// <param name="nodeId">节点ID</param>
         /// <param name="callback">认证成功回调</param>
-        public void UnregisterAuthSuccessCallback(AuthSuccessCallback callback)
+        public void UnregisterAuthSuccessCallback(uint nodeId, AuthSuccessCallback callback)
         {
-            if (callback != null)
+            if (callback == null) return;
+            
+            if (_authSuccessCallbacks.TryGetValue(nodeId, out var callbacks))
             {
-                _authSuccessCallbacks.Remove(callback);
+                callbacks.Remove(callback);
+                if (callbacks.Count == 0)
+                {
+                    _authSuccessCallbacks.Remove(nodeId);
+                }
             }
         }
 
         /// <summary>
         /// 注册认证失败回调
         /// </summary>
+        /// <param name="nodeId">节点ID</param>
         /// <param name="callback">认证失败回调</param>
-        public void RegisterAuthFailureCallback(AuthFailureCallback callback)
+        public void RegisterAuthFailureCallback(uint nodeId, AuthFailureCallback callback)
         {
-            if (callback != null && !_authFailureCallbacks.Contains(callback))
+            if (callback == null) return;
+            
+            if (!_authFailureCallbacks.TryGetValue(nodeId, out var callbacks))
             {
-                _authFailureCallbacks.Add(callback);
+                callbacks = new List<AuthFailureCallback>();
+                _authFailureCallbacks[nodeId] = callbacks;
+            }
+            
+            if (!callbacks.Contains(callback))
+            {
+                callbacks.Add(callback);
             }
         }
 
         /// <summary>
         /// 注销认证失败回调
         /// </summary>
+        /// <param name="nodeId">节点ID</param>
         /// <param name="callback">认证失败回调</param>
-        public void UnregisterAuthFailureCallback(AuthFailureCallback callback)
+        public void UnregisterAuthFailureCallback(uint nodeId, AuthFailureCallback callback)
         {
-            if (callback != null)
+            if (callback == null) return;
+            
+            if (_authFailureCallbacks.TryGetValue(nodeId, out var callbacks))
             {
-                _authFailureCallbacks.Remove(callback);
+                callbacks.Remove(callback);
+                if (callbacks.Count == 0)
+                {
+                    _authFailureCallbacks.Remove(nodeId);
+                }
             }
         }
 
@@ -664,15 +744,18 @@ namespace GameLogic
                         Log.Error($"节点 {nodeId} {errorMsg}");
                         
                         // 触发认证失败回调
-                        foreach (var callback in _authFailureCallbacks)
+                        if (_authFailureCallbacks.TryGetValue(nodeId, out var failureCallbacks))
                         {
-                            try
+                            foreach (var callback in failureCallbacks)
                             {
-                                callback?.Invoke(nodeId, response);
-                            }
-                            catch (Exception ex)
-                            {
-                                Log.Error($"认证失败回调执行异常: {ex}");
+                                try
+                                {
+                                    callback?.Invoke(response);
+                                }
+                                catch (Exception ex)
+                                {
+                                    Log.Error($"认证失败回调执行异常: {ex}");
+                                }
                             }
                         }
                         
@@ -697,15 +780,18 @@ namespace GameLogic
                     Log.Info($"节点 {nodeId} 认证成功");
 
                     // 触发认证成功回调
-                    foreach (var callback in _authSuccessCallbacks)
+                    if (_authSuccessCallbacks.TryGetValue(nodeId, out var successCallbacks))
                     {
-                        try
+                        foreach (var callback in successCallbacks)
                         {
-                            callback?.Invoke(nodeId, response);
-                        }
-                        catch (Exception ex)
-                        {
-                            Log.Error($"认证成功回调执行异常: {ex}");
+                            try
+                            {
+                                callback?.Invoke(response);
+                            }
+                            catch (Exception ex)
+                            {
+                                Log.Error($"认证成功回调执行异常: {ex}");
+                            }
                         }
                     }
 
@@ -922,15 +1008,19 @@ namespace GameLogic
                 SendAuthRequestInternal(nodeId).Forget();
             }
             
-            foreach (var callback in _connectCallbacks)
+            // 触发该节点的连接回调
+            if (_connectCallbacks.TryGetValue(nodeId, out var callbacks))
             {
-                try
+                foreach (var callback in callbacks)
                 {
-                    callback?.Invoke(nodeId, success, errorMsg);
-                }
-                catch (Exception ex)
-                {
-                    Log.Error($"连接回调执行异常: {ex}");
+                    try
+                    {
+                        callback?.Invoke(success, errorMsg);
+                    }
+                    catch (Exception ex)
+                    {
+                        Log.Error($"连接回调执行异常: {ex}");
+                    }
                 }
             }
         }
@@ -963,15 +1053,19 @@ namespace GameLogic
                 heartbeatState.FailureCount = 0;
             }
             
-            foreach (var callback in _disconnectCallbacks)
+            // 触发该节点的断线回调
+            if (_disconnectCallbacks.TryGetValue(nodeId, out var callbacks))
             {
-                try
+                foreach (var callback in callbacks)
                 {
-                    callback?.Invoke(nodeId, disconnectType, reason);
-                }
-                catch (Exception ex)
-                {
-                    Log.Error($"断线回调执行异常: {ex}");
+                    try
+                    {
+                        callback?.Invoke(disconnectType, reason);
+                    }
+                    catch (Exception ex)
+                    {
+                        Log.Error($"断线回调执行异常: {ex}");
+                    }
                 }
             }
         }
@@ -996,14 +1090,15 @@ namespace GameLogic
                 }
             }
 
-            // 触发消息监听器
-            if (_messageListeners.TryGetValue(packId, out var listeners))
+            // 触发该节点的消息监听器
+            if (_messageListeners.TryGetValue(nodeId, out var nodeListeners) &&
+                nodeListeners.TryGetValue(packId, out var listeners))
             {
                 foreach (var listener in listeners)
                 {
                     try
                     {
-                        listener?.Invoke(nodeId, response);
+                        listener?.Invoke(response);
                     }
                     catch (Exception ex)
                     {

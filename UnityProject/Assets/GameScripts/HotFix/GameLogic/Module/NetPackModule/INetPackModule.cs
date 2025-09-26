@@ -71,26 +71,30 @@ namespace GameLogic
         /// <summary>
         /// 注册连接成功回调
         /// </summary>
+        /// <param name="nodeId">节点ID</param>
         /// <param name="callback">回调函数</param>
-        void RegisterConnectCallback(ConnectCallback callback);
+        void RegisterConnectCallback(uint nodeId, ConnectCallback callback);
 
         /// <summary>
         /// 注销连接成功回调
         /// </summary>
+        /// <param name="nodeId">节点ID</param>
         /// <param name="callback">回调函数</param>
-        void UnregisterConnectCallback(ConnectCallback callback);
+        void UnregisterConnectCallback(uint nodeId, ConnectCallback callback);
 
         /// <summary>
         /// 注册断线回调
         /// </summary>
+        /// <param name="nodeId">节点ID</param>
         /// <param name="callback">回调函数</param>
-        void RegisterDisconnectCallback(DisconnectCallback callback);
+        void RegisterDisconnectCallback(uint nodeId, DisconnectCallback callback);
 
         /// <summary>
         /// 注销断线回调
         /// </summary>
+        /// <param name="nodeId">节点ID</param>
         /// <param name="callback">回调函数</param>
-        void UnregisterDisconnectCallback(DisconnectCallback callback);
+        void UnregisterDisconnectCallback(uint nodeId, DisconnectCallback callback);
 
         #endregion
 
@@ -98,16 +102,18 @@ namespace GameLogic
         /// <summary>
         /// 注册消息监听器
         /// </summary>
+        /// <param name="nodeId">节点ID</param>
         /// <param name="packId">消息包ID</param>
         /// <param name="callback">回调函数</param>
-        void RegisterMessageListener(ushort packId, MessageCallback callback);
+        void RegisterMessageListener(uint nodeId, ushort packId, MessageCallback callback);
 
         /// <summary>
         /// 注销消息监听器
         /// </summary>
+        /// <param name="nodeId">节点ID</param>
         /// <param name="packId">消息包ID</param>
         /// <param name="callback">回调函数</param>
-        void UnregisterMessageListener(ushort packId, MessageCallback callback);
+        void UnregisterMessageListener(uint nodeId, ushort packId, MessageCallback callback);
 
         /// <summary>
         /// 发送消息（Send模式，不等待响应）
@@ -139,26 +145,30 @@ namespace GameLogic
         /// <summary>
         /// 注册认证成功回调
         /// </summary>
+        /// <param name="nodeId">节点ID</param>
         /// <param name="callback">认证成功回调</param>
-        void RegisterAuthSuccessCallback(AuthSuccessCallback callback);
+        void RegisterAuthSuccessCallback(uint nodeId, AuthSuccessCallback callback);
 
         /// <summary>
         /// 注销认证成功回调
         /// </summary>
+        /// <param name="nodeId">节点ID</param>
         /// <param name="callback">认证成功回调</param>
-        void UnregisterAuthSuccessCallback(AuthSuccessCallback callback);
+        void UnregisterAuthSuccessCallback(uint nodeId, AuthSuccessCallback callback);
 
         /// <summary>
         /// 注册认证失败回调
         /// </summary>
+        /// <param name="nodeId">节点ID</param>
         /// <param name="callback">认证失败回调</param>
-        void RegisterAuthFailureCallback(AuthFailureCallback callback);
+        void RegisterAuthFailureCallback(uint nodeId, AuthFailureCallback callback);
 
         /// <summary>
         /// 注销认证失败回调
         /// </summary>
+        /// <param name="nodeId">节点ID</param>
         /// <param name="callback">认证失败回调</param>
-        void UnregisterAuthFailureCallback(AuthFailureCallback callback);
+        void UnregisterAuthFailureCallback(uint nodeId, AuthFailureCallback callback);
 
         /// <summary>
         /// 获取节点认证状态

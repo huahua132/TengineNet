@@ -45,8 +45,8 @@ namespace GameLogic
             }, heartbeatConfig);
             INetResponse.GetRspErrCode = NetResponseErrCode;
             INetResponse.GetRspErrMsg = NetResponseErrMsg;
-            GameModule.NetPack.RegisterConnectCallback(ConnectCallback);
-            GameModule.NetPack.RegisterDisconnectCallback(DisconnectCallback);
+            GameModule.NetPack.RegisterConnectCallback((uint)_nodeID, ConnectCallback);
+            GameModule.NetPack.RegisterDisconnectCallback((uint)_nodeID, DisconnectCallback);
         }
 
         private void ReconnectTimeOut(object[] args)
@@ -70,11 +70,11 @@ namespace GameLogic
 #endif
         }
 
-        private void ConnectCallback(uint nodeId, bool success, string errorMsg = "")
+        private void ConnectCallback(bool success, string errorMsg = "")
         {
             if (!success)
             {
-                int attempts = GameModule.NetPack.GetReconnectAttempts(nodeId);
+                int attempts = GameModule.NetPack.GetReconnectAttempts((uint)_nodeID);
                 if (attempts % 3 == 0)
                 {
                     GameModule.Timer.AddTimer(ReconnectTimeOut, 0.1f, false);
@@ -90,9 +90,9 @@ namespace GameLogic
             }
         }
 
-        private void DisconnectCallback(uint nodeId, DisconnectType disconnectType, string reason = "")
+        private void DisconnectCallback(DisconnectType disconnectType, string reason = "")
         {
-            GameModule.NetPack.Close(nodeId);
+            GameModule.NetPack.Close((uint)_nodeID);
         }
 
         private static int NetResponseErrCode(INetResponse response)
@@ -119,6 +119,11 @@ namespace GameLogic
         public void Close()
         {
             GameModule.NetPack.Close((uint)_nodeID);
+        }
+
+        public void RegisterMessageListener()
+        {
+            
         }
     }
 }
