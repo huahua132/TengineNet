@@ -38,20 +38,20 @@ namespace GameLogic
         // 存储所有系统实例
         private readonly List<ISystem> _systems = new List<ISystem>();
         private readonly List<ISystemUpdate> _updateSystems = new List<ISystemUpdate>();
-        
+
         // 系统是否已初始化和启动
         private bool _isInitialized = false;
         public override void OnInit()
         {
             if (_isInitialized) return;
-            
+
             // 自动发现并注册所有标注了SystemAttribute的系统
             DiscoverAndRegisterSystems();
-            
+
             // 初始化所有系统
             InitializeSystems();
             StartSystems();
-            
+
             _isInitialized = true;
             Log.Info("SystemModule OnInit completed");
         }
@@ -59,12 +59,13 @@ namespace GameLogic
         public override void Shutdown()
         {
             if (!_isInitialized) return;
-            
+
             // 销毁所有系统（逆序）
             DestroySystems();
-            
+
             _systems.Clear();
             _updateSystems.Clear();
+            RemoveAllUIEvent();
             _isInitialized = false;
             Log.Info("SystemModule Shutdown completed");
         }
@@ -89,11 +90,11 @@ namespace GameLogic
         private void DiscoverAndRegisterSystems()
         {
             var systemInfos = new List<(Type type, int priority)>();
-            
+
             // 获取当前程序集中所有标注了SystemAttribute的类型
             var assembly = Assembly.GetExecutingAssembly();
             var types = assembly.GetTypes();
-            
+
             foreach (var type in types)
             {
                 var systemAttr = type.GetCustomAttribute<SystemAttribute>();
@@ -102,10 +103,10 @@ namespace GameLogic
                     systemInfos.Add((type, systemAttr.Priority));
                 }
             }
-            
+
             // 按优先级排序（优先级越高越先初始化）
             systemInfos.Sort((a, b) => b.priority.CompareTo(a.priority));
-            
+
             // 创建系统实例
             foreach (var (type, priority) in systemInfos)
             {
@@ -122,7 +123,7 @@ namespace GameLogic
                             _updateSystems.Add(updateSystem);
                             Log.Info($"Registered system _updateSystems Add: {type.Name} (Priority: {priority})");
                         }
-                        
+
                         Log.Info($"Registered system: {type.Name} (Priority: {priority})");
                     }
                 }
@@ -143,14 +144,14 @@ namespace GameLogic
                 var instance = instanceProperty.GetValue(null);
                 if (instance != null) return instance;
             }
-            
+
             var instanceField = type.GetField("Instance", BindingFlags.Public | BindingFlags.Static);
             if (instanceField != null)
             {
                 var instance = instanceField.GetValue(null);
                 if (instance != null) return instance;
             }
-            
+
             // 如果没有现成的单例，尝试创建新实例
             return Activator.CreateInstance(type);
         }
@@ -206,28 +207,63 @@ namespace GameLogic
             }
         }
 
-        // 手动注册系统（可选功能）
-        public void RegisterSystem<T>() where T : class, ISystem, new()
-        {
-            var system = new T();
-            _systems.Add(system);
-            
-            if (system is ISystemUpdate updateSystem)
-            {
-                _updateSystems.Add(updateSystem);
-            }
-            
-            if (_isInitialized)
-            {
-                system.OnInit();
-                system.OnStart();
-            }
-        }
-
         // 获取指定类型的系统
         public T GetSystem<T>() where T : class, ISystem
         {
             return _systems.OfType<T>().FirstOrDefault();
         }
+        
+        #region Event
+
+        private GameEventMgr _eventMgr;
+
+        protected GameEventMgr EventMgr
+        {
+            get
+            {
+                if (_eventMgr == null)
+                {
+                    _eventMgr = MemoryPool.Acquire<GameEventMgr>();
+                }
+
+                return _eventMgr;
+            }
+        }
+
+        public void AddEvent(int eventType, Action handler)
+        {
+            EventMgr.AddEvent(eventType, handler);
+        }
+
+        public void AddEvent<T>(int eventType, Action<T> handler)
+        {
+            EventMgr.AddEvent(eventType, handler);
+        }
+
+        public void AddEvent<T, U>(int eventType, Action<T, U> handler)
+        {
+            EventMgr.AddEvent(eventType, handler);
+        }
+
+        public void AddEvent<T, U, V>(int eventType, Action<T, U, V> handler)
+        {
+            EventMgr.AddEvent(eventType, handler);
+        }
+
+        public void AddEvent<T, U, V, W>(int eventType, Action<T, U, V, W> handler)
+        {
+            EventMgr.AddEvent(eventType, handler);
+        }
+
+        private void RemoveAllUIEvent()
+        {
+            if (_eventMgr != null)
+            {
+                MemoryPool.Release(_eventMgr);
+                _eventMgr = null;
+            }
+        }
+
+        #endregion
     }
 }

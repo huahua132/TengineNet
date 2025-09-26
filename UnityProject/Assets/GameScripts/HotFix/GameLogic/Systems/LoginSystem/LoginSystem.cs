@@ -8,7 +8,7 @@ namespace GameLogic
     {
         public void OnInit()
         {
-            GameEvent.AddEventListener(ILoginUI_Event.ShowLoginUI, OnShowLoginUI);
+            GameModule.System.AddEvent(ILoginUI_Event.ShowLoginUI, OnShowLoginUI);
         }
 
         public void OnStart()
@@ -17,7 +17,6 @@ namespace GameLogic
 
         public void OnDestroy()
         {
-            GameEvent.RemoveEventListener(ILoginUI_Event.ShowLoginUI, OnShowLoginUI);
         }
 
         private void OnShowLoginUI()
