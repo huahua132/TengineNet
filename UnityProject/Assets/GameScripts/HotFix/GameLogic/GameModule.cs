@@ -154,7 +154,15 @@ public class GameModule
         _netPack = null;
         _system = null;
         _commonUI = null;
-        _netHall = null;
-        _netGame = null;
+        if (_netHall != null)
+        {
+            _netHall.Dispose();
+            _netHall = null;
+        }
+        if (_netGame != null)
+        {
+            _netGame.Dispose();
+            _netGame = null;
+        }
     }
 }
