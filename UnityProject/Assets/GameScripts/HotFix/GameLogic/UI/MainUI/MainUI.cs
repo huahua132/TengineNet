@@ -19,6 +19,7 @@ namespace GameLogic
 		#region 事件
 		private void OnClickEmailBtn()
 		{
+			GameModule.UI.ShowUI<EmailUI>();
 		}
 		#endregion
 
