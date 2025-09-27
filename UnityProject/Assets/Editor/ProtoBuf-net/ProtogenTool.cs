@@ -9,7 +9,7 @@ namespace TEngine.Editor
 
     public static class EditorProtogenTool
     {
-        [MenuItem("Tools/生成所有proto文件的CSharp代码")]
+        [MenuItem("Tools/protobuf/生成所有proto文件的CSharp代码")]
         public static void GenerateProtos()
         {
             // 获取绝对路径确保路径一致性

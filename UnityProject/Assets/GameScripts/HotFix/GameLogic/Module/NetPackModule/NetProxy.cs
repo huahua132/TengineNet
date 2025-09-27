@@ -30,7 +30,7 @@ namespace GameLogic
             GameModule.NetPack.SetAuthRequestProvider((uint)_nodeID, (nodeId) =>
             {
                 ProtoBufRequest netReq = new ProtoBufRequest();
-                netReq.PackId = 201;
+                netReq.PackId = login.MessageId.LoginReq;
                 var loginReq = new login.LoginReq();
                 loginReq.player_id = _playerId;
                 loginReq.token = _token;
@@ -43,7 +43,7 @@ namespace GameLogic
             GameModule.NetPack.SetHeartbeatRequestProvider((uint)_nodeID, (nodeId) =>
             {
                 ProtoBufRequest netReq = new ProtoBufRequest();
-                netReq.PackId = 203;
+                netReq.PackId = login.MessageId.HeartReq;
                 var heartReq = new login.HeartReq();
                 heartReq.time = DateTime.Now.Second;
                 netReq.MsgBody = heartReq;
