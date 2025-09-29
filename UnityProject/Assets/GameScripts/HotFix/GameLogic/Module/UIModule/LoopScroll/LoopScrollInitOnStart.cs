@@ -43,7 +43,6 @@ namespace GameLogic
 
         public void Release()
         {
-            Log.Info("Release >>>");
             OnRelease();
         }
 
