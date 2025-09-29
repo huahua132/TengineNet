@@ -927,7 +927,7 @@ namespace GameLogic
                 state.LastHeartbeatTime = DateTime.Now;
                 state.WaitingResponse = false;
                 state.FailureCount = 0;
-                Log.Debug($"节点 {nodeId} 心跳响应正常");
+                //Log.Debug($"节点 {nodeId} 心跳响应正常");
                 return true;
             }
             catch (Exception ex)
