@@ -106,7 +106,7 @@ namespace GameLogic
                 return;
             }
 
-            Log.Info($"handleNetPack >>> packId={packId} packType={pack.packtype} msgType={msgType} session={session}");
+            //Log.Info($"handleNetPack >>> packId={packId} packType={pack.packtype} msgType={msgType} session={session}");
             var packType = (PACK_TYPE)pack.packtype;
 
             var packages = _rspPackageHeads;

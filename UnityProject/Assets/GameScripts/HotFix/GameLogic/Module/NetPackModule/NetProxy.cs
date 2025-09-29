@@ -39,7 +39,7 @@ namespace GameLogic
             }, authConfig);
 
             // 设置心跳配置
-            var heartbeatConfig = new HeartbeatConfig();
+            var heartbeatConfig = new HeartbeatConfig(10, true, 10000, 3);
             GameModule.NetPack.SetHeartbeatRequestProvider((uint)_nodeID, (nodeId) =>
             {
                 ProtoBufRequest netReq = new ProtoBufRequest();

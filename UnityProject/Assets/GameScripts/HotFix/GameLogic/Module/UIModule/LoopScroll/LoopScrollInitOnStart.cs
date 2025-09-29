@@ -1,50 +1,138 @@
 using UnityEngine;
 using System.Collections.Generic;
 using UnityEngine.UI;
+using TEngine;
 
 namespace GameLogic
 {
-    [RequireComponent(typeof(UnityEngine.UI.LoopScrollRect))]
+    public interface ILoopScrollDataGeter
+    {
+        T GetData<T>(int idx);
+    }
+
+    public abstract class LoopCellBase
+    {
+        public Transform _Trf { get; private set; }
+        protected ILoopScrollDataGeter _DataGeter;
+        public bool _IsRecycle { get; private set; }
+        public void Init(Transform trans, ILoopScrollDataGeter dataGeter = null)
+        {
+            _Trf = trans;
+            _DataGeter = dataGeter;
+            _IsRecycle = false;
+            _Trf.gameObject.SetActive(true);
+            OnInit();
+        }
+        public void Recycle()
+        {
+            OnRecycle();
+            _Trf.gameObject.SetActive(false);
+            _IsRecycle = true;
+        }
+        public void Reuse()
+        {
+            _IsRecycle = false;
+            _Trf.gameObject.SetActive(true);
+            OnReuse();
+        }
+
+        public void Refresh(int index)
+        {
+            OnRefresh(index);
+        }
+
+        public void Release()
+        {
+            Log.Info("Release >>>");
+            OnRelease();
+        }
+
+        protected virtual void OnInit()
+        {
+
+        }
+        protected virtual void OnRecycle()
+        {
+
+        }
+        protected virtual void OnReuse()
+        {
+
+        }
+        protected abstract void OnRefresh(int index);
+
+        protected virtual void OnRelease()
+        {
+
+        }
+    }
+
+    public delegate LoopCellBase LoopCellBaseCreater();
+
+    [RequireComponent(typeof(LoopScrollRect))]
     [DisallowMultipleComponent]
     public class LoopScrollInitOnStart : MonoBehaviour, LoopScrollPrefabSource, LoopScrollDataSource
     {
         public GameObject item;
-        public int totalCount = -1;
+        private ILoopScrollDataGeter _DataGeter;
+        private LoopCellBaseCreater _creater;
 
         // Implement your own Cache Pool here. The following is just for example.
-        Stack<Transform> pool = new Stack<Transform>();
+
+        Stack<LoopCellBase> pool = new Stack<LoopCellBase>();
+        Dictionary<GameObject, LoopCellBase> _objCellBases = new();
+
+        private LoopCellBase CreateCell(GameObject go)
+        {
+            LoopCellBase cell = _creater();
+            _objCellBases[go] = cell;
+            cell.Init(go.transform, _DataGeter);
+            return cell;
+        }
         public GameObject GetObject(int index)
         {
             if (pool.Count == 0)
             {
-                return Instantiate(item);
+                GameObject go = Instantiate(item);
+                CreateCell(go);
+                return go;
             }
-            Transform candidate = pool.Pop();
-            candidate.gameObject.SetActive(true);
-            return candidate.gameObject;
+            LoopCellBase cell = pool.Pop();
+            cell.Reuse();
+            return cell._Trf.gameObject;
         }
 
         public void ReturnObject(Transform trans)
         {
-            // Use `DestroyImmediate` here if you don't need Pool
-            trans.SendMessage("ScrollCellReturn", SendMessageOptions.DontRequireReceiver);
-            trans.gameObject.SetActive(false);
+            var cell = _objCellBases[trans.gameObject];
+            if (cell._IsRecycle) return;
+            cell.Recycle();
             trans.SetParent(transform, false);
-            pool.Push(trans);
+            pool.Push(cell);
         }
 
-        public void ProvideData(Transform transform, int idx)
-        {
-            transform.SendMessage("ScrollCellIndex", idx);
-        }
-
-        void Start()
+        public void Init(LoopCellBaseCreater creater, ILoopScrollDataGeter dataGeter)
         {
             var ls = GetComponent<LoopScrollRect>();
+            _creater = creater;
+            _DataGeter = dataGeter;
+            CreateCell(item);
+            ReturnObject(item.transform);
             ls.prefabSource = this;
             ls.dataSource = this;
-            ls.totalCount = totalCount;
-            ls.RefillCells();
+        }
+        public void ProvideData(Transform transform, int idx)
+        {
+            var cell = _objCellBases[transform.gameObject];
+            cell.Refresh(idx);
+        }
+
+        public void OnDestroy()
+        {
+            foreach (var kv in _objCellBases)
+            {
+                kv.Value.Release();
+            }
         }
     }
 }

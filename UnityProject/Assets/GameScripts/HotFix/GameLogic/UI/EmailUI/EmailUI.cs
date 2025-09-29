@@ -25,11 +25,11 @@ namespace GameLogic
             _toggleG.onValueChanged.AddListener(OnToggleGChange);
             _toggleS.onValueChanged.AddListener(OnToggleSChange);
             _toggleF.onValueChanged.AddListener(OnToggleFChange);
+            GetGlist();
             OnToggleGChange(_toggleG.isOn);
             OnToggleGChange(_toggleS.isOn);
             OnToggleGChange(_toggleF.isOn);
             _imgBg.onClick.AddListener(OnClickImgBgBtn);
-            GetGlist();
         }
         #endregion
 
@@ -45,19 +45,16 @@ namespace GameLogic
         private void OnToggleGChange(bool isOn)
         {
             if (!isOn) return;
-            Log.Info($"OnToggleGChange >>> {isOn}");
             _gList.Switch(EMAIL_TYPE.G);
         }
         private void OnToggleSChange(bool isOn)
         {
             if (!isOn) return;
-            Log.Info($"OnToggleSChange >>> {isOn}");
             _gList.Switch(EMAIL_TYPE.S);
         }
         private void OnToggleFChange(bool isOn)
         {
             if (!isOn) return;
-            Log.Info($"OnToggleFChange >>> {isOn}");
             _gList.Switch(EMAIL_TYPE.F);
         }
 
