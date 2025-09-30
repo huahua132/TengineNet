@@ -13,10 +13,12 @@ namespace GameLogic
         void SetParent(GameObject gameObject);
         void SetItemID(item_ID itemId);
         void SetItemNum(int num);
+        void SetRecycle();
     }
 
     public class itemIcon : CommonUIBase, IItemIcon
     {
+        private Transform _poolParent;
         private GameObject _parent;
         private Text _itemName;
         private Text _itemNum;
@@ -30,7 +32,7 @@ namespace GameLogic
 
         protected override void OnRecycle()
         {
-            _Trf.SetParent(null);
+            _Trf.SetParent(_poolParent);
         }
 
         //返回true表示可以回收
@@ -41,6 +43,12 @@ namespace GameLogic
                 return true;
             }
             return false;
+        }
+
+        public void SetPoolParent(Transform poolParent)
+        {
+            _poolParent = poolParent;
+            _Trf.SetParent(_poolParent);
         }
 
         public void SetParent(GameObject gameObject)
@@ -62,18 +70,26 @@ namespace GameLogic
         {
             _itemNum.text = num.ToString();
         }
+
+        public void SetRecycle()
+        {
+            _Trf.SetParent(_poolParent);
+            _parent = null;
+        }
     }
 
     public class CommonItemIconCreater
     {
+        private static GameObject _itemIconPool;
         public void Init()
         {
-
+            _itemIconPool = new GameObject("ItemIconPool");
+            Object.DontDestroyOnLoad(_itemIconPool);
         }
 
         public void Release()
         {
-
+            Object.Destroy(_itemIconPool);
         }
 
         public async UniTaskVoid Create(Action<ICommonUI> callback)
@@ -81,6 +97,7 @@ namespace GameLogic
             var gameObject = await UIModule.Resource.LoadGameObjectAsync("CommonItemIcon");
             var itemIcon = new itemIcon();
             itemIcon.Init(gameObject.transform);
+            itemIcon.SetPoolParent(_itemIconPool.transform);
             callback(itemIcon);
         }
     }

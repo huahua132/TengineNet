@@ -122,9 +122,18 @@ namespace GameLogic
 			_IitemIcon.SetItemNum((int)itemCount);
 		}
 
-        protected override void OnRecycle()
-        {
+		protected override void OnRecycle()
+		{
 			_index = -1;
+		}
+
+		protected override void OnRelease()
+		{
+			if (_IitemIcon != null)
+			{
+				_IitemIcon.SetRecycle();
+				_IitemIcon = null;
+			}
         }
 	}
 

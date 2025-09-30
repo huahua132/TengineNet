@@ -6,6 +6,7 @@ namespace GameLogic
     public interface ICommonUI
     {
         float _RecycleTime { get; set; }
+        bool IsValid();
         void Init(Transform trans);
         void Recycle();
         void Reuse();
@@ -53,6 +54,11 @@ namespace GameLogic
         public bool Update()
         {
             return OnUpdate();
+        }
+
+        public bool IsValid()
+        {
+            return _Trf != null;
         }
 
         protected virtual void OnInit()

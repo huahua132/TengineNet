@@ -62,13 +62,21 @@ namespace GameLogic
             for (int i = _activeList.Count - 1; i >= 0; i--)
             {
                 var ui = _activeList[i];
-                bool isRecycle = ui.Update();
-                if (isRecycle)
+                if (ui.IsValid())
+                {
+                    bool isRecycle = ui.Update();
+                    if (isRecycle)
+                    {
+                        _activeList.RemoveAt(i);
+                        ui.Recycle();
+                        var list = _idlePools[ui.GetType()];
+                        list.Add(ui);
+                    }
+                }
+                else
                 {
                     _activeList.RemoveAt(i);
-                    ui.Recycle();
-                    var list = _idlePools[ui.GetType()];
-                    list.Add(ui);
+                    ui.Release();
                 }
             }
 
