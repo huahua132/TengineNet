@@ -29,14 +29,35 @@ namespace GameLogic
 	public class EmailCell : LoopCellBase
 	{
 		private Text _titile;
-        protected override void OnInit()
+		private Text _isRead;
+		private Text _tooggleShow;
+		private Toggle _toggle;
+		private RectTransform _bottom;
+		private Text _content;
+		protected override void OnInit()
 		{
-			_titile = _Trf.Find("m_textTitle").GetComponent<Text>();
+			_titile = _Trf.Find("head/m_textTitle").GetComponent<Text>();
+			_isRead = _Trf.Find("head/m_textReadFlag").GetComponent<Text>();
+			_tooggleShow = _Trf.Find("head/m_toggleShow").GetComponentInChildren<Text>();
+			_toggle = _Trf.Find("head/m_toggleShow").GetComponent<Toggle>();
+			_toggle.onValueChanged.AddListener(OnToggleChange);
+
+			_bottom = _Trf.Find("bottom").GetComponent<RectTransform>();
+			_content = _Trf.Find("bottom/m_textContent").GetComponent<Text>();
 		}
 		protected override void OnRefresh(int index)
 		{
 			var emailData = _DataGeter.GetData<hallserver_email.oneEmail>(index);
 			_titile.text = emailData.title;
+			_isRead.text = emailData.read_flag == 1 ? "已读" : "未读";
+			_tooggleShow.text = _toggle.isOn ? "收拢" : "展开";
+			_bottom.gameObject.SetActive(_toggle.isOn);
+			_content.text = emailData.content;
+		}
+		private void OnToggleChange(bool isOn)
+		{
+			_tooggleShow.text = _toggle.isOn ? "收拢" : "展开";
+			_bottom.gameObject.SetActive(_toggle.isOn);
 		}
 	}
 
