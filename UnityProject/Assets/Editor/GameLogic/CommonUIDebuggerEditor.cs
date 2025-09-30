@@ -71,7 +71,7 @@ namespace GameLogicEditor
             InitStyles();
 
             // 头部信息
-            DrawHeader();
+            DrawSelfHeader();
 
             EditorGUILayout.Space(10);
 
@@ -99,7 +99,7 @@ namespace GameLogicEditor
         /// <summary>
         /// 绘制头部
         /// </summary>
-        private void DrawHeader()
+        private void DrawSelfHeader()
         {
             EditorGUILayout.BeginVertical(_boxStyle);
             
