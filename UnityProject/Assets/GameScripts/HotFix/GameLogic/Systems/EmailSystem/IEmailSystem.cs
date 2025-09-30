@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Cysharp.Threading.Tasks;
 
 namespace GameLogic
 {
@@ -10,5 +11,8 @@ namespace GameLogic
         int GetEmailsWithItemsCount(int? emailType = null);
         int GetTotalEmailCount(int? emailType = null);
         bool HasEmail(long guid);
+        bool IsCanGetReward(long guid, bool isShowToast = false);
+        UniTaskVoid ReqRead(long guid);
+        UniTaskVoid ReqGetReward(long guid);
     }
 }

@@ -29,6 +29,8 @@ namespace GameLogic
 
 	public class EmailCell : LoopCellBase
 	{
+		private hallserver_email.oneEmail _emailData;
+		private IEmailSystem _emailSystem;
 		private Text _titile;
 		private Text _isRead;
 		private Text _tooggleShow;
@@ -38,6 +40,7 @@ namespace GameLogic
 		private LoopHorizontalScrollRect _rewardList;
 		private LoopScrollInitOnStart _loopInit;
 		private EmailRewardDataGeter _dataGeter;
+		private Button _btnReward;
 		protected override void OnInit()
 		{
 			_titile = _Trf.Find("head/m_textTitle").GetComponent<Text>();
@@ -45,34 +48,65 @@ namespace GameLogic
 			_tooggleShow = _Trf.Find("head/m_toggleShow").GetComponentInChildren<Text>();
 			_toggle = _Trf.Find("head/m_toggleShow").GetComponent<Toggle>();
 			_toggle.onValueChanged.AddListener(OnToggleChange);
-
 			_bottom = _Trf.Find("bottom").GetComponent<RectTransform>();
 			_content = _Trf.Find("bottom/m_textContent").GetComponent<Text>();
 			_rewardList = _Trf.Find("bottom/ItemList").GetComponent<LoopHorizontalScrollRect>();
 			_loopInit = _Trf.Find("bottom/ItemList").GetComponent<LoopScrollInitOnStart>();
+			_btnReward = _Trf.Find("bottom/m_btnReward").GetComponent<Button>();
+			_btnReward.onClick.AddListener(OnBtnRewardClick);
+
+			_emailSystem = GameModule.System.GetSystem<IEmailSystem>();
+
 			_dataGeter = new EmailRewardDataGeter();
 			_loopInit.Init(CellCreater, _dataGeter);
+			AddEvent<long>(IEmailLogic_Event.EmailReadFlag, OnEmailReadFlag);
+			AddEvent<long>(IEmailLogic_Event.EmailRewardFlag, OnEmailRewardFlag);
 		}
+
+		private void OnEmailReadFlag(long guid)
+		{
+			if (_emailData == null || _emailData.guid != guid) return;
+
+			_isRead.text = _emailData.read_flag == 1 ? "已读" : "未读";
+		}
+
+		private void OnEmailRewardFlag(long guid)
+		{
+			if (_emailData == null || _emailData.guid != guid) return;
+			_btnReward.gameObject.SetActive(_emailSystem.IsCanGetReward(_emailData.guid));
+		}
+
+		private void OnBtnRewardClick()
+		{
+			_emailSystem.ReqGetReward(_emailData.guid);
+		}
+
 		private static LoopCellBase CellCreater()
 		{
 			return new EmailRewardCell();
 		}
+
 		protected override void OnRefresh(int index)
 		{
-			var emailData = _DataGeter.GetData<hallserver_email.oneEmail>(index);
-			_titile.text = emailData.title;
-			_isRead.text = emailData.read_flag == 1 ? "已读" : "未读";
+			_emailData = _DataGeter.GetData<hallserver_email.oneEmail>(index);
+			_titile.text = _emailData.title;
+			_isRead.text = _emailData.read_flag == 1 ? "已读" : "未读";
 			_tooggleShow.text = _toggle.isOn ? "收拢" : "展开";
 			_bottom.gameObject.SetActive(_toggle.isOn);
-			_content.text = emailData.content;
-			_dataGeter.SetData(emailData.item_list);
-			_rewardList.totalCount = emailData.item_list.Count;
+			_btnReward.gameObject.SetActive(_emailSystem.IsCanGetReward(_emailData.guid));
+			_content.text = _emailData.content;
+			_dataGeter.SetData(_emailData.item_list);
+			_rewardList.totalCount = _emailData.item_list.Count;
 			_rewardList.RefillCells();
 		}
 		private void OnToggleChange(bool isOn)
 		{
 			_tooggleShow.text = _toggle.isOn ? "收拢" : "展开";
 			_bottom.gameObject.SetActive(_toggle.isOn);
+			if (_toggle.isOn)
+			{
+				_emailSystem.ReqRead(_emailData.guid);
+			}
 		}
 	}
 

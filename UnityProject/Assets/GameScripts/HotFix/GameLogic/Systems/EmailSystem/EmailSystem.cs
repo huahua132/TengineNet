@@ -1,7 +1,8 @@
 using TEngine;
 using System.Collections.Generic;
 using System.Linq;
-using System.Runtime.InteropServices;
+using Cysharp.Threading.Tasks;
+using chinese_chess_game;
 
 namespace GameLogic
 {
@@ -10,7 +11,7 @@ namespace GameLogic
     {
         // 按邮件类型分类存储，每个类型内按创建时间和guid排序
         private Dictionary<int, SortedList<(long createTime, long guid), hallserver_email.oneEmail>> _emailsByType = new();
-        
+
         // 快速查找邮件的映射表
         private Dictionary<long, hallserver_email.oneEmail> _emailMap = new();
 
@@ -35,11 +36,11 @@ namespace GameLogic
         private void OnRecvAllEmainNotice(INetResponse netPack)
         {
             hallserver_email.AllEmailNotice allEmail = netPack.GetResponse<hallserver_email.AllEmailNotice>();
-            
+
             // 清空现有数据
             _emailsByType.Clear();
             _emailMap.Clear();
-            
+
             foreach (var email in allEmail.email_list)
             {
                 AddEmailToSystem(email);
@@ -134,7 +135,7 @@ namespace GameLogic
             {
                 return GetEmailsByType(emailType.Value).Count(e => e.Value.read_flag == 0);
             }
-            
+
             return _emailMap.Values.Count(e => e.read_flag == 0);
         }
 
@@ -147,7 +148,7 @@ namespace GameLogic
             {
                 return GetEmailsByType(emailType.Value).Count(e => e.Value.item_flag == 1 && e.Value.item_list.Count > 0);
             }
-            
+
             return _emailMap.Values.Count(e => e.item_flag == 1 && e.item_list.Count > 0);
         }
 
@@ -160,7 +161,7 @@ namespace GameLogic
             {
                 return _emailsByType.ContainsKey(emailType.Value) ? _emailsByType[emailType.Value].Count : 0;
             }
-            
+
             return _emailMap.Count;
         }
 
@@ -170,6 +171,73 @@ namespace GameLogic
         public bool HasEmail(long guid)
         {
             return _emailMap.ContainsKey(guid);
+        }
+
+        public bool IsCanGetReward(long guid, bool isShowToast = true)
+        {
+            var emailData = GetEmailByGuid(guid);
+            if (emailData == null)
+            {
+                if (isShowToast)
+                {
+                    GameModule.CommonUI.ShowToast("邮件不存在");
+                }
+                return false;
+            }
+
+            if (emailData.item_flag == 1)
+            {
+                if (isShowToast)
+                {
+                    GameModule.CommonUI.ShowToast("已领取");
+                }
+                return false;
+            }
+
+            if (emailData.item_list.Count <= 0)
+            {
+                if (isShowToast)
+                {
+                    GameModule.CommonUI.ShowToast("奖励列表为空");
+                }
+                return false;
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// 读邮件
+        /// </summary>
+        public async UniTaskVoid ReqRead(long guid)
+        {
+            var emailData = GetEmailByGuid(guid);
+            if (emailData == null || emailData.read_flag == 1) return;
+
+            hallserver_email.ReadEmailReq req = new hallserver_email.ReadEmailReq();
+            req.guid_list = new long[] { guid };
+            await GameModule.NetHall.SendProtoBufRpcRequest<hallserver_email.ReadEmailRes>(hallserver_email.MessageId.ReadEmailReq, req);
+            emailData.read_flag = 1;
+            GameModule.CommonUI.ShowToast("读取成功");
+            GameEvent.Get<IEmailLogic>().EmailReadFlag(emailData.guid);
+        }
+
+        /// <summary>
+        /// 领取邮件奖励
+        /// </summary>
+        public async UniTaskVoid ReqGetReward(long guid)
+        {
+            if (!IsCanGetReward(guid, true)) return;
+
+            hallserver_email.ItemListEmailReq req = new hallserver_email.ItemListEmailReq();
+            req.guid_list = new long[] { guid };
+
+            var emailData = GetEmailByGuid(guid);
+
+            await GameModule.NetHall.SendProtoBufRpcRequest<hallserver_email.ItemListEmailRes>(hallserver_email.MessageId.ItemListEmailReq, req);
+            emailData.item_flag = 1;
+            GameModule.CommonUI.ShowToast("领取成功");
+            GameEvent.Get<IEmailLogic>().EmailRewardFlag(emailData.guid);
         }
 
         #endregion

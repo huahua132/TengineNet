@@ -2,6 +2,7 @@ using UnityEngine;
 using System.Collections.Generic;
 using UnityEngine.UI;
 using TEngine;
+using System;
 
 namespace GameLogic
 {
@@ -44,7 +45,61 @@ namespace GameLogic
         public void Release()
         {
             OnRelease();
+            RemoveAllUIEvent();
         }
+
+                #region Event
+
+        private GameEventMgr _eventMgr;
+
+        protected GameEventMgr EventMgr
+        {
+            get
+            {
+                if (_eventMgr == null)
+                {
+                    _eventMgr = MemoryPool.Acquire<GameEventMgr>();
+                }
+
+                return _eventMgr;
+            }
+        }
+
+        protected void AddEvent(int eventType, Action handler)
+        {
+            EventMgr.AddEvent(eventType, handler);
+        }
+
+        protected void AddEvent<T>(int eventType, Action<T> handler)
+        {
+            EventMgr.AddEvent(eventType, handler);
+        }
+
+        protected void AddEvent<T, U>(int eventType, Action<T, U> handler)
+        {
+            EventMgr.AddEvent(eventType, handler);
+        }
+
+        protected void AddEvent<T, U, V>(int eventType, Action<T, U, V> handler)
+        {
+            EventMgr.AddEvent(eventType, handler);
+        }
+
+        protected void AddEvent<T, U, V, W>(int eventType, Action<T, U, V, W> handler)
+        {
+            EventMgr.AddEvent(eventType, handler);
+        }
+
+        private void RemoveAllUIEvent()
+        {
+            if (_eventMgr != null)
+            {
+                MemoryPool.Release(_eventMgr);
+                _eventMgr = null;
+            }
+        }
+
+        #endregion
 
         protected virtual void OnInit()
         {
