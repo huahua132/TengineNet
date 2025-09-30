@@ -1,6 +1,8 @@
 using TEngine;
 using System.Collections.Generic;
 using System;
+using GameConfig;
+using UnityEngine;
 
 namespace GameLogic
 {
@@ -13,18 +15,23 @@ namespace GameLogic
         private Dictionary<Type, List<ICommonUI>> _idlePools = new();
         private CommonToastCreater _toastCreater;
         private CommonPopupCreater _popupCreater;
-        
+        private CommonItemIconCreater _itemIconCreater;
+
         public override void OnInit()
         {
             _preCheckTime = 0;
-            
+
             _toastCreater = new CommonToastCreater();
             _toastCreater.Init();
             _idlePools[typeof(Toast)] = new List<ICommonUI>();
-            
+
             _popupCreater = new CommonPopupCreater();
             _popupCreater.Init();
             _idlePools[typeof(Popup)] = new List<ICommonUI>();
+
+            _itemIconCreater = new CommonItemIconCreater();
+            _itemIconCreater.Init();
+            _idlePools[typeof(itemIcon)] = new List<ICommonUI>();
         }
 
         public override void Shutdown()
@@ -34,13 +41,19 @@ namespace GameLogic
                 _toastCreater.Release();
                 _toastCreater = null;
             }
-            
+
             if (_popupCreater != null)
             {
                 _popupCreater.Release();
                 _popupCreater = null;
             }
-            
+
+            if (_itemIconCreater != null)
+            {
+                _itemIconCreater.Release();
+                _itemIconCreater = null;
+            }
+
             _preCheckTime = 0;
         }
 
@@ -107,11 +120,11 @@ namespace GameLogic
         #endregion
 
         #region Popup弹窗
-        
+
         /// <summary>
         /// 显示确认弹窗（有取消和确定按钮）
         /// </summary>
-        public void ShowConfirm(string title, string content, 
+        public void ShowConfirm(string title, string content,
             Action onConfirm = null, Action onCancel = null,
             string confirmText = "确定", string cancelText = "取消")
         {
@@ -127,7 +140,7 @@ namespace GameLogic
         /// <summary>
         /// 显示提示弹窗（只有确定按钮）
         /// </summary>
-        public void ShowAlert(string title, string content, 
+        public void ShowAlert(string title, string content,
             Action onConfirm = null, string confirmText = "确定")
         {
             ShowPopup(popup =>
@@ -147,13 +160,13 @@ namespace GameLogic
         {
             var list = _idlePools[typeof(Popup)];
             ICommonUI popup = null;
-            
+
             if (list.Count > 0)
             {
                 popup = list[list.Count - 1];
                 list.RemoveAt(list.Count - 1);
                 popup.Reuse();
-                
+
                 if (popup is IPopup ipopup)
                 {
                     setupCallback?.Invoke(ipopup);
@@ -186,6 +199,33 @@ namespace GameLogic
             ShowAlert("提示", content, onConfirm);
         }
 
+        #endregion
+
+        #region ItemIcon
+        /// <summary>
+        /// 获取一个ItemIcon
+        /// </summary>
+        public void GetItemIcon(Action<IItemIcon> callback)
+        {
+            var list = _idlePools[typeof(itemIcon)];
+            ICommonUI item = null;
+            if (list.Count > 0)
+            {
+                item = list[list.Count - 1];
+                list.RemoveAt(list.Count - 1);
+                item.Reuse();
+                CreateSuccCallback(item);
+                callback((IItemIcon)item);
+            }
+            else
+            {
+                _itemIconCreater.Create((ICommonUI item)=>
+                {
+                    CreateSuccCallback(item);
+                    callback((IItemIcon)item);
+                }).Forget();
+            }
+        }
         #endregion
     }
 }

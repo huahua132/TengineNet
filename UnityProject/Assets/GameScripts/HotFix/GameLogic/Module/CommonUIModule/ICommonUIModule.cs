@@ -1,4 +1,7 @@
 using System;
+using UnityEngine;
+using GameConfig;
+
 namespace GameLogic
 {
     public interface ICommonUIModule
@@ -28,6 +31,13 @@ namespace GameLogic
         /// 显示简单提示弹窗（快捷方法）
         /// </summary>
         public void ShowAlert(string content, Action onConfirm = null);
+        #endregion
+
+        #region ItemIcon
+        /// <summary>
+        /// 获取一个ItemIcon
+        /// </summary>
+        public void GetItemIcon(Action<IItemIcon> callback);
         #endregion
     }
 }

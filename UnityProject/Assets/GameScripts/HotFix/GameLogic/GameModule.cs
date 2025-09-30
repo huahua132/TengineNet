@@ -123,6 +123,12 @@ public class GameModule
     private static INetProxy _netGame;
 
     /// <summary>
+    /// 配置表
+    /// </summary>
+    public static GameConfig.Tables GameConfig => _gameConfig ??= ConfigSystem.Instance.Tables;
+    private static GameConfig.Tables _gameConfig;
+
+    /// <summary>
     /// 获取游戏框架模块类。
     /// </summary>
     /// <typeparam name="T">游戏框架模块类。</typeparam>

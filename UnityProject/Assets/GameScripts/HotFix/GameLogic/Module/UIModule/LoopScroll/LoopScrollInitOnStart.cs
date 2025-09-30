@@ -90,6 +90,7 @@ namespace GameLogic
         }
         public GameObject GetObject(int index)
         {
+            //Log.Info($"GetObject {_DataGeter} {pool.Count}");
             if (pool.Count == 0)
             {
                 GameObject go = Instantiate(item);
@@ -104,6 +105,7 @@ namespace GameLogic
         public void ReturnObject(Transform trans)
         {
             var cell = _objCellBases[trans.gameObject];
+            //Log.Info($"ReturnObject {_DataGeter} {trans} {cell} {cell._IsRecycle}");
             if (cell._IsRecycle) return;
             cell.Recycle();
             trans.SetParent(transform, false);
@@ -112,16 +114,18 @@ namespace GameLogic
 
         public void Init(LoopCellBaseCreater creater, ILoopScrollDataGeter dataGeter)
         {
+            //Log.Info($"Init>>>>>>>>>>> {_DataGeter} {item}");
             var ls = GetComponent<LoopScrollRect>();
             _creater = creater;
             _DataGeter = dataGeter;
-            CreateCell(item);
-            ReturnObject(item.transform);
+            item.SetActive(false);
+            item.transform.SetParent(transform, false);
             ls.prefabSource = this;
             ls.dataSource = this;
         }
         public void ProvideData(Transform transform, int idx)
         {
+            //Log.Info($"ProvideData {_DataGeter} {transform} {idx} {_objCellBases.ContainsKey(transform.gameObject)}");
             var cell = _objCellBases[transform.gameObject];
             cell.Refresh(idx);
         }

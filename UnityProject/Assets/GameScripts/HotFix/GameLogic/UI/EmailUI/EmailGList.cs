@@ -3,6 +3,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using System.Collections.Generic;
 using TEngine;
+using GameConfig;
 
 namespace GameLogic
 {
@@ -34,6 +35,9 @@ namespace GameLogic
 		private Toggle _toggle;
 		private RectTransform _bottom;
 		private Text _content;
+		private LoopHorizontalScrollRect _rewardList;
+		private LoopScrollInitOnStart _loopInit;
+		private EmailRewardDataGeter _dataGeter;
 		protected override void OnInit()
 		{
 			_titile = _Trf.Find("head/m_textTitle").GetComponent<Text>();
@@ -44,6 +48,14 @@ namespace GameLogic
 
 			_bottom = _Trf.Find("bottom").GetComponent<RectTransform>();
 			_content = _Trf.Find("bottom/m_textContent").GetComponent<Text>();
+			_rewardList = _Trf.Find("bottom/ItemList").GetComponent<LoopHorizontalScrollRect>();
+			_loopInit = _Trf.Find("bottom/ItemList").GetComponent<LoopScrollInitOnStart>();
+			_dataGeter = new EmailRewardDataGeter();
+			_loopInit.Init(CellCreater, _dataGeter);
+		}
+		private static LoopCellBase CellCreater()
+		{
+			return new EmailRewardCell();
 		}
 		protected override void OnRefresh(int index)
 		{
@@ -53,12 +65,67 @@ namespace GameLogic
 			_tooggleShow.text = _toggle.isOn ? "收拢" : "展开";
 			_bottom.gameObject.SetActive(_toggle.isOn);
 			_content.text = emailData.content;
+			_dataGeter.SetData(emailData.item_list);
+			_rewardList.totalCount = emailData.item_list.Count;
+			_rewardList.RefillCells();
 		}
 		private void OnToggleChange(bool isOn)
 		{
 			_tooggleShow.text = _toggle.isOn ? "收拢" : "展开";
 			_bottom.gameObject.SetActive(_toggle.isOn);
 		}
+	}
+
+	public class EmailRewardDataGeter : ILoopScrollDataGeter
+	{
+		private List<common.Item> _itemList;
+		public void SetData(List<common.Item> itemList)
+		{
+			_itemList = itemList;
+		}
+
+		public T GetData<T>(int index)
+		{
+			return (T)(object)_itemList[index];
+		}
+	}
+
+	public class EmailRewardCell : LoopCellBase
+	{
+		private IItemIcon _IitemIcon;
+		private int _index;
+
+		private void OnItemCoinLoadSucc(IItemIcon itemIcon)
+		{
+			//Log.Info($"OnItemCoinLoadSucc >>> {itemIcon}");
+			_IitemIcon = itemIcon;
+			if (_index >= 0)
+			{
+				OnRefresh(_index);
+			}
+			itemIcon.SetParent(_Trf.gameObject);
+		}
+		protected override void OnInit()
+		{
+			GameModule.CommonUI.GetItemIcon(OnItemCoinLoadSucc);
+		}
+
+		protected override void OnRefresh(int index)
+		{
+			//Log.Info($"OnRefresh >>> {_index}");
+			_index = index;
+			if (_IitemIcon == null) return;
+			var itemData = _DataGeter.GetData<common.Item>(index);
+			var itemID = itemData.id;
+			var itemCount = itemData.count;
+			_IitemIcon.SetItemID((item_ID)itemID);
+			_IitemIcon.SetItemNum((int)itemCount);
+		}
+
+        protected override void OnRecycle()
+        {
+			_index = -1;
+        }
 	}
 
 	[Window(UILayer.UI)]
