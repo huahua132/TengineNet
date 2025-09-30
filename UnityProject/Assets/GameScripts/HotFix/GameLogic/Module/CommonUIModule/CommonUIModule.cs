@@ -22,7 +22,6 @@ namespace GameLogic
         private static CommonUIModule _instance;
         public static CommonUIModule Instance => _instance;
         
-        // 暴露给Inspector用的数据
         public List<ICommonUI> ActiveList => _activeList;
         public Dictionary<Type, List<ICommonUI>> IdlePools => _idlePools;
         public float ReleaseTime => _releaseTime;
@@ -49,7 +48,6 @@ namespace GameLogic
             _idlePools[typeof(itemIcon)] = new List<ICommonUI>();
             
 #if UNITY_EDITOR
-            // 创建调试器GameObject
             if (CommonUIDebugger.Instance == null)
             {
                 var go = new GameObject("CommonUIDebugger");
@@ -88,6 +86,20 @@ namespace GameLogic
 
         public void Update(float elapseSeconds, float realElapseSeconds)
         {
+            // 处理活动UI列表
+            UpdateActiveList();
+            
+            // 定期清理过期的闲置对象
+            CheckAndReleaseIdleObjects();
+        }
+
+        #region 私有通用方法
+
+        /// <summary>
+        /// 更新活动UI列表
+        /// </summary>
+        private void UpdateActiveList()
+        {
             for (int i = _activeList.Count - 1; i >= 0; i--)
             {
                 var ui = _activeList[i];
@@ -96,10 +108,7 @@ namespace GameLogic
                     bool isRecycle = ui.Update();
                     if (isRecycle)
                     {
-                        _activeList.RemoveAt(i);
-                        ui.Recycle();
-                        var list = _idlePools[ui.GetType()];
-                        list.Add(ui);
+                        RecycleUI(i, ui);
                     }
                 }
                 else
@@ -108,7 +117,24 @@ namespace GameLogic
                     ui.Release();
                 }
             }
+        }
 
+        /// <summary>
+        /// 回收UI到对象池
+        /// </summary>
+        private void RecycleUI(int index, ICommonUI ui)
+        {
+            _activeList.RemoveAt(index);
+            ui.Recycle();
+            var list = _idlePools[ui.GetType()];
+            list.Add(ui);
+        }
+
+        /// <summary>
+        /// 检查并释放过期的闲置对象
+        /// </summary>
+        private void CheckAndReleaseIdleObjects()
+        {
             var curTime = GameTime.time;
             if (curTime > _preCheckTime)
             {
@@ -128,39 +154,53 @@ namespace GameLogic
             }
         }
 
-        private void CreateSuccCallback(ICommonUI ui)
+        /// <summary>
+        /// 从对象池获取UI，如果池中没有则返回null
+        /// </summary>
+        private ICommonUI TryGetFromPool(Type uiType)
+        {
+            var list = _idlePools[uiType];
+            if (list.Count > 0)
+            {
+                var ui = list[list.Count - 1];
+                list.RemoveAt(list.Count - 1);
+                ui.Reuse();
+                return ui;
+            }
+            return null;
+        }
+
+        /// <summary>
+        /// 将UI添加到活动列表
+        /// </summary>
+        private void AddToActiveList(ICommonUI ui)
         {
             _activeList.Add(ui);
         }
 
+        #endregion
+
         #region Toast提示
         public void ShowToast(string txt)
         {
-            var list = _idlePools[typeof(Toast)];
-            ICommonUI toast = null;
-            if (list.Count > 0)
+            var toast = TryGetFromPool(typeof(Toast));
+            if (toast != null)
             {
-                toast = list[list.Count - 1];
-                list.RemoveAt(list.Count - 1);
-                toast.Reuse();
                 if (toast is IToast itoast)
                 {
                     itoast.SetTxt(txt);
                 }
-                CreateSuccCallback(toast);
+                AddToActiveList(toast);
             }
             else
             {
-                _toastCreater.Create(CreateSuccCallback, txt).Forget();
+                _toastCreater.Create(AddToActiveList, txt).Forget();
             }
         }
         #endregion
 
         #region Popup弹窗
 
-        /// <summary>
-        /// 显示确认弹窗（有取消和确定按钮）
-        /// </summary>
         public void ShowConfirm(string title, string content,
             Action onConfirm = null, Action onCancel = null,
             string confirmText = "确定", string cancelText = "取消")
@@ -174,9 +214,6 @@ namespace GameLogic
             });
         }
 
-        /// <summary>
-        /// 显示提示弹窗（只有确定按钮）
-        /// </summary>
         public void ShowAlert(string title, string content,
             Action onConfirm = null, string confirmText = "确定")
         {
@@ -190,47 +227,32 @@ namespace GameLogic
             });
         }
 
-        /// <summary>
-        /// 显示自定义弹窗
-        /// </summary>
         public void ShowPopup(Action<IPopup> setupCallback)
         {
-            var list = _idlePools[typeof(Popup)];
-            ICommonUI popup = null;
-
-            if (list.Count > 0)
+            var popup = TryGetFromPool(typeof(Popup));
+            if (popup != null)
             {
-                popup = list[list.Count - 1];
-                list.RemoveAt(list.Count - 1);
-                popup.Reuse();
-
                 if (popup is IPopup ipopup)
                 {
                     setupCallback?.Invoke(ipopup);
                 }
-                CreateSuccCallback(popup);
+                AddToActiveList(popup);
             }
             else
             {
-                _popupCreater.Create(popup =>
+                _popupCreater.Create(ui =>
                 {
-                    setupCallback?.Invoke((IPopup)popup);
-                    CreateSuccCallback(popup);
+                    setupCallback?.Invoke((IPopup)ui);
+                    AddToActiveList(ui);
                 }).Forget();
             }
         }
 
-        /// <summary>
-        /// 显示简单确认弹窗（快捷方法）
-        /// </summary>
         public void ShowConfirm(string content, Action onConfirm = null, Action onCancel = null)
         {
             ShowConfirm("确认", content, onConfirm, onCancel);
         }
 
-        /// <summary>
-        /// 显示简单提示弹窗（快捷方法）
-        /// </summary>
         public void ShowAlert(string content, Action onConfirm = null)
         {
             ShowAlert("提示", content, onConfirm);
@@ -239,27 +261,20 @@ namespace GameLogic
         #endregion
 
         #region ItemIcon
-        /// <summary>
-        /// 获取一个ItemIcon
-        /// </summary>
         public void GetItemIcon(Action<IItemIcon> callback)
         {
-            var list = _idlePools[typeof(itemIcon)];
-            ICommonUI item = null;
-            if (list.Count > 0)
+            var item = TryGetFromPool(typeof(itemIcon));
+            if (item != null)
             {
-                item = list[list.Count - 1];
-                list.RemoveAt(list.Count - 1);
-                item.Reuse();
-                CreateSuccCallback(item);
-                callback((IItemIcon)item);
+                AddToActiveList(item);
+                callback?.Invoke((IItemIcon)item);
             }
             else
             {
-                _itemIconCreater.Create((ICommonUI item)=>
+                _itemIconCreater.Create(ui =>
                 {
-                    CreateSuccCallback(item);
-                    callback((IItemIcon)item);
+                    AddToActiveList(ui);
+                    callback?.Invoke((IItemIcon)ui);
                 }).Forget();
             }
         }
