@@ -17,8 +17,23 @@ namespace GameLogic
         private CommonPopupCreater _popupCreater;
         private CommonItemIconCreater _itemIconCreater;
 
+        #region 调试用数据
+#if UNITY_EDITOR
+        private static CommonUIModule _instance;
+        public static CommonUIModule Instance => _instance;
+        
+        // 暴露给Inspector用的数据
+        public List<ICommonUI> ActiveList => _activeList;
+        public Dictionary<Type, List<ICommonUI>> IdlePools => _idlePools;
+        public float ReleaseTime => _releaseTime;
+#endif
+        #endregion
+
         public override void OnInit()
         {
+#if UNITY_EDITOR
+            _instance = this;
+#endif
             _preCheckTime = 0;
 
             _toastCreater = new CommonToastCreater();
@@ -32,10 +47,24 @@ namespace GameLogic
             _itemIconCreater = new CommonItemIconCreater();
             _itemIconCreater.Init();
             _idlePools[typeof(itemIcon)] = new List<ICommonUI>();
+            
+#if UNITY_EDITOR
+            // 创建调试器GameObject
+            if (CommonUIDebugger.Instance == null)
+            {
+                var go = new GameObject("CommonUIDebugger");
+                go.AddComponent<CommonUIDebugger>();
+                UnityEngine.Object.DontDestroyOnLoad(go);
+            }
+#endif
         }
 
         public override void Shutdown()
         {
+#if UNITY_EDITOR
+            _instance = null;
+#endif
+            
             if (_toastCreater != null)
             {
                 _toastCreater.Release();
@@ -89,7 +118,7 @@ namespace GameLogic
                     for (int i = kv.Value.Count - 1; i >= 0; i--)
                     {
                         var ui = kv.Value[i];
-                        if (ui._RecycleTime + _releaseTime > curTime)
+                        if (ui._RecycleTime + _releaseTime < curTime)
                         {
                             kv.Value.RemoveAt(i);
                             ui.Release();
