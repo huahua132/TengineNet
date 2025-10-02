@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Cysharp.Threading.Tasks;
 using chinese_chess_game;
+using UnityEngine.UI;
 
 namespace GameLogic
 {
@@ -20,7 +21,6 @@ namespace GameLogic
             GameModule.NetHall.RegisterMessageListener(hallserver_email.MessageId.AllEmailNotice, OnRecvAllEmainNotice);
             GameModule.NetHall.RegisterMessageListener(hallserver_email.MessageId.OneEmailNotice, OnRecvOneEmailNotice);
             GameModule.NetHall.RegisterMessageListener(hallserver_email.MessageId.DelEmailNotice, OnRecvDelEmailNotice);
-            GameModule.RedDot.SetDot(RedPotWordDefine.EmailBtn, true);
         }
 
         public void OnStart()
@@ -46,6 +46,32 @@ namespace GameLogic
             {
                 AddEmailToSystem(email);
             }
+        }
+
+        private void RefreshRedDot(hallserver_email.oneEmail email, bool del = false)
+        {
+            string redDotKey = "";
+            var emailType = email.email_type;
+            var guid = email.guid;
+            if ((EMAIL_TYPE)emailType == EMAIL_TYPE.G)
+            {
+                redDotKey = RedDotWordDefine.GlobalEmail;
+            }
+            else if ((EMAIL_TYPE)emailType == EMAIL_TYPE.S)
+            {
+                redDotKey = RedDotWordDefine.SysEmail;
+            }
+            else
+            {
+                redDotKey = RedDotWordDefine.FriendEmail;
+            }
+            redDotKey = redDotKey + '|' + guid;
+            bool isShow = (email.read_flag == 0) || (email.item_list.Count > 0 && email.item_flag == 0) ? true : false;
+            if (del)
+            {
+                isShow = false;
+            }
+            GameModule.RedDot.SetDot(redDotKey, isShow);
         }
 
         private void OnRecvOneEmailNotice(INetResponse netPack)
@@ -80,6 +106,7 @@ namespace GameLogic
 
             var key = (email.create_time, email.guid);
             _emailsByType[email.email_type][key] = email;
+            RefreshRedDot(email);
         }
 
         /// <summary>
@@ -104,6 +131,7 @@ namespace GameLogic
                     _emailsByType.Remove(email.email_type);
                 }
             }
+            RefreshRedDot(email, true);
         }
 
         #region 公共接口方法
@@ -221,6 +249,7 @@ namespace GameLogic
             emailData.read_flag = 1;
             GameModule.CommonUI.ShowToast("读取成功");
             GameEvent.Get<IEmailLogic>().EmailReadFlag(emailData.guid);
+            RefreshRedDot(emailData);
         }
 
         /// <summary>
@@ -239,6 +268,7 @@ namespace GameLogic
             emailData.item_flag = 1;
             GameModule.CommonUI.ShowToast("领取成功");
             GameEvent.Get<IEmailLogic>().EmailRewardFlag(emailData.guid);
+            RefreshRedDot(emailData);
         }
 
         #endregion

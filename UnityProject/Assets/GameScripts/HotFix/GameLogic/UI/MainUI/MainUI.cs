@@ -15,7 +15,7 @@ namespace GameLogic
 		{
 			_btnEmail = FindChildComponent<Button>("leftBtns/m_btnEmail");
 			_redDotCon = FindChild("leftBtns/m_btnEmail/RedDotCon");
-			GameModule.CommonUI.GetRedDot(RedPotWordDefine.EmailBtn, RedDotType.RED_NUM, OnLoadSuccRedDot);
+			GameModule.CommonUI.GetRedDot(RedDotWordDefine.EmailBtn, RedDotType.RED_NUM, OnLoadSuccRedDot);
 			_btnEmail.onClick.AddListener(OnClickEmailBtn);
 		}
 		#endregion
