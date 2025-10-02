@@ -26,15 +26,22 @@ namespace TEngine
         /// </summary>
         /// <remarks>优先级较高的模块会优先轮询，并且关闭操作会后进行。</remarks>
         public virtual int Priority => 0;
+        protected bool IsShutDown = false;
 
         /// <summary>
         /// 初始化游戏框架接口。
         /// </summary>
-        public abstract void OnInit();
+        public virtual void OnInit()
+        {
+            IsShutDown = false;
+        }
 
         /// <summary>
         /// 关闭并清理游戏框架模块。
         /// </summary>
-        public abstract void Shutdown();
+        public virtual void Shutdown()
+        {
+            IsShutDown = true;
+        }
     }
 }

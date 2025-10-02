@@ -1064,7 +1064,7 @@ namespace GameLogic
                     }
                     catch (Exception ex)
                     {
-                        Log.Error($"断线回调执行异常: {ex}");
+                        Log.Error($"断线回调执行异常: {ex} {ex.StackTrace}");
                     }
                 }
             }

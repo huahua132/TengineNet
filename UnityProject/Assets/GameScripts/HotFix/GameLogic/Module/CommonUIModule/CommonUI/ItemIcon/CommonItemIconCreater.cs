@@ -35,6 +35,11 @@ namespace GameLogic
             _Trf.SetParent(_poolParent);
         }
 
+        protected override void OnRelease()
+        {
+           
+        }
+
         //返回true表示可以回收
         protected override bool OnUpdate()
         {
@@ -47,6 +52,7 @@ namespace GameLogic
 
         public void SetPoolParent(Transform poolParent)
         {
+            if (_poolParent == null) return;
             _poolParent = poolParent;
             _Trf.SetParent(_poolParent);
         }
@@ -73,6 +79,7 @@ namespace GameLogic
 
         public void SetRecycle()
         {
+            if (_poolParent == null || _Trf == null) return;
             _Trf.SetParent(_poolParent);
             _parent = null;
         }
@@ -80,7 +87,7 @@ namespace GameLogic
 
     public class CommonItemIconCreater
     {
-        private static GameObject _itemIconPool;
+        private GameObject _itemIconPool;
         public void Init()
         {
             _itemIconPool = new GameObject("ItemIconPool");

@@ -61,8 +61,8 @@ namespace GameLogic
         {
 #if UNITY_EDITOR
             _instance = null;
-#endif
-            
+#endif      
+            Log.Info("CommonUIModule Shutdown");
             if (_toastCreater != null)
             {
                 _toastCreater.Release();
@@ -80,6 +80,21 @@ namespace GameLogic
                 _itemIconCreater.Release();
                 _itemIconCreater = null;
             }
+
+            foreach (var kv in _activeList)
+            {
+                kv.Release();
+            }
+            _activeList.Clear();
+
+            foreach (var kv in _idlePools)
+            {
+                foreach (var lv in kv.Value)
+                {
+                    lv.Release();
+                }
+            }
+            _idlePools.Clear();
 
             _preCheckTime = 0;
         }
@@ -183,6 +198,7 @@ namespace GameLogic
         #region Toast提示
         public void ShowToast(string txt)
         {
+            if (IsShutDown) return;
             var toast = TryGetFromPool(typeof(Toast));
             if (toast != null)
             {
@@ -205,6 +221,7 @@ namespace GameLogic
             Action onConfirm = null, Action onCancel = null,
             string confirmText = "确定", string cancelText = "取消")
         {
+            if (IsShutDown) return;
             ShowPopup(popup =>
             {
                 popup.SetTitle(title);
@@ -217,6 +234,7 @@ namespace GameLogic
         public void ShowAlert(string title, string content,
             Action onConfirm = null, string confirmText = "确定")
         {
+            if (IsShutDown) return;
             ShowPopup(popup =>
             {
                 popup.SetTitle(title);
@@ -229,6 +247,7 @@ namespace GameLogic
 
         public void ShowPopup(Action<IPopup> setupCallback)
         {
+            if (IsShutDown) return;
             var popup = TryGetFromPool(typeof(Popup));
             if (popup != null)
             {
@@ -250,11 +269,13 @@ namespace GameLogic
 
         public void ShowConfirm(string content, Action onConfirm = null, Action onCancel = null)
         {
+            if (IsShutDown) return;
             ShowConfirm("确认", content, onConfirm, onCancel);
         }
 
         public void ShowAlert(string content, Action onConfirm = null)
         {
+            if (IsShutDown) return;
             ShowAlert("提示", content, onConfirm);
         }
 
@@ -263,6 +284,7 @@ namespace GameLogic
         #region ItemIcon
         public void GetItemIcon(Action<IItemIcon> callback)
         {
+            if (IsShutDown) return;
             var item = TryGetFromPool(typeof(itemIcon));
             if (item != null)
             {

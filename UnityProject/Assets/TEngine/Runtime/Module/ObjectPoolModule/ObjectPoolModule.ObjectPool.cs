@@ -22,6 +22,7 @@ namespace TEngine
             private float _expireTime;
             private int _priority;
             private float _autoReleaseTime;
+            private bool _isShutDown;
 
             /// <summary>
             /// 初始化对象池的新实例。
@@ -46,6 +47,7 @@ namespace TEngine
                 ExpireTime = expireTime;
                 _priority = priority;
                 _autoReleaseTime = 0f;
+                _isShutDown = false;
             }
 
             /// <summary>
@@ -270,6 +272,7 @@ namespace TEngine
                 }
                 else
                 {
+                    if (_isShutDown) return;
                     throw new GameFrameworkException(Utility.Text.Format(
                         "Can not find target in object pool '{0}', target type is '{1}', target value is '{2}'.", new TypeNamePair(typeof(T), Name),
                         target.GetType().FullName, target));
@@ -520,6 +523,7 @@ namespace TEngine
                 _objectMap.Clear();
                 _cachedCanReleaseObjects.Clear();
                 _cachedToReleaseObjects.Clear();
+                _isShutDown = true;
             }
 
             private Object<T> GetObject(object target)
