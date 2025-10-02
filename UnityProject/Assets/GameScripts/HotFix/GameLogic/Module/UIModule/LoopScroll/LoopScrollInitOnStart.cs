@@ -27,6 +27,7 @@ namespace GameLogic
         public void Recycle()
         {
             OnRecycle();
+            RemoveAllUIEvent();
             _Trf.gameObject.SetActive(false);
             _IsRecycle = true;
         }
@@ -48,7 +49,7 @@ namespace GameLogic
             RemoveAllUIEvent();
         }
 
-                #region Event
+        #region Event
 
         private GameEventMgr _eventMgr;
 

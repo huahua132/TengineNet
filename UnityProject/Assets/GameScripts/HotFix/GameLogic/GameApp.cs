@@ -31,6 +31,7 @@ public partial class GameApp
         ModuleSystem.RegisterModule<ICommonUIModule>(new CommonUIModule());
         ModuleSystem.RegisterModule<INetPackModule>(new NetPackModule());
         ModuleSystem.RegisterModule<ISystemModule>(new SystemModule());
+        ModuleSystem.RegisterModule<IRedDotModule>(new RedDotModule());
 
         GameEvent.Get<ILoginUI>().ShowLoginUI();
     }

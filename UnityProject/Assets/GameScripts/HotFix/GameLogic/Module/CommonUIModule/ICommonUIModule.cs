@@ -39,5 +39,12 @@ namespace GameLogic
         /// </summary>
         public void GetItemIcon(Action<IItemIcon> callback);
         #endregion
+
+        #region RedPot
+        /// <summary>
+        /// 获取一个红点
+        /// </summary>
+        public void GetRedDot(string word, RedDotType rtpye, Action<IRedDot> callback);
+        #endregion
     }
 }

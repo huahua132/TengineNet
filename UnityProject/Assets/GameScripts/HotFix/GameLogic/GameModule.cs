@@ -129,6 +129,12 @@ public class GameModule
     private static GameConfig.Tables _gameConfig;
 
     /// <summary>
+    /// 红点模块
+    /// </summary>
+    public static IRedDotModule RedDot => _redDot ??= Get<IRedDotModule>();
+    public static IRedDotModule _redDot;
+
+    /// <summary>
     /// 获取游戏框架模块类。
     /// </summary>
     /// <typeparam name="T">游戏框架模块类。</typeparam>

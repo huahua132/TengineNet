@@ -16,12 +16,13 @@ namespace GameLogic
         private CommonToastCreater _toastCreater;
         private CommonPopupCreater _popupCreater;
         private CommonItemIconCreater _itemIconCreater;
+        private CommonRedDotCreater _redDotCreater;
 
         #region 调试用数据
 #if UNITY_EDITOR
         private static CommonUIModule _instance;
         public static CommonUIModule Instance => _instance;
-        
+
         public List<ICommonUI> ActiveList => _activeList;
         public Dictionary<Type, List<ICommonUI>> IdlePools => _idlePools;
         public float ReleaseTime => _releaseTime;
@@ -46,7 +47,11 @@ namespace GameLogic
             _itemIconCreater = new CommonItemIconCreater();
             _itemIconCreater.Init();
             _idlePools[typeof(itemIcon)] = new List<ICommonUI>();
-            
+
+            _redDotCreater = new CommonRedDotCreater();
+            _redDotCreater.Init();
+            _idlePools[typeof(RedDot)] = new List<ICommonUI>();
+
 #if UNITY_EDITOR
             if (CommonUIDebugger.Instance == null)
             {
@@ -81,10 +86,16 @@ namespace GameLogic
                 _itemIconCreater = null;
             }
 
-            foreach (var kv in _activeList)
+            if (_redDotCreater != null)
             {
-                kv.Release();
+                _redDotCreater.Release();
+                _redDotCreater = null;
             }
+
+            foreach (var kv in _activeList)
+                {
+                    kv.Release();
+                }
             _activeList.Clear();
 
             foreach (var kv in _idlePools)
@@ -103,7 +114,7 @@ namespace GameLogic
         {
             // 处理活动UI列表
             UpdateActiveList();
-            
+
             // 定期清理过期的闲置对象
             CheckAndReleaseIdleObjects();
         }
@@ -297,6 +308,30 @@ namespace GameLogic
                 {
                     AddToActiveList(ui);
                     callback?.Invoke((IItemIcon)ui);
+                }).Forget();
+            }
+        }
+        #endregion
+
+        #region RedDot
+        /// <summary>
+        /// 获取一个红点
+        /// </summary>
+        public void GetRedDot(string word, RedDotType rtpye, Action<IRedDot> callback)
+        {
+            if (IsShutDown) return;
+            var dot = TryGetFromPool(typeof(RedDot));
+            if (dot != null)
+            {
+                AddToActiveList(dot);
+                callback?.Invoke((IRedDot)dot);
+            }
+            else
+            {
+                _redDotCreater.Create(ui =>
+                {
+                    AddToActiveList(ui);
+                    callback?.Invoke((IRedDot)ui);
                 }).Forget();
             }
         }

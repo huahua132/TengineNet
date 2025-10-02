@@ -20,6 +20,7 @@ namespace GameLogic
             GameModule.NetHall.RegisterMessageListener(hallserver_email.MessageId.AllEmailNotice, OnRecvAllEmainNotice);
             GameModule.NetHall.RegisterMessageListener(hallserver_email.MessageId.OneEmailNotice, OnRecvOneEmailNotice);
             GameModule.NetHall.RegisterMessageListener(hallserver_email.MessageId.DelEmailNotice, OnRecvDelEmailNotice);
+            GameModule.RedDot.SetDot(RedPotWordDefine.EmailBtn, true);
         }
 
         public void OnStart()
