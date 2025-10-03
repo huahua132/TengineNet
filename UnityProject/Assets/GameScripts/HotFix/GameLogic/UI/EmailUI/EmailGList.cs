@@ -41,8 +41,12 @@ namespace GameLogic
 		private LoopScrollInitOnStart _loopInit;
 		private EmailRewardDataGeter _dataGeter;
 		private Button _btnReward;
+		private Transform _redDotp;
+		private IRedDot _redDot;
+		private string _redDotKey;
 		protected override void OnInit()
 		{
+			_redDotKey = "";
 			_titile = _Trf.Find("head/m_textTitle").GetComponent<Text>();
 			_isRead = _Trf.Find("head/m_textReadFlag").GetComponent<Text>();
 			_tooggleShow = _Trf.Find("head/m_toggleShow").GetComponentInChildren<Text>();
@@ -53,6 +57,7 @@ namespace GameLogic
 			_rewardList = _Trf.Find("bottom/ItemList").GetComponent<LoopHorizontalScrollRect>();
 			_loopInit = _Trf.Find("bottom/ItemList").GetComponent<LoopScrollInitOnStart>();
 			_btnReward = _Trf.Find("bottom/m_btnReward").GetComponent<Button>();
+			_redDotp = _Trf.Find("head/m_redDot");
 			_btnReward.onClick.AddListener(OnBtnRewardClick);
 
 			_emailSystem = GameModule.System.GetSystem<IEmailSystem>();
@@ -98,6 +103,32 @@ namespace GameLogic
 			_dataGeter.SetData(_emailData.item_list);
 			_rewardList.totalCount = _emailData.item_list.Count;
 			_rewardList.RefillCells();
+
+			if (_redDotKey == "")
+			{
+				_redDotKey = _emailSystem.GetEmailRedDotKey(_emailData);
+				GameModule.CommonUI.GetRedDot(_redDotKey, RedDotType.RED, OnRedDotLoadSucc);
+			}
+		}
+
+		protected override void OnRecycle()
+		{
+			_redDotKey = "";
+			if (_redDot != null)
+			{
+				_redDot.SetRecycle();
+			}
+        }
+
+        protected override void OnRelease()
+        {
+			OnRecycle();
+        }
+
+		private void OnRedDotLoadSucc(IRedDot redDot)
+		{
+			_redDot = redDot;
+			redDot.SetParent(_redDotp.gameObject);
 		}
 		private void OnToggleChange(bool isOn)
 		{

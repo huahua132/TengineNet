@@ -48,7 +48,7 @@ namespace GameLogic
             }
         }
 
-        private void RefreshRedDot(hallserver_email.oneEmail email, bool del = false)
+        public string GetEmailRedDotKey(hallserver_email.oneEmail email)
         {
             string redDotKey = "";
             var emailType = email.email_type;
@@ -66,6 +66,11 @@ namespace GameLogic
                 redDotKey = RedDotWordDefine.FriendEmail;
             }
             redDotKey = redDotKey + '|' + guid;
+            return redDotKey;
+        }
+        private void RefreshRedDot(hallserver_email.oneEmail email, bool del = false)
+        {
+            string redDotKey = GetEmailRedDotKey(email);
             bool isShow = (email.read_flag == 0) || (email.item_list.Count > 0 && email.item_flag == 0) ? true : false;
             if (del)
             {

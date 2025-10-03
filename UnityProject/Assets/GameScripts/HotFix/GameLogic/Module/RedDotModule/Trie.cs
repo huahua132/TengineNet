@@ -328,8 +328,28 @@ namespace GameLogic
         /// </summary>
         public int GetNodeChildCount(string word)
         {
-            var node = GetWordNode(word);
-            if (node == null) return 0;
+            if (string.IsNullOrEmpty(word))
+            {
+                Debug.LogError($"无法获取空单词的单次节点!");
+                return -1;
+            }
+            // 从最里层节点开始反向判定更新和删除
+            var wordArray = word.Split(Separator);
+            var node = RootNode;
+            if (wordArray.Length <= 0) return 0;
+            foreach (var spliteWord in wordArray)
+            {
+                var childNode = node.GetChildNode(spliteWord);
+                if (childNode != null)
+                {
+                    node = childNode;
+                }
+                else
+                {
+                    return -1;
+                }
+            }
+
             return node.ChildCount;
         }
 

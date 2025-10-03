@@ -63,12 +63,14 @@ namespace GameLogic
 
         private void Refresh()
         {
-            var isHave = GameModule.RedDot.ContainWord(_word);
-            _Trf.gameObject.SetActive(isHave);
+            int num = GameModule.RedDot.GetNodeChildCount(_word);
+            _Trf.gameObject.SetActive(num >= 0);
             _num.gameObject.SetActive(_type == RedDotType.RED_NUM);
+            Log.Info($"RedDot Refresh 1 >>> {_word} {num}");
             if (_type == RedDotType.RED_NUM)
             {
-                int num = GameModule.RedDot.GetNodeChildCount(_word);
+                
+                Log.Info($"RedDot Refresh 2 >>> {_word} {num}");
                 _num.text = num.ToString();
             }
         }

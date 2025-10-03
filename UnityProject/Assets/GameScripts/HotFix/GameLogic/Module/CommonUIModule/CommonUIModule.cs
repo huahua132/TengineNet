@@ -320,18 +320,21 @@ namespace GameLogic
         public void GetRedDot(string word, RedDotType rtpye, Action<IRedDot> callback)
         {
             if (IsShutDown) return;
-            var dot = TryGetFromPool(typeof(RedDot));
+            var dot = (RedDot)TryGetFromPool(typeof(RedDot));
             if (dot != null)
             {
                 AddToActiveList(dot);
                 callback?.Invoke((IRedDot)dot);
+                dot.SetWordAndType(word, rtpye);
             }
             else
             {
                 _redDotCreater.Create(ui =>
                 {
                     AddToActiveList(ui);
+                    var ddot = (RedDot)ui;
                     callback?.Invoke((IRedDot)ui);
+                    ddot.SetWordAndType(word, rtpye);
                 }).Forget();
             }
         }

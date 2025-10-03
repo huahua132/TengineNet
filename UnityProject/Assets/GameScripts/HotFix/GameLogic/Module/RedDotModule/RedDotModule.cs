@@ -24,12 +24,11 @@ namespace GameLogic
             string[] words = word.Split('|');
             string eventWord = words[0];
             GameEvent.Send(eventWord);
-            Log.Info($"pushDotChangeEvent >>> {eventWord}");
+
             for (int i = 1; i < words.Length; i++)
             {
                 eventWord = eventWord + '|' + words[i];
                 GameEvent.Send(eventWord);
-                Log.Info($"pushDotChangeEvent >>> {eventWord}");
             }
         }
 
@@ -47,16 +46,10 @@ namespace GameLogic
                 if (!isHave) return;
                 _rootTrie.RemoveWord(word);
             }
-            
+
             pushDotChangeEvent(word);
         }
-
-        //查询红点数据是否存在
-        public bool ContainWord(string word)
-        {
-            return _rootTrie.ContainWord(word);
-        }
-
+        
         //获取节点子节点数量
         public int GetNodeChildCount(string word)
         {

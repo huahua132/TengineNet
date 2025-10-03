@@ -14,5 +14,6 @@ namespace GameLogic
         bool IsCanGetReward(long guid, bool isShowToast = false);
         UniTaskVoid ReqRead(long guid);
         UniTaskVoid ReqGetReward(long guid);
+        string GetEmailRedDotKey(hallserver_email.oneEmail email);
     }
 }
