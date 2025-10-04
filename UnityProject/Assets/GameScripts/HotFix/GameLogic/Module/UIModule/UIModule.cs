@@ -20,6 +20,7 @@ namespace GameLogic
         private Camera _uiCamera = null;                        // UI专用摄像机
         private readonly List<UIWindow> _uiStack = new List<UIWindow>(128); // 窗口堆栈
         private ErrorLogger _errorLogger;                       // 错误日志记录器
+        public bool _IsRelease = false;
 
         // 常量定义
         public const int LAYER_DEEP = 2000; 
@@ -48,6 +49,7 @@ namespace GameLogic
         /// </summary>
         protected override void OnInit()
         {
+            _IsRelease = false;
             var uiRoot = GameObject.Find("UIRoot");
             if (uiRoot != null)
             {
@@ -101,6 +103,7 @@ namespace GameLogic
         /// </summary>
         protected override void OnRelease()
         {
+            _IsRelease = true;
             if (_errorLogger != null)
             {
                 _errorLogger.Dispose();

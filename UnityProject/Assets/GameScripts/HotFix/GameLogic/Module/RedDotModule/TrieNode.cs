@@ -8,6 +8,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using TEngine;
+using System.Linq;
 
 namespace GameLogic
 {
@@ -178,12 +179,20 @@ namespace GameLogic
                 Debug.LogError($"无法移除空节点!");
                 return false;
             }
+            
             var realChildNode = GetChildNode(childNode.NodeValue);
             if (realChildNode != childNode)
             {
                 Debug.LogError($"移除的子节点单词:{childNode.NodeValue}对象不是同一个,移除子节点失败!");
                 return false;
             }
+            
+            // 递归释放所有子节点
+            foreach (var grandChild in childNode.ChildNodesMap.Values.ToList())
+            {
+                childNode.RemoveChildNode(grandChild);
+            }
+            
             ChildNodesMap.Remove(childNode.NodeValue);
             MemoryPool.Release(childNode);
             return true;
@@ -206,15 +215,13 @@ namespace GameLogic
         /// <summary>
         /// 获取指定字符串的子节点
         /// </summary>
-        /// <param name=""></param>
-        /// <param name=""></param>
+        /// <param name="nodeWord"></param>
         /// <returns></returns>
         public TrieNode GetChildNode(string nodeWord)
         {
             TrieNode trieNode;
             if (!ChildNodesMap.TryGetValue(nodeWord, out trieNode))
             {
-                //Debug.Log($"节点字符串:{NodeValue}找不到子节点字符串:{nodeWord},获取子节点失败!");
                 return null;
             }
             return trieNode;
@@ -223,8 +230,7 @@ namespace GameLogic
         /// <summary>
         /// 是否包含指定字符串的子节点
         /// </summary>
-        /// <param name=""></param>
-        /// <param name=""></param>
+        /// <param name="nodeWord"></param>
         /// <returns></returns>
         public bool ContainWord(string nodeWord)
         {
@@ -240,15 +246,17 @@ namespace GameLogic
         /// <returns></returns>
         public string GetFullWord()
         {
-            var trieNodeWord = NodeValue;
-            var node = Parent;
+            var parts = new List<string>();
+            var node = this;
+            
+            // 从当前节点向上遍历到根节点
             while (node != null && !node.IsRoot)
             {
-                trieNodeWord = $"{node.NodeValue}{OwnerTree.Separator}{trieNodeWord}";
+                parts.Insert(0, node.NodeValue); // 插入到开头
                 node = node.Parent;
             }
-            return trieNodeWord;
+            
+            return string.Join(OwnerTree.Separator.ToString(), parts);
         }
     }
-
 }

@@ -65,6 +65,11 @@ namespace GameLogic
         /// <param name="separator"></param>
         public Trie(char separator = '|')
         {
+            if (char.IsWhiteSpace(separator))
+            {
+                throw new ArgumentException("分隔符不能是空白字符");
+            }
+            
             Separator = separator;
             WorldCount = 0;
             TrieDeepth = 0;
@@ -79,15 +84,25 @@ namespace GameLogic
         /// <param name="word"></param>
         public void AddWord(string word)
         {
+            if (string.IsNullOrEmpty(word))
+            {
+                Debug.LogError("不允许添加空单词!");
+                return;
+            }
+            
             mWordList.Clear();
             var words = word.Split(Separator);
             mWordList.AddRange(words);
+            
+            var wasWordAlreadyExist = ContainWord(word);
             var length = mWordList.Count;
             var node = RootNode;
+            
             for (int i = 0; i < length; i++)
             {
                 var spliteWord = mWordList[i];
                 var isLast = i == (length - 1);
+                
                 if (!node.ContainWord(spliteWord))
                 {
                     node = node.AddChildNode(spliteWord, isLast);
@@ -95,15 +110,18 @@ namespace GameLogic
                 else
                 {
                     node = node.GetChildNode(spliteWord);
-                    if (!node.IsTail && isLast)
+                    if (isLast)
                     {
-                        node.IsTail = isLast;
+                        node.IsTail = true; // 确保标记为单词结尾
                     }
-                    //if(isLast)
-                    //{
-                    //    Debug.Log($"添加重复单词:{word}");
-                    //}
                 }
+            }
+            
+            // 只有新增单词时才计数
+            if (!wasWordAlreadyExist)
+            {
+                WorldCount++;
+                TrieDeepth = Math.Max(TrieDeepth, length);
             }
         }
 
@@ -121,47 +139,35 @@ namespace GameLogic
                 Debug.LogError($"不允许移除空单词!");
                 return false;
             }
+            
             var wordNode = GetWordNode(word);
-            if (wordNode == null)
+            if (wordNode == null || !wordNode.IsTail)
             {
                 Debug.LogError($"找不到单词:{word}的节点信息，移除单词失败!");
                 return false;
             }
+            
             if (wordNode.IsRoot)
             {
                 Debug.LogError($"不允许删除根节点!");
                 return false;
             }
-            // 从最里层节点开始反向判定更新和删除
-            if (!wordNode.IsTail)
+            
+            // 标记为非单词节点
+            wordNode.IsTail = false;
+            
+            // 只有当节点没有子节点且不是根节点时才删除
+            var currentNode = wordNode;
+            while (!currentNode.IsRoot && 
+                   !currentNode.IsTail && 
+                   currentNode.ChildCount == 0)
             {
-                Debug.LogError($"单词:{word}的节点不是单词节点，移除单词失败!");
-                return false;
+                var parent = currentNode.Parent;
+                parent.RemoveChildNode(currentNode);
+                currentNode = parent;
             }
-            // 删除的节点是叶子节点时要删除节点并往上递归更新节点数据
-            // 反之只更新标记为非单词节点即可结束
-            if (wordNode.ChildCount > 0)
-            {
-                wordNode.IsTail = false;
-                return true;
-            }
-            wordNode.RemoveFromParent();
-            // 网上遍历更新节点信息
-            var node = wordNode.Parent;
-            while (node != null && !node.IsRoot)
-            {
-                // 没有子节点且不是单词节点则直接删除
-                if (node.ChildCount == 0 && !node.IsTail)
-                {
-                    node.RemoveFromParent();
-                }
-                node = node.Parent;
-                // 有子节点则停止往上更新
-                if (node.ChildCount > 0)
-                {
-                    break;
-                }
-            }
+            
+            WorldCount--;
             return true;
         }
 
@@ -179,7 +185,7 @@ namespace GameLogic
                 Debug.LogError($"无法获取空单词的单次节点!");
                 return null;
             }
-            // 从最里层节点开始反向判定更新和删除
+            
             var wordArray = word.Split(Separator);
             var node = RootNode;
             foreach (var spliteWord in wordArray)
@@ -191,14 +197,15 @@ namespace GameLogic
                 }
                 else
                 {
-                    break;
+                    return null;
                 }
             }
+            
             if (node == null || !node.IsTail)
             {
-                Debug.Log($"找不到单词:{word}的单词节点!");
                 return null;
             }
+            
             return node;
         }
 
@@ -213,10 +220,11 @@ namespace GameLogic
             {
                 return false;
             }
+            
             mWordList.Clear();
             var wordArray = word.Split(Separator);
             mWordList.AddRange(wordArray);
-            return FindWord(RootNode, mWordList);
+            return FindWord(RootNode, new List<string>(mWordList)); // 使用副本避免修改原列表
         }
 
         /// <summary>
@@ -231,11 +239,13 @@ namespace GameLogic
             {
                 return true;
             }
+            
             var firstWord = wordList[0];
             if (!trieNode.ContainWord(firstWord))
             {
                 return false;
             }
+            
             var childNode = trieNode.GetChildNode(firstWord);
             wordList.RemoveAt(0);
             return FindWord(childNode, wordList);
@@ -252,10 +262,11 @@ namespace GameLogic
             {
                 return false;
             }
+            
             mWordList.Clear();
             var wordArray = word.Split(Separator);
             mWordList.AddRange(wordArray);
-            return MatchWord(RootNode, mWordList);
+            return MatchWord(RootNode, new List<string>(mWordList)); // 使用副本避免修改原列表
         }
 
         /// <summary>
@@ -270,11 +281,13 @@ namespace GameLogic
             {
                 return trieNode.IsTail;
             }
+            
             var firstWord = wordList[0];
             if (!trieNode.ContainWord(firstWord))
             {
                 return false;
             }
+            
             var childNode = trieNode.GetChildNode(firstWord);
             wordList.RemoveAt(0);
             return MatchWord(childNode, wordList);
@@ -310,10 +323,12 @@ namespace GameLogic
                 {
                     word = $"{preFix}{Separator}{childNodeKey}";
                 }
+                
                 if (childNode.IsTail)
                 {
                     wordList.Add(word);
                 }
+                
                 if (childNode.ChildNodesMap.Count > 0)
                 {
                     var childNodeWorldList = GetNodeWorldList(childNode, word);
@@ -333,10 +348,9 @@ namespace GameLogic
                 Debug.LogError($"无法获取空单词的单次节点!");
                 return -1;
             }
-            // 从最里层节点开始反向判定更新和删除
+            
             var wordArray = word.Split(Separator);
             var node = RootNode;
-            if (wordArray.Length <= 0) return 0;
             foreach (var spliteWord in wordArray)
             {
                 var childNode = node.GetChildNode(spliteWord);
@@ -349,8 +363,23 @@ namespace GameLogic
                     return -1;
                 }
             }
-
+            
             return node.ChildCount;
+        }
+
+        /// <summary>
+        /// 清空Trie树
+        /// </summary>
+        public void Clear()
+        {
+            // 递归释放所有子节点
+            foreach (var child in RootNode.ChildNodesMap.Values.ToList())
+            {
+                RootNode.RemoveChildNode(child);
+            }
+
+            WorldCount = 0;
+            TrieDeepth = 0;
         }
 
         /// <summary>
@@ -378,6 +407,19 @@ namespace GameLogic
             foreach (var childeNode in node.ChildNodesMap)
             {
                 PrintNodes(childeNode.Value, depth + 1);
+            }
+        }
+
+        /// <summary>
+        /// 释放资源
+        /// </summary>
+        public void Dispose()
+        {
+            Clear();
+            if (RootNode != null)
+            {
+                MemoryPool.Release(RootNode);
+                RootNode = null;
             }
         }
     }

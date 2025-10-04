@@ -1,7 +1,6 @@
 using TEngine;
 using System.Collections.Generic;
 using System;
-using GameConfig;
 using UnityEngine;
 
 namespace GameLogic
@@ -209,7 +208,7 @@ namespace GameLogic
         #region Toast提示
         public void ShowToast(string txt)
         {
-            if (IsShutDown) return;
+            if (IsShutDown || GameModule.UI._IsRelease) return;
             var toast = TryGetFromPool(typeof(Toast));
             if (toast != null)
             {
@@ -232,7 +231,7 @@ namespace GameLogic
             Action onConfirm = null, Action onCancel = null,
             string confirmText = "确定", string cancelText = "取消")
         {
-            if (IsShutDown) return;
+            if (IsShutDown || GameModule.UI._IsRelease) return;
             ShowPopup(popup =>
             {
                 popup.SetTitle(title);
@@ -245,7 +244,7 @@ namespace GameLogic
         public void ShowAlert(string title, string content,
             Action onConfirm = null, string confirmText = "确定")
         {
-            if (IsShutDown) return;
+            if (IsShutDown || GameModule.UI._IsRelease) return;
             ShowPopup(popup =>
             {
                 popup.SetTitle(title);
@@ -258,7 +257,7 @@ namespace GameLogic
 
         public void ShowPopup(Action<IPopup> setupCallback)
         {
-            if (IsShutDown) return;
+            if (IsShutDown || GameModule.UI._IsRelease) return;
             var popup = TryGetFromPool(typeof(Popup));
             if (popup != null)
             {
@@ -280,13 +279,13 @@ namespace GameLogic
 
         public void ShowConfirm(string content, Action onConfirm = null, Action onCancel = null)
         {
-            if (IsShutDown) return;
+            if (IsShutDown || GameModule.UI._IsRelease) return;
             ShowConfirm("确认", content, onConfirm, onCancel);
         }
 
         public void ShowAlert(string content, Action onConfirm = null)
         {
-            if (IsShutDown) return;
+            if (IsShutDown || GameModule.UI._IsRelease) return;
             ShowAlert("提示", content, onConfirm);
         }
 
@@ -295,7 +294,7 @@ namespace GameLogic
         #region ItemIcon
         public void GetItemIcon(Action<IItemIcon> callback)
         {
-            if (IsShutDown) return;
+            if (IsShutDown || GameModule.UI._IsRelease) return;
             var item = TryGetFromPool(typeof(itemIcon));
             if (item != null)
             {
@@ -319,7 +318,7 @@ namespace GameLogic
         /// </summary>
         public void GetRedDot(string word, RedDotType rtpye, Action<IRedDot> callback)
         {
-            if (IsShutDown) return;
+            if (IsShutDown || GameModule.UI._IsRelease) return;
             var dot = (RedDot)TryGetFromPool(typeof(RedDot));
             if (dot != null)
             {
