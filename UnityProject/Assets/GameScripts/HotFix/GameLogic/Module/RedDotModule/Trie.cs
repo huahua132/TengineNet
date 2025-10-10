@@ -7,7 +7,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using UnityEngine;
 using TEngine;
 
@@ -323,12 +322,12 @@ namespace GameLogic
                 {
                     word = $"{preFix}{Separator}{childNodeKey}";
                 }
-                
+
                 if (childNode.IsTail)
                 {
                     wordList.Add(word);
                 }
-                
+
                 if (childNode.ChildNodesMap.Count > 0)
                 {
                     var childNodeWorldList = GetNodeWorldList(childNode, word);
@@ -337,16 +336,16 @@ namespace GameLogic
             }
             return wordList;
         }
-
+        
         /// <summary>
-        /// 获取节点子节点数
+        /// 查询是否存在节点
         /// </summary>
-        public int GetNodeChildCount(string word)
+        public bool IsExistNode(string word)
         {
             if (string.IsNullOrEmpty(word))
             {
                 Debug.LogError($"无法获取空单词的单次节点!");
-                return -1;
+                return false;
             }
             
             var wordArray = word.Split(Separator);
@@ -360,11 +359,109 @@ namespace GameLogic
                 }
                 else
                 {
-                    return -1;
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// 获取节点直接子节点数
+        /// </summary>
+        public int GetNodeChildCount(string word)
+        {
+            if (string.IsNullOrEmpty(word))
+            {
+                Debug.LogError($"无法获取空单词的单次节点!");
+                return 0;
+            }
+            
+            var wordArray = word.Split(Separator);
+            var node = RootNode;
+            foreach (var spliteWord in wordArray)
+            {
+                var childNode = node.GetChildNode(spliteWord);
+                if (childNode != null)
+                {
+                    node = childNode;
+                }
+                else
+                {
+                    return 0;
                 }
             }
             
             return node.ChildCount;
+        }
+
+        /// <summary>
+        /// 获取节点下所有叶子节点数（即单词结尾节点数）
+        /// </summary>
+        /// <param name="word">目标节点路径</param>
+        /// <returns>叶子节点数量</returns>
+        public int GetNodeLeafCount(string word)
+        {
+            if (string.IsNullOrEmpty(word))
+            {
+                Debug.LogError($"无法获取空单词的节点信息!");
+                return 0;
+            }
+            
+            var wordArray = word.Split(Separator);
+            var node = RootNode;
+            foreach (var spliteWord in wordArray)
+            {
+                var childNode = node.GetChildNode(spliteWord);
+                if (childNode != null)
+                {
+                    node = childNode;
+                }
+                else
+                {
+                    return 0;
+                }
+            }
+            
+            return CountLeafNodes(node);
+        }
+
+        /// <summary>
+        /// 递归统计节点下的叶子节点数量
+        /// </summary>
+        /// <param name="node">起始节点</param>
+        /// <returns>叶子节点数量</returns>
+        private int CountLeafNodes(TrieNode node)
+        {
+            if (node == null)
+            {
+                return 0;
+            }
+            
+            int count = 0;
+            
+            // 如果当前节点是单词结尾，计数+1
+            if (node.IsTail)
+            {
+                count++;
+            }
+            
+            // 递归统计所有子节点
+            foreach (var childNode in node.ChildNodesMap.Values)
+            {
+                count += CountLeafNodes(childNode);
+            }
+            
+            return count;
+        }
+
+        /// <summary>
+        /// 获取整棵树的叶子节点数（应该等于WorldCount）
+        /// </summary>
+        /// <returns>叶子节点总数</returns>
+        public int GetTotalLeafCount()
+        {
+            return CountLeafNodes(RootNode);
         }
 
         /// <summary>
@@ -424,3 +521,4 @@ namespace GameLogic
         }
     }
 }
+

@@ -63,8 +63,11 @@ namespace GameLogic
 
         private void Refresh()
         {
-            int num = GameModule.RedDot.GetNodeChildCount(_word);
-            _Trf.gameObject.SetActive(num >= 0);
+            bool isExist = GameModule.RedDot.IsExistNode(_word);
+            _Trf.gameObject.SetActive(isExist);
+            if (!isExist) return;
+
+            int num = GameModule.RedDot.GetNodeLeafCount(_word);
             _num.gameObject.SetActive(_type == RedDotType.RED_NUM);
             //Log.Info($"RedDot Refresh 1 >>> {_word} {num}");
             if (_type == RedDotType.RED_NUM)

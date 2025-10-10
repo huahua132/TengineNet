@@ -49,11 +49,22 @@ namespace GameLogic
 
             pushDotChangeEvent(word);
         }
-        
+
         //获取节点子节点数量
         public int GetNodeChildCount(string word)
         {
             return _rootTrie.GetNodeChildCount(word);
+        }
+        
+        //是否存在节点
+        public bool IsExistNode(string word)
+        {
+            return _rootTrie.IsExistNode(word);
+        }
+        //获取叶子节点数
+        public int GetNodeLeafCount(string word)
+        {
+            return _rootTrie.GetNodeLeafCount(word);
         }
     }
 }
