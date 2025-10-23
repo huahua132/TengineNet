@@ -2,9 +2,9 @@ using System;
 using Cysharp.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.UI;
-using TEngine;
 using Object = UnityEngine.Object;
 using GameConfig;
+using TMPro;
 
 namespace GameLogic
 {
@@ -20,14 +20,14 @@ namespace GameLogic
     {
         private Transform _poolParent;
         private GameObject _parent;
-        private Text _itemName;
-        private Text _itemNum;
+        private TextMeshProUGUI _itemName;
+        private TextMeshProUGUI _itemNum;
         private RectTransform _rt;
         protected override void OnInit()
         {
             _rt = _Trf.GetComponent<RectTransform>();
-            _itemName = _Trf.Find("m_textName").GetComponent<Text>();
-            _itemNum = _Trf.Find("m_textNum").GetComponent<Text>();
+            _itemName = _Trf.Find("m_textName").GetComponent<TextMeshProUGUI>();
+            _itemNum = _Trf.Find("m_textNum").GetComponent<TextMeshProUGUI>();
         }
 
         protected override void OnRecycle()

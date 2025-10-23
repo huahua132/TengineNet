@@ -1,8 +1,8 @@
 using System;
 using Cysharp.Threading.Tasks;
 using TEngine;
+using TMPro;
 using UnityEngine;
-using UnityEngine.UI;
 using Object = UnityEngine.Object;
 
 namespace GameLogic
@@ -24,12 +24,12 @@ namespace GameLogic
         private GameObject _parent;
         private string _word;
         private RedDotType _type;
-        private Text _num;
+        private TextMeshProUGUI _num;
         private RectTransform _rt;
         protected override void OnInit()
         {
             _rt = _Trf.GetComponent<RectTransform>();
-            _num = _Trf.Find("m_Num").GetComponent<Text>();
+            _num = _Trf.Find("m_Num").GetComponent<TextMeshProUGUI>();
         }
 
         protected override void OnRecycle()

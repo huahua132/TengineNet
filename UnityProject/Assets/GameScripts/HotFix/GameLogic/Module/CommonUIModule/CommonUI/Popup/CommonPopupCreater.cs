@@ -4,6 +4,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using TEngine;
 using Object = UnityEngine.Object;
+using TMPro;
 
 namespace GameLogic
 {
@@ -18,12 +19,12 @@ namespace GameLogic
 
     public class Popup : CommonUIBase, IPopup
     {
-        private Text _titile;
-        private Text _content;
+        private TextMeshProUGUI _titile;
+        private TextMeshProUGUI _content;
         private Button _cancel;
-        private Text _cancelTxt;
+        private TextMeshProUGUI _cancelTxt;
         private Button _confirm;
-        private Text _confirmTxt;
+        private TextMeshProUGUI _confirmTxt;
         private Action _onCancel;
         private Action _onConfirm;
         private bool _isCanClose;
@@ -31,12 +32,12 @@ namespace GameLogic
         //初始化
         protected override void OnInit()
         {
-            _titile = _Trf.Find("Titile").GetComponent<Text>();
-            _content = _Trf.Find("Content").GetComponent<Text>();
+            _titile = _Trf.Find("Titile").GetComponent<TextMeshProUGUI>();
+            _content = _Trf.Find("Content").GetComponent<TextMeshProUGUI>();
             _cancel = _Trf.Find("CancelBtn").GetComponent<Button>();
-            _cancelTxt = _Trf.Find("CancelBtn").GetComponentInChildren<Text>();
+            _cancelTxt = _Trf.Find("CancelBtn").GetComponentInChildren<TextMeshProUGUI>();
             _confirm = _Trf.Find("ConfirmBtn").GetComponent<Button>();
-            _confirmTxt = _Trf.Find("ConfirmBtn").GetComponentInChildren<Text>();
+            _confirmTxt = _Trf.Find("ConfirmBtn").GetComponentInChildren<TextMeshProUGUI>();
             _isCanClose = false;
             // 绑定按钮事件
             _cancel.onClick.AddListener(OnCancelClick);
@@ -126,7 +127,7 @@ namespace GameLogic
 
         public void Init()
         {
-            GameModule.UI.ShowUI<CommonPopupUI>();
+            GameModule.UI.ShowUIAsync<CommonPopupUI>();
         }
 
         public void Release()

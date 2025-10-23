@@ -102,13 +102,13 @@ namespace GameLogic
             }
             else
             {
-                GameModule.CommonUI.ShowToast($"连接服务器成功 结点{_nodeID}");
+                //GameModule.CommonUI.ShowToast($"连接服务器成功 结点{_nodeID}");
             }
         }
 
         private void DisconnectCallback(DisconnectType disconnectType, string reason = "")
         {
-            GameModule.CommonUI.ShowToast($"网络断开连接 结点{_nodeID}: {reason}");
+            //GameModule.CommonUI.ShowToast($"网络断开连接 结点{_nodeID}: {reason}");
             GameModule.NetPack.Close((uint)_nodeID);
         }
 
@@ -118,7 +118,7 @@ namespace GameLogic
 
         private void AuthSuccessCallback(INetResponse response)
         {
-            GameModule.CommonUI.ShowToast($"认证成功 结点{_nodeID}");
+            //GameModule.CommonUI.ShowToast($"认证成功 结点{_nodeID}");
             Log.Info($"节点 {_nodeID} 认证成功");
             
             // 认证成功后的处理，比如获取用户信息等

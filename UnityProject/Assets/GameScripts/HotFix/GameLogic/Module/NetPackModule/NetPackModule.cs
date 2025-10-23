@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using TEngine;
 using Cysharp.Threading.Tasks;
+using System.Linq;
 
 namespace GameLogic
 {
@@ -153,6 +154,10 @@ namespace GameLogic
         private Dictionary<uint, NetNode> _netNodes = new Dictionary<uint, NetNode>();
         private Dictionary<uint, bool> _closeMap = new Dictionary<uint, bool>();
         
+        // 待处理的节点操作队列（方案3）
+        private List<uint> _pendingRemoveNodes = new List<uint>();
+        private Dictionary<uint, NetNode> _pendingAddNodes = new Dictionary<uint, NetNode>();
+        
         // 基于nodeId的回调管理
         private Dictionary<uint, List<ConnectCallback>> _connectCallbacks = new Dictionary<uint, List<ConnectCallback>>();
         private Dictionary<uint, List<DisconnectCallback>> _disconnectCallbacks = new Dictionary<uint, List<DisconnectCallback>>();
@@ -215,16 +220,21 @@ namespace GameLogic
             _nodeAuthStatus.Clear();
             _heartbeatRequestProviders.Clear();
             _heartbeatStates.Clear();
+            
+            // 清理待处理队列
+            _pendingRemoveNodes.Clear();
+            _pendingAddNodes.Clear();
         }
 
         public void Update(float elapseSeconds, float realElapseSeconds)
         {
+            // 第一步：处理待关闭的节点
             foreach (var nodeId in _closeMap.Keys)
             {
                 if (_netNodes.TryGetValue(nodeId, out var node))
                 {
                     node.Disconnect();
-                    _netNodes.Remove(nodeId);
+                    _pendingRemoveNodes.Add(nodeId);
                     
                     // 取消该节点所有等待的RPC
                     if (_rpcWaitingMap.TryGetValue(nodeId, out var nodeRpcs))
@@ -251,11 +261,25 @@ namespace GameLogic
             }
             _closeMap.Clear();
             
-            // 更新所有NetNode
+            // 第二步：更新所有NetNode（此时不会修改字典）
             foreach (var node in _netNodes.Values)
             {
                 node.Update(elapseSeconds, realElapseSeconds);
             }
+            
+            // 第三步：统一处理删除操作
+            foreach (var nodeId in _pendingRemoveNodes)
+            {
+                _netNodes.Remove(nodeId);
+            }
+            _pendingRemoveNodes.Clear();
+            
+            // 第四步：统一处理添加操作
+            foreach (var kvp in _pendingAddNodes)
+            {
+                _netNodes[kvp.Key] = kvp.Value;
+            }
+            _pendingAddNodes.Clear();
         }
 
         #endregion
@@ -276,7 +300,7 @@ namespace GameLogic
             // 设置消息处理回调
             node.SetMessageHandleCallback(OnMessageReceived);
 
-            _netNodes[nodeId] = node;
+            _pendingAddNodes[nodeId] = node;
             if (_closeMap.ContainsKey(nodeId))
             {
                 _closeMap.Remove(nodeId);
@@ -284,7 +308,7 @@ namespace GameLogic
             
             // 初始化节点状态
             _nodeAuthStatus[nodeId] = false;
-            
+
             node.Connect();
 
             Log.Info($"开始连接到服务器 {ip}:{port}，节点ID: {nodeId}");
@@ -1032,7 +1056,7 @@ namespace GameLogic
             // 取消该节点所有等待的RPC
             if (_rpcWaitingMap.TryGetValue(nodeId, out var nodeRpcs))
             {
-                foreach (var rpc in nodeRpcs.Values)
+                foreach (var rpc in nodeRpcs.Values.ToList())
                 {
                     rpc.TrySetException(new Exception($"节点 {nodeId} 断开连接: {reason}"));
                 }
@@ -1136,4 +1160,5 @@ namespace GameLogic
         #endregion
     }
 }
+
 

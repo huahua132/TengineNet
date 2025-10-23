@@ -11,9 +11,35 @@ namespace GameLogic
         T GetData<T>(int idx);
     }
 
+    public class ListDataGeter<T> : ILoopScrollDataGeter
+    {
+        private List<T> _dataList;
+        public object[] _Args { get; private set; }
+        
+        public void SetData(List<T> dataList)
+        {
+            _dataList = dataList;
+        }
+
+        public TData GetData<TData>(int index)
+        {
+            if (_dataList == null || index < 0 || index >= _dataList.Count)
+            {
+                return default(TData);
+            }
+            return (TData)(object)_dataList[index];
+        }
+        
+        public void SetArgs(object[] args)
+        {
+            _Args = args;
+        }
+    }
+
     public abstract class LoopCellBase
     {
         public Transform _Trf { get; private set; }
+        protected int _index;
         protected ILoopScrollDataGeter _DataGeter;
         public bool _IsRecycle { get; private set; }
         public void Init(Transform trans, ILoopScrollDataGeter dataGeter = null)
@@ -40,6 +66,7 @@ namespace GameLogic
 
         public void Refresh(int index)
         {
+            _index = index;
             OnRefresh(index);
         }
 
