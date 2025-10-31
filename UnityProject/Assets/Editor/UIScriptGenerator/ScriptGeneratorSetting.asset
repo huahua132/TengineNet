@@ -80,3 +80,6 @@ MonoBehaviour:
   - uiElementRegex: m_tmp
     componentName: TextMeshProUGUI
     isUIWidget: 0
+  - uiElementRegex: m_inputTmp
+    componentName: TMP_InputField
+    isUIWidget: 0

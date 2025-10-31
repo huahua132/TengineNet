@@ -33,6 +33,13 @@ namespace TEngine.Editor.UI
             Generate(true, true);
         }
 
+        // 新增：生成Cell代码
+        [MenuItem("GameObject/ScriptGenerator/LoopCellBase", priority = 45)]
+        public static void GenerateLoopCell()
+        {
+            GenerateCell();
+        }
+
         private static void Generate(bool includeListener, bool isUniTask = false)
         {
             var root = Selection.activeTransform;
@@ -104,6 +111,160 @@ namespace TEngine.Editor.UI
             }
 
             Debug.Log($"脚本已生成到剪贴板，请自行Ctl+V粘贴");
+        }
+
+        // 新增：生成Cell代码的方法
+        private static void GenerateCell()
+        {
+            var root = Selection.activeTransform;
+            if (root != null)
+            {
+                StringBuilder strVar = new StringBuilder();
+                StringBuilder strBind = new StringBuilder();
+                ErgodicForCell(root, root, ref strVar, ref strBind);
+                
+                StringBuilder strFile = new StringBuilder();
+
+                // 引用命名空间
+                strFile.Append("using TEngine;\n");
+#if ENABLE_TEXTMESHPRO
+                strFile.Append("using TMPro;\n");
+#endif
+                strFile.Append("using UnityEngine.UI;\n\n");
+                strFile.Append($"namespace {ScriptGeneratorSetting.GetUINameSpace()}\n");
+                strFile.Append("{\n");
+                
+                // 类名
+                string className = root.name;
+                if (className.StartsWith("m_item") || className.StartsWith("_item"))
+                {
+                    className = className.Replace("m_item", "").Replace("_item", "");
+                }
+                if (!className.EndsWith("Cell"))
+                {
+                    className += "Cell";
+                }
+                
+                strFile.Append($"\tpublic class {className} : LoopCellBase\n");
+                strFile.Append("\t{\n");
+                
+                // 字段定义
+                strFile.Append(strVar);
+                strFile.Append("\n");
+                
+                // OnInit方法
+                strFile.Append("\t\tprotected override void OnInit()\n");
+                strFile.Append("\t\t{\n");
+                strFile.Append(strBind);
+                strFile.Append("\t\t}\n\n");
+                
+                // OnRefresh方法
+                strFile.Append("\t\tprotected override void OnRefresh(int index)\n");
+                strFile.Append("\t\t{\n");
+                strFile.Append("\t\t\t// TODO: 根据index获取数据并刷新UI\n");
+                strFile.Append("\t\t\t// var data = _DataGeter.GetData<YourDataType>(index);\n");
+                strFile.Append("\t\t}\n");
+                
+                strFile.Append("\t}\n");
+                strFile.Append("}\n");
+
+                TextEditor te = new TextEditor();
+                te.text = strFile.ToString();
+                te.SelectAll();
+                te.Copy();
+                
+                Debug.Log($"Cell脚本已生成到剪贴板，请自行Ctrl+V粘贴");
+            }
+            else
+            {
+                Debug.LogWarning("请先选择一个GameObject!");
+            }
+        }
+
+        // 新增：遍历Cell的子节点
+        private static void ErgodicForCell(Transform root, Transform transform, ref StringBuilder strVar, ref StringBuilder strBind)
+        {
+            for (int i = 0; i < transform.childCount; ++i)
+            {
+                Transform child = transform.GetChild(i);
+                WriteScriptForCell(root, child, ref strVar, ref strBind);
+                
+                if (child.name.StartsWith("m_item") || child.name.StartsWith("_item"))
+                {
+                    continue;
+                }
+
+                ErgodicForCell(root, child, ref strVar, ref strBind);
+            }
+        }
+
+        // 新增：为Cell写入脚本
+        private static void WriteScriptForCell(Transform root, Transform child, ref StringBuilder strVar, ref StringBuilder strBind)
+        {
+            string varName = child.name;
+            string componentName = string.Empty;
+
+            var rule = ScriptGeneratorSetting.GetScriptGenerateRule().Find(t => varName.StartsWith(t.uiElementRegex));
+
+            if (rule != null)
+            {
+                componentName = rule.componentName;
+            }
+
+            if (componentName == string.Empty)
+            {
+                return;
+            }
+
+            var codeStyle = ScriptGeneratorSetting.Instance.CodeStyle;
+            if (codeStyle == UIFieldCodeStyle.UnderscorePrefix)
+            {
+                if (varName.StartsWith("_"))
+                {
+                    
+                }
+                else if(varName.StartsWith("m_"))
+                {
+                    varName = varName.Substring(1);
+                }
+                else
+                {
+                    varName = $"_{varName}";
+                }
+            }
+            else if (codeStyle == UIFieldCodeStyle.MPrefix)
+            {
+                if (varName.StartsWith("m_"))
+                {
+                    
+                }
+                else if (varName.StartsWith("_"))
+                {
+                    varName = $"m{varName}";
+                }
+                else
+                {
+                    varName = $"m_{varName}";
+                }
+            }
+
+            string varPath = GetRelativePath(child, root);
+            if (!string.IsNullOrEmpty(varName))
+            {
+                strVar.Append("\t\tprivate " + componentName + " " + varName + ";\n");
+                switch (componentName)
+                {
+                    case "Transform":
+                        strBind.Append($"\t\t\t{varName} = _Trf.Find(\"{varPath}\");\n");
+                        break;
+                    case "GameObject":
+                        strBind.Append($"\t\t\t{varName} = _Trf.Find(\"{varPath}\").gameObject;\n");
+                        break;
+                    default:
+                        strBind.Append($"\t\t\t{varName} = _Trf.Find(\"{varPath}\").GetComponent<{componentName}>();\n");
+                        break;
+                }
+            }
         }
 
         public static void Ergodic(Transform root, Transform transform, ref StringBuilder strVar, ref StringBuilder strBind, ref StringBuilder strOnCreate,

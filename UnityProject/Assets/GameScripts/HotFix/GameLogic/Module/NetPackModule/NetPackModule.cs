@@ -246,16 +246,6 @@ namespace GameLogic
                         _rpcWaitingMap.Remove(nodeId);
                     }
                     
-                    // 清理节点相关状态
-                    _nodeAuthStatus.Remove(nodeId);
-                    _authStates.Remove(nodeId);
-                    _heartbeatStates.Remove(nodeId);
-                    _connectCallbacks.Remove(nodeId);
-                    _disconnectCallbacks.Remove(nodeId);
-                    _messageListeners.Remove(nodeId);
-                    _authSuccessCallbacks.Remove(nodeId);
-                    _authFailureCallbacks.Remove(nodeId);
-                    
                     MemoryPool.Release(node);
                 }
             }

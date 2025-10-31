@@ -81,7 +81,7 @@ namespace GameLogic
             ringBuffer.WriteUShort(package.packid, ByteOrder.BigEndian);
             // 写入session
             ringBuffer.WriteUInt(package.session, ByteOrder.BigEndian);
-            //Log.Info($" {package.packtype}  {package.msgtype} {package.packid} {package.session}");
+            //Log.Info($" {package.packtype} {package.msgtype} {package.packid} {package.session} {ringBuffer}");
             // 写入包体
             ringBuffer.WriteBytes(bodyData, 0, bodyData.Length);
         }
