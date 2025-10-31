@@ -329,7 +329,7 @@ namespace TEngine
 #if UNITY_6000_0_OR_NEWER
                 return UnityEngine.Object.FindFirstObjectByType<T>();
 #else
-                return UnityEngine.Object.FindFirstObjectByType<T>();
+                return UnityEngine.Object.FindObjectOfType<T>();
 
 #endif
             }

@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0320e56ed14c4f7981ce8f4d27b13316, type: 3}
   m_Name: UpdateSetting
   m_EditorClassIdentifier: 
-  projectName: TengineNet
+  projectName: Demo
   HotUpdateAssemblies:
   - GameProto.dll
   - GameLogic.dll
@@ -29,8 +29,8 @@ MonoBehaviour:
   AssemblyTextAssetPath: AssetRaw/DLL
   UpdateStyle: 1
   UpdateNotice: 1
-  ResDownLoadPath: http://192.168.56.1:8084
-  FallbackResDownLoadPath: http://192.168.56.1:8084
+  ResDownLoadPath: http://127.0.0.1:8081
+  FallbackResDownLoadPath: http://127.0.0.1:8082
   LoadResWayWebGL: 0
   isAutoAssetCopeToBuildAddress: 0
   BuildAddress: ../../Builds/Unity_Data/StreamingAssets

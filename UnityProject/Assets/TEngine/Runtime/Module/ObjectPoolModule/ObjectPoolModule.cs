@@ -67,7 +67,6 @@ namespace TEngine
 
             _objectPools.Clear();
             _cachedAllObjectPools.Clear();
-            Log.Info("Object pool system Shutdown.");
         }
 
         /// <summary>

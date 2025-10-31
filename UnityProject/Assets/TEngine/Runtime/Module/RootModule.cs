@@ -161,7 +161,9 @@ namespace TEngine
 
         private void OnDestroy()
         {
+#if !UNITY_EDITOR
             ModuleSystem.Shutdown();
+#endif
         }
 
         /// <summary>
