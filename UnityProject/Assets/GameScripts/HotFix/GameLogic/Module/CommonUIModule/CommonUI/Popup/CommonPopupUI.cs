@@ -9,11 +9,16 @@ namespace GameLogic
 	{
         #region 脚本工具生成的代码
         public Transform Popup;
-        protected override void ScriptGenerator()
-        {
-            Popup = FindChild("Popup");
+		protected override void ScriptGenerator()
+		{
+			Popup = FindChild("Popup");
 			Popup.gameObject.SetActive(false);
-        }
+		}
+		protected override void OnCreate()
+		{
+			IsForever = true;
+		}
+		
 		#endregion
 
 		#region 事件

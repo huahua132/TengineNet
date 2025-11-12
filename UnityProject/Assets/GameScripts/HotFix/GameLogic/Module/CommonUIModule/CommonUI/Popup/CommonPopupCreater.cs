@@ -34,10 +34,10 @@ namespace GameLogic
         {
             _titile = _Trf.Find("Titile").GetComponent<TextMeshProUGUI>();
             _content = _Trf.Find("Content").GetComponent<TextMeshProUGUI>();
-            _cancel = _Trf.Find("CancelBtn").GetComponent<Button>();
-            _cancelTxt = _Trf.Find("CancelBtn").GetComponentInChildren<TextMeshProUGUI>();
-            _confirm = _Trf.Find("ConfirmBtn").GetComponent<Button>();
-            _confirmTxt = _Trf.Find("ConfirmBtn").GetComponentInChildren<TextMeshProUGUI>();
+            _cancel = _Trf.Find("b/CancelBtn").GetComponent<Button>();
+            _cancelTxt = _Trf.Find("b/CancelBtn").GetComponentInChildren<TextMeshProUGUI>();
+            _confirm = _Trf.Find("b/ConfirmBtn").GetComponent<Button>();
+            _confirmTxt = _Trf.Find("b/ConfirmBtn").GetComponentInChildren<TextMeshProUGUI>();
             _isCanClose = false;
             // 绑定按钮事件
             _cancel.onClick.AddListener(OnCancelClick);

@@ -25,19 +25,35 @@ namespace GameLogic
         }
 
         //大厅登录认证成功
-        private void OnHallLoginAuthSuccess(INetResponse response)
+        private void OnHallLoginAuthSuccess(RpcResult<INetResponse> result)
         {
-            login.LoginRes loginRes = response.GetResponse<login.LoginRes>();
-            GameModule.CommonUI.ShowToast($"登录认证成功 是否 重连 {loginRes.isreconnect}");
+            login.LoginRes loginRes = result.GetDataOrDefault().GetResponse<login.LoginRes>();
+            //GameModule.CommonUI.ShowToast($"登录认证成功 是否 重连 {loginRes.isreconnect}");
             bool isreconnect = loginRes.isreconnect == 1 ? true : false;
             GameEvent.Get<ILoginLogic>().HallLoginAuthSuccess(isreconnect);
         }
 
         //大厅登录认证失败
-        private void OnHallLoginAuthFailed(INetResponse response)
+        private void OnHallLoginAuthFailed(RpcResult<INetResponse> result)
         {
-            GameModule.CommonUI.ShowAlert("登录认证失败", $"code={response.ErrorCode} msg={response.ErrorMsg}");
+            Log.Error($"登录认证失败", $"code={result.ErrorCode} msg={result.ErrorMsg}");
             GameEvent.Get<ILoginLogic>().HallLoginAuthFailed();
+            GameModule.CommonUI.ShowConfirm("登录认证失败", $"code={result.ErrorCode} msg={result.ErrorMsg}", OnBtnConfirm, OnBtnCancel, "重新登录", "退出");
+        }
+
+        private void OnBtnConfirm()
+        {
+            GameModule.UI.CloseAllWithOutForever();
+            GameModule.UI.ShowUIAsync<LoginUI>();
+        }
+        
+        private void OnBtnCancel()
+        {
+#if UNITY_EDITOR
+            UnityEditor.EditorApplication.isPlaying = false;
+#else
+            Application.Quit();
+#endif
         }
 
         private void OnShowLoginUI()

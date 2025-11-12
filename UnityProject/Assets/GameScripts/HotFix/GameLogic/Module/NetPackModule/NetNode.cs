@@ -14,6 +14,7 @@ namespace GameLogic
     /// </summary>
     public delegate void NodeDisconnectCallback(uint nodeID, DisconnectType disconnectType, string reason = "");
     public delegate void MessageHandleCallback(uint nodeId, INetResponse response);
+    
     /// <summary>
     /// 网络节点 - 内部实现，完全封装
     /// </summary>
@@ -35,7 +36,8 @@ namespace GameLogic
         private NodeConnectCallback _connectCallback;
         private NodeDisconnectCallback _disconnectCallback;
         public int _ReconnectAttempts { get; private set; } = 0;
-        private bool _isActiveDisconnect = false; // 标记是否为主动断开
+        private bool _isProcessingMessage = false; // 消息处理中标记
+        private bool _pendingDisconnect = false;   // 待断开标记
 
         #region 属性访问器
 
@@ -60,7 +62,8 @@ namespace GameLogic
             _connectCallback = null;
             _disconnectCallback = null;
             _ReconnectAttempts = 0;
-            _isActiveDisconnect = false;
+            _isProcessingMessage = false;
+            _pendingDisconnect = false;
         }
 
         #endregion
@@ -81,7 +84,6 @@ namespace GameLogic
             _ip = ip;
             _port = port;
             _connectState = ConnectState.Disconnected;
-            _isActiveDisconnect = false;
             _msgBodyHelper = msgBodyHelper;
             _msgBodyHelper.Init(MsgBodyErrHandle, MsgBodyHandleCb);
         }
@@ -92,7 +94,7 @@ namespace GameLogic
             _disconnectCallback = disconnectCallback;
         }
 
-        // 新增：设置消息处理回调
+        // 设置消息处理回调
         public void SetMessageHandleCallback(MessageHandleCallback callback)
         {
             _messageHandleCallback = callback;
@@ -102,7 +104,7 @@ namespace GameLogic
         {
             Log.Error($"MsgBodyErrHandle nodeId = {_guid} connectState= {_connectState} errorMsg = {errorMsg}");
             if (_connectState != ConnectState.Connected) return;
-            DisconnectInternal(true);
+            _pendingDisconnect = true; // 标记待断开
         }
 
         private void MsgBodyHandleCb(INetResponse response)
@@ -110,14 +112,14 @@ namespace GameLogic
             _messageHandleCallback?.Invoke(_guid, response);
         }
 
-        // 新增：发送消息（Send模式）
+        // 发送消息（Send模式）
         public void SendMessage(INetRequest request)
         {
             var package = _msgBodyHelper.EncodePush(request);
             _conn.SendPackage(package);
         }
 
-        // 新增：发送RPC请求（返回session用于匹配响应）
+        // 发送RPC请求（返回session用于匹配响应）
         public uint SendRpcRequest(INetRequest request)
         {
             var package = (RpcNetPackage)_msgBodyHelper.EncodeRpc(request);
@@ -135,7 +137,7 @@ namespace GameLogic
             try
             {
                 _connectState = ConnectState.Connecting;
-                _isActiveDisconnect = false; // 重置主动断开标记
+                _pendingDisconnect = false; // 重置待断开标记
                 _conn = GameModule.Network.CreateNetworkClient(_networkType, PackageBodyMaxSize, _netPackEncoder, _netPackDecoder);
                 _conn.Connect(_ip, _port, OnConnectResult);
             }
@@ -154,24 +156,30 @@ namespace GameLogic
             }
 
             // 重连时先主动断开当前连接
-            DisconnectInternal(false);
+            _pendingDisconnect = true;
             _connectState = ConnectState.Reconnecting;
             _ReconnectAttempts++;
         }
 
         /// <summary>
-        /// 主动断开连接
+        /// 主动断开连接 - 简化：只设置标记，真正断开在Update中处理
         /// </summary>
         public void Disconnect()
         {
-            DisconnectInternal(true);
+            if (_connectState == ConnectState.Disconnected)
+            {
+                return;
+            }
+            
+            Log.Info($"节点 {_guid} 请求主动断开");
+            _pendingDisconnect = true;
         }
 
         /// <summary>
         /// 内部断开连接方法
         /// </summary>
-        /// <param name="triggerCallback">是否触发断线回调</param>
-        private void DisconnectInternal(bool triggerCallback)
+        /// <param name="isActive">是否为主动断开</param>
+        private void DisconnectInternal(bool isActive)
         {
             var oldState = _connectState;
 
@@ -179,6 +187,30 @@ namespace GameLogic
             {
                 try
                 {
+                    // 断开前快速处理剩余消息
+                    if (!_isProcessingMessage && _conn != null)
+                    {
+                        INetPackage netPack;
+                        int count = 0;
+                        while ((netPack = _conn.PickPackage()) != null && count < 100)
+                        {
+                            try
+                            {
+                                _msgBodyHelper.handleNetPack(netPack);
+                                count++;
+                            }
+                            catch (Exception ex)
+                            {
+                                Log.Error($"断开前处理消息异常: {ex}");
+                            }
+                        }
+                        
+                        if (count > 0)
+                        {
+                            Log.Info($"节点 {_guid} 断开前处理了 {count} 条剩余消息");
+                        }
+                    }
+                    
                     _msgBodyHelper.ClearAll();
                     _conn.Dispose();
                     _conn = null;
@@ -190,12 +222,14 @@ namespace GameLogic
             }
 
             _connectState = ConnectState.Disconnected;
+            _pendingDisconnect = false;
 
             // 只有在已连接状态下的断开才触发回调
-            if (triggerCallback && oldState == ConnectState.Connected)
+            if (oldState == ConnectState.Connected)
             {
-                _isActiveDisconnect = true;
-                _disconnectCallback?.Invoke(_guid, DisconnectType.Active, "主动断开连接");
+                var disconnectType = isActive ? DisconnectType.Active : DisconnectType.Passive;
+                var reason = isActive ? "主动断开连接" : "连接丢失";
+                _disconnectCallback?.Invoke(_guid, disconnectType, reason);
             }
         }
 
@@ -208,29 +242,57 @@ namespace GameLogic
             // 处理重连逻辑
             if (_connectState == ConnectState.Reconnecting)
             {
+                // 先执行断开，再重连
+                if (_conn != null || _connectState == ConnectState.Connected)
+                {
+                    DisconnectInternal(false);
+                }
+                
                 Log.Info($"尝试重连节点 {_guid}，第 {_ReconnectAttempts} 次");
                 Connect();
+                return;
             }
 
             // 检查连接状态
             if (_conn != null && _connectState == ConnectState.Connected)
             {
-                if (!_conn.IsConnected())
+                // 1. 先处理消息
+                _isProcessingMessage = true;
+                try
                 {
-                    OnConnectionLost("连接丢失");
-                }
-                else
-                {
-                    INetPackage netPack = _conn.PickPackage();
-                    if (netPack != null)
+                    INetPackage netPack;
+                    while ((netPack = _conn.PickPackage()) != null)
                     {
                         _msgBodyHelper.handleNetPack(netPack);
                     }
                     _msgBodyHelper.CheckTimeouts();
                 }
+                catch (Exception ex)
+                {
+                    Log.Error($"消息处理异常: {ex}");
+                }
+                finally
+                {
+                    _isProcessingMessage = false;
+                }
+                
+                // 2. 检查主动断开请求
+                if (_pendingDisconnect)
+                {
+                    Log.Info($"节点 {_guid} 消息处理完成，执行主动断开");
+                    DisconnectInternal(true);
+                    return;
+                }
+                
+                // 3. 检查被动断线
+                if (!_conn.IsConnected())
+                {
+                    Log.Warning($"节点 {_guid} 检测到连接丢失");
+                    DisconnectInternal(false);
+                    return;
+                }
             }
         }
-
 
         #endregion
 
@@ -243,8 +305,7 @@ namespace GameLogic
             if (success)
             {
                 _connectState = ConnectState.Connected;
-                _ReconnectAttempts = 0; // 重置重连计数
-                _isActiveDisconnect = false; // 重置主动断开标记
+                _ReconnectAttempts = 0;
                 Log.Info($"节点 {_guid} 连接成功");
             }
             else
@@ -255,17 +316,6 @@ namespace GameLogic
             }
 
             _connectCallback?.Invoke(_guid, success, success ? "" : error.ToString());
-        }
-
-        private void OnConnectionLost(string reason)
-        {
-            if (_connectState == ConnectState.Connected && !_isActiveDisconnect)
-            {
-                _connectState = ConnectState.Disconnected;
-                _conn = null;
-                Log.Warning($"节点 {_guid} 被动断线: {reason}");
-                _disconnectCallback?.Invoke(_guid, DisconnectType.Passive, reason);
-            }
         }
 
         #endregion

@@ -31,13 +31,17 @@ namespace GameLogic
         /// 显示简单提示弹窗（快捷方法）
         /// </summary>
         public void ShowAlert(string content, Action onConfirm = null);
-        #endregion
-
-        #region ItemIcon
+        #region RedDot
         /// <summary>
-        /// 获取一个ItemIcon
+        /// 显示加载中
         /// </summary>
-        public void GetItemIcon(Action<IItemIcon> callback);
+        public void ShowLoading();
+        /// <summary>
+        /// 取消显示加载中
+        /// </summary>
+        public void HideLoading();
+        #endregion
+        
         #endregion
 
         #region RedPot

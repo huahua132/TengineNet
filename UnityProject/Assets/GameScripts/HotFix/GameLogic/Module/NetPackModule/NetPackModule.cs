@@ -6,6 +6,8 @@ using System.Linq;
 
 namespace GameLogic
 {
+    #region 枚举定义
+
     /// <summary>
     /// 连接状态
     /// </summary>
@@ -25,6 +27,27 @@ namespace GameLogic
         Active,     // 主动断开
         Passive     // 被动断线
     }
+
+    /// <summary>
+    /// RPC错误类型
+    /// </summary>
+    public enum RpcErrorType
+    {
+        None = 0,               // 无错误
+        NodeNotFound = 1,       // 节点不存在
+        NotConnected = 2,       // 未连接
+        Timeout = 3,            // 超时
+        NetworkError = 4,       // 网络错误
+        ServerError = 5,        // 服务器错误
+        NodeClosed = 6,         // 节点已关闭
+        NotAuthenticated = 7,   // 未认证
+        RequestFailed = 8,      // 请求失败
+        Unknown = 99            // 未知错误
+    }
+
+    #endregion
+
+    #region 委托定义
 
     /// <summary>
     /// 连接回调委托
@@ -54,12 +77,16 @@ namespace GameLogic
     /// <summary>
     /// 认证成功回调委托
     /// </summary>
-    public delegate void AuthSuccessCallback(INetResponse response);
+    public delegate void AuthSuccessCallback(RpcResult<INetResponse> result);
 
     /// <summary>
     /// 认证失败回调委托
     /// </summary>
-    public delegate void AuthFailureCallback(INetResponse response);
+    public delegate void AuthFailureCallback(RpcResult<INetResponse> result);
+
+    #endregion
+
+    #region 配置结构
 
     /// <summary>
     /// 心跳配置
@@ -123,6 +150,196 @@ namespace GameLogic
         }
     }
 
+    #endregion
+
+#region Result结果类
+
+/// <summary>
+/// RPC结果包装类
+/// </summary>
+public class RpcResult<T> where T : class
+{
+    public bool IsSuccess { get; protected set; }  // 改成 protected
+    public T Data { get; protected set; }
+    public RpcErrorType ErrorType { get; protected set; }
+    public string ErrorMsg { get; protected set; }
+    public int ErrorCode { get; protected set; }
+    public uint NodeId { get; protected set; }
+    public uint Session { get; protected set; }
+
+    /// <summary>
+    /// 创建成功结果
+    /// </summary>
+    public static RpcResult<T> Success(T data, uint nodeId = 0, uint session = 0)
+    {
+        return new RpcResult<T>
+        {
+            IsSuccess = true,
+            Data = data,
+            ErrorType = RpcErrorType.None,
+            NodeId = nodeId,
+            Session = session
+        };
+    }
+
+    /// <summary>
+    /// 创建失败结果
+    /// </summary>
+    public static RpcResult<T> Failure(RpcErrorType errorType, string errorMsg, uint nodeId = 0, uint session = 0, int errorCode = 0)
+    {
+        return new RpcResult<T>
+        {
+            IsSuccess = false,
+            ErrorType = errorType,
+            ErrorMsg = errorMsg,
+            ErrorCode = errorCode,
+            NodeId = nodeId,
+            Session = session
+        };
+    }
+
+    // 便捷的判断属性
+    public bool IsNodeNotFound => ErrorType == RpcErrorType.NodeNotFound;
+    public bool IsNotConnected => ErrorType == RpcErrorType.NotConnected;
+    public bool IsTimeout => ErrorType == RpcErrorType.Timeout;
+    public bool IsNetworkError => ErrorType == RpcErrorType.NetworkError;
+    public bool IsServerError => ErrorType == RpcErrorType.ServerError;
+    public bool IsNotAuthenticated => ErrorType == RpcErrorType.NotAuthenticated;
+    public bool IsNodeClosed => ErrorType == RpcErrorType.NodeClosed;
+
+    /// <summary>
+    /// 链式调用 - 成功时执行
+    /// </summary>
+    public RpcResult<T> OnSuccess(Action<T> action)
+    {
+        if (IsSuccess && action != null)
+        {
+            try
+            {
+                action(Data);
+            }
+            catch (Exception ex)
+            {
+                Log.Error($"OnSuccess回调执行异常: {ex}");
+            }
+        }
+        return this;
+    }
+
+    /// <summary>
+    /// 链式调用 - 失败时执行
+    /// </summary>
+    public RpcResult<T> OnFailure(Action<RpcErrorType, string> action)
+    {
+        if (!IsSuccess && action != null)
+        {
+            try
+            {
+                action(ErrorType, ErrorMsg);
+            }
+            catch (Exception ex)
+            {
+                Log.Error($"OnFailure回调执行异常: {ex}");
+            }
+        }
+        return this;
+    }
+
+    /// <summary>
+    /// 链式调用 - 特定错误类型时执行
+    /// </summary>
+    public RpcResult<T> OnError(RpcErrorType errorType, Action<string> action)
+    {
+        if (!IsSuccess && ErrorType == errorType && action != null)
+        {
+            try
+            {
+                action(ErrorMsg);
+            }
+            catch (Exception ex)
+            {
+                Log.Error($"OnError回调执行异常: {ex}");
+            }
+        }
+        return this;
+    }
+
+    /// <summary>
+    /// 转换Result类型
+    /// </summary>
+    public RpcResult<TNew> Map<TNew>(Func<T, TNew> mapper) where TNew : class
+    {
+        if (!IsSuccess)
+        {
+            return RpcResult<TNew>.Failure(ErrorType, ErrorMsg, NodeId, Session, ErrorCode);
+        }
+
+        try
+        {
+            var newData = mapper(Data);
+            return RpcResult<TNew>.Success(newData, NodeId, Session);
+        }
+        catch (Exception ex)
+        {
+            return RpcResult<TNew>.Failure(RpcErrorType.Unknown, $"转换失败: {ex.Message}", NodeId, Session);
+        }
+    }
+
+    /// <summary>
+    /// 获取数据或默认值
+    /// </summary>
+    public T GetDataOrDefault(T defaultValue = null)
+    {
+        return IsSuccess ? Data : defaultValue;
+    }
+
+    /// <summary>
+    /// 获取数据或抛出异常
+    /// </summary>
+    public T GetDataOrThrow()
+    {
+        if (IsSuccess)
+            return Data;
+        
+        throw new Exception($"RPC错误 [{ErrorType}]: {ErrorMsg}");
+    }
+}
+
+    /// <summary>
+    /// 简单操作结果（不需要返回数据的情况）
+    /// </summary>
+    public class RpcResult : RpcResult<object>
+    {
+        public static RpcResult SuccessResult(uint nodeId = 0, uint session = 0)
+        {
+            return new RpcResult
+            {
+                IsSuccess = true,
+                Data = new object(),
+                ErrorType = RpcErrorType.None,
+                NodeId = nodeId,
+                Session = session
+            };
+        }
+
+        public static new RpcResult Failure(RpcErrorType errorType, string errorMsg, uint nodeId = 0, uint session = 0, int errorCode = 0)
+        {
+            return new RpcResult
+            {
+                IsSuccess = false,
+                ErrorType = errorType,
+                ErrorMsg = errorMsg,
+                ErrorCode = errorCode,
+                NodeId = nodeId,
+                Session = session
+            };
+        }
+    }
+
+    #endregion
+
+    #region 内部状态类
+
     /// <summary>
     /// 节点心跳状态
     /// </summary>
@@ -144,6 +361,8 @@ namespace GameLogic
         public bool IsAuthenticating; // 是否正在认证中
     }
 
+    #endregion
+
     /// <summary>
     /// 网络包模块管理类
     /// </summary>
@@ -154,7 +373,7 @@ namespace GameLogic
         private Dictionary<uint, NetNode> _netNodes = new Dictionary<uint, NetNode>();
         private Dictionary<uint, bool> _closeMap = new Dictionary<uint, bool>();
         
-        // 待处理的节点操作队列（方案3）
+        // 待处理的节点操作队列
         private List<uint> _pendingRemoveNodes = new List<uint>();
         private Dictionary<uint, NetNode> _pendingAddNodes = new Dictionary<uint, NetNode>();
         
@@ -233,7 +452,6 @@ namespace GameLogic
             {
                 if (_netNodes.TryGetValue(nodeId, out var node))
                 {
-                    node.Disconnect();
                     _pendingRemoveNodes.Add(nodeId);
                     
                     // 取消该节点所有等待的RPC
@@ -364,6 +582,7 @@ namespace GameLogic
             if (!_netNodes.TryGetValue(nodeId, out var netNode)) return false;
             if (_closeMap.ContainsKey(nodeId)) return true;
             _closeMap[nodeId] = true;
+            netNode.Disconnect();
             return true;
         }
 
@@ -499,89 +718,244 @@ namespace GameLogic
         /// </summary>
         /// <param name="nodeId">节点ID</param>
         /// <param name="request">请求对象</param>
-        /// <returns>是否发送成功</returns>
-        public bool SendMessage(uint nodeId, INetRequest request)
+        /// <param name="requireAuth">是否需要认证</param>
+        /// <returns>操作结果</returns>
+        public RpcResult SendMessage(uint nodeId, INetRequest request, bool requireAuth = false)
         {
+            // 检查节点是否存在
             if (!_netNodes.TryGetValue(nodeId, out var node))
             {
-                Log.Error($"SendMessage失败，找不到节点 {nodeId}");
-                return false;
+                return RpcResult.Failure(
+                    RpcErrorType.NodeNotFound,
+                    $"找不到节点 {nodeId}",
+                    nodeId
+                );
             }
 
+            // 检查节点是否已关闭
+            if (_closeMap.ContainsKey(nodeId))
+            {
+                return RpcResult.Failure(
+                    RpcErrorType.NodeClosed,
+                    $"节点 {nodeId} 已关闭",
+                    nodeId
+                );
+            }
+
+            // 检查连接状态
             if (node.ConnectState != ConnectState.Connected)
             {
-                Log.Error($"SendMessage失败，节点 {nodeId} 未连接");
-                return false;
+                return RpcResult.Failure(
+                    RpcErrorType.NotConnected,
+                    $"节点 {nodeId} 未连接，当前状态: {node.ConnectState}",
+                    nodeId
+                );
+            }
+
+            // 检查认证状态（如果需要）
+            if (requireAuth && !IsNodeAuthenticated(nodeId))
+            {
+                return RpcResult.Failure(
+                    RpcErrorType.NotAuthenticated,
+                    $"节点 {nodeId} 未认证",
+                    nodeId
+                );
             }
 
             try
             {
                 node.SendMessage(request);
-                return true;
+                return RpcResult.SuccessResult(nodeId);
             }
             catch (Exception ex)
             {
                 Log.Error($"SendMessage异常: {ex}");
-                return false;
+                return RpcResult.Failure(
+                    RpcErrorType.NetworkError,
+                    $"发送消息失败: {ex.Message}",
+                    nodeId
+                );
             }
         }
 
         /// <summary>
-        /// 发送RPC请求（等待响应）
+        /// 发送RPC请求（等待响应）- Result模式
         /// </summary>
         /// <param name="nodeId">节点ID</param>
         /// <param name="request">请求对象</param>
         /// <param name="timeoutMs">超时时间（毫秒）</param>
-        /// <returns>响应对象</returns>
-        public async UniTask<INetResponse> SendRpcRequest(uint nodeId, INetRequest request, int timeoutMs = 5000)
+        /// <param name="requireAuth">是否需要认证</param>
+        /// <returns>RPC结果</returns>
+        public async UniTask<RpcResult<INetResponse>> SendRpcRequest(uint nodeId, INetRequest request, int timeoutMs = 10000, bool requireAuth = false)
         {
+            // 检查节点是否存在
             if (!_netNodes.TryGetValue(nodeId, out var node))
             {
-                throw new Exception($"SendRpcRequest失败，找不到节点 {nodeId}");
+                return RpcResult<INetResponse>.Failure(
+                    RpcErrorType.NodeNotFound,
+                    $"找不到节点 {nodeId}",
+                    nodeId
+                );
             }
 
+            // 检查节点是否已关闭
+            if (_closeMap.ContainsKey(nodeId))
+            {
+                return RpcResult<INetResponse>.Failure(
+                    RpcErrorType.NodeClosed,
+                    $"节点 {nodeId} 已关闭",
+                    nodeId
+                );
+            }
+
+            // 检查连接状态
             if (node.ConnectState != ConnectState.Connected)
             {
-                throw new Exception($"SendRpcRequest失败，节点 {nodeId} 未连接");
+                return RpcResult<INetResponse>.Failure(
+                    RpcErrorType.NotConnected,
+                    $"节点 {nodeId} 未连接，当前状态: {node.ConnectState}",
+                    nodeId
+                );
             }
 
-            // 发送请求并获取session
-            uint session = node.SendRpcRequest(request);
-            
-            // 创建等待任务
-            var completionSource = new UniTaskCompletionSource<INetResponse>();
-            
-            if (!_rpcWaitingMap.TryGetValue(nodeId, out var nodeRpcs))
+            // 检查认证状态（如果需要）
+            if (requireAuth && !IsNodeAuthenticated(nodeId))
             {
-                nodeRpcs = new Dictionary<uint, UniTaskCompletionSource<INetResponse>>();
-                _rpcWaitingMap[nodeId] = nodeRpcs;
+                return RpcResult<INetResponse>.Failure(
+                    RpcErrorType.NotAuthenticated,
+                    $"节点 {nodeId} 未认证",
+                    nodeId
+                );
             }
-            
-            nodeRpcs[session] = completionSource;
 
+            uint session = 0;
             try
             {
-                // 等待响应或超时
-                var response = await completionSource.Task.Timeout(TimeSpan.FromMilliseconds(timeoutMs));
-                return response;
-            }
-            catch (TimeoutException)
-            {
-                // 清理超时的RPC
-                if (nodeRpcs.TryGetValue(session, out var timeoutRpc))
+                // 发送请求并获取session
+                session = node.SendRpcRequest(request);
+                
+                // 创建等待任务
+                var completionSource = new UniTaskCompletionSource<INetResponse>();
+                
+                if (!_rpcWaitingMap.TryGetValue(nodeId, out var nodeRpcs))
                 {
-                    nodeRpcs.Remove(session);
+                    nodeRpcs = new Dictionary<uint, UniTaskCompletionSource<INetResponse>>();
+                    _rpcWaitingMap[nodeId] = nodeRpcs;
                 }
-                throw new Exception($"RPC请求超时，节点 {nodeId}，session {session}");
-            }
-            finally
-            {
-                // 清理完成的RPC
-                if (nodeRpcs.TryGetValue(session, out var finishedRpc))
+                
+                nodeRpcs[session] = completionSource;
+
+                try
                 {
-                    nodeRpcs.Remove(session);
+                    // 等待响应或超时
+                    var response = await completionSource.Task.Timeout(TimeSpan.FromMilliseconds(timeoutMs));
+                    
+                    // 检查响应是否有错误
+                    if (response._IsError)
+                    {
+                        return RpcResult<INetResponse>.Failure(
+                            RpcErrorType.ServerError,
+                            response.ErrorMsg ?? "服务器返回错误",
+                            nodeId,
+                            session,
+                            response.ErrorCode
+                        );
+                    }
+                    
+                    return RpcResult<INetResponse>.Success(response, nodeId, session);
+                }
+                catch (TimeoutException)
+                {
+                    // 清理超时的RPC
+                    if (nodeRpcs.TryGetValue(session, out var timeoutRpc))
+                    {
+                        nodeRpcs.Remove(session);
+                    }
+                    
+                    return RpcResult<INetResponse>.Failure(
+                        RpcErrorType.Timeout,
+                        $"RPC请求超时 ({timeoutMs}ms)",
+                        nodeId,
+                        session
+                    );
+                }
+                finally
+                {
+                    // 清理完成的RPC
+                    if (nodeRpcs.TryGetValue(session, out var finishedRpc))
+                    {
+                        nodeRpcs.Remove(session);
+                    }
                 }
             }
+            catch (OperationCanceledException)
+            {
+                return RpcResult<INetResponse>.Failure(
+                    RpcErrorType.RequestFailed,
+                    "请求已取消",
+                    nodeId,
+                    session
+                );
+            }
+            catch (Exception ex)
+            {
+                Log.Error($"SendRpcRequest异常: {ex}");
+                return RpcResult<INetResponse>.Failure(
+                    RpcErrorType.NetworkError,
+                    $"网络异常: {ex.Message}",
+                    nodeId,
+                    session
+                );
+            }
+        }
+
+        /// <summary>
+        /// 发送RPC请求并自动重试
+        /// </summary>
+        /// <param name="nodeId">节点ID</param>
+        /// <param name="request">请求对象</param>
+        /// <param name="timeoutMs">超时时间（毫秒）</param>
+        /// <param name="maxRetries">最大重试次数</param>
+        /// <param name="retryDelayMs">重试延迟（毫秒）</param>
+        /// <param name="requireAuth">是否需要认证</param>
+        /// <returns>RPC结果</returns>
+        public async UniTask<RpcResult<INetResponse>> SendRpcRequestWithRetry(
+            uint nodeId, 
+            INetRequest request, 
+            int timeoutMs = 10000,
+            int maxRetries = 3,
+            int retryDelayMs = 1000,
+            bool requireAuth = false)
+        {
+            RpcResult<INetResponse> result = null;
+            
+            for (int attempt = 0; attempt <= maxRetries; attempt++)
+            {
+                result = await SendRpcRequest(nodeId, request, timeoutMs, requireAuth);
+                
+                if (result.IsSuccess)
+                {
+                    return result;
+                }
+                
+                // 某些错误类型不适合重试
+                if (result.ErrorType == RpcErrorType.NodeNotFound ||
+                    result.ErrorType == RpcErrorType.NodeClosed ||
+                    result.ErrorType == RpcErrorType.NotAuthenticated ||
+                    result.ErrorType == RpcErrorType.ServerError)
+                {
+                    Log.Warning($"节点 {nodeId} RPC请求失败 [{result.ErrorType}]，不适合重试: {result.ErrorMsg}");
+                    break;
+                }
+                
+                if (attempt < maxRetries)
+                {
+                    Log.Warning($"节点 {nodeId} RPC请求失败 [{result.ErrorType}]，{retryDelayMs}ms后重试 ({attempt + 1}/{maxRetries}): {result.ErrorMsg}");
+                    await UniTask.Delay(retryDelayMs);
+                }
+            }
+            
+            return result;
         }
 
         #endregion
@@ -622,8 +996,6 @@ namespace GameLogic
         /// <summary>
         /// 注册认证成功回调
         /// </summary>
-        /// <param name="nodeId">节点ID</param>
-        /// <param name="callback">认证成功回调</param>
         public void RegisterAuthSuccessCallback(uint nodeId, AuthSuccessCallback callback)
         {
             if (callback == null) return;
@@ -643,8 +1015,6 @@ namespace GameLogic
         /// <summary>
         /// 注销认证成功回调
         /// </summary>
-        /// <param name="nodeId">节点ID</param>
-        /// <param name="callback">认证成功回调</param>
         public void UnregisterAuthSuccessCallback(uint nodeId, AuthSuccessCallback callback)
         {
             if (callback == null) return;
@@ -662,8 +1032,6 @@ namespace GameLogic
         /// <summary>
         /// 注册认证失败回调
         /// </summary>
-        /// <param name="nodeId">节点ID</param>
-        /// <param name="callback">认证失败回调</param>
         public void RegisterAuthFailureCallback(uint nodeId, AuthFailureCallback callback)
         {
             if (callback == null) return;
@@ -683,8 +1051,6 @@ namespace GameLogic
         /// <summary>
         /// 注销认证失败回调
         /// </summary>
-        /// <param name="nodeId">节点ID</param>
-        /// <param name="callback">认证失败回调</param>
         public void UnregisterAuthFailureCallback(uint nodeId, AuthFailureCallback callback)
         {
             if (callback == null) return;
@@ -702,17 +1068,14 @@ namespace GameLogic
         /// <summary>
         /// 获取节点认证状态
         /// </summary>
-        /// <param name="nodeId">节点ID</param>
-        /// <returns>是否已认证</returns>
         public bool IsNodeAuthenticated(uint nodeId)
         {
             return _nodeAuthStatus.TryGetValue(nodeId, out var authenticated) && authenticated;
         }
 
         /// <summary>
-        /// 内部：发送认证请求（连接成功后自动调用）
+        /// 内部：发送认证请求（连接成功后自动调用）- Result模式
         /// </summary>
-        /// <param name="nodeId">节点ID</param>
         private async UniTaskVoid SendAuthRequestInternal(uint nodeId)
         {
             if (!_authRequestProviders.TryGetValue(nodeId, out var authProvider) ||
@@ -732,62 +1095,27 @@ namespace GameLogic
 
             while (authState.RetryCount <= authState.Config.MaxRetryCount)
             {
-                try
+                // 检查连接状态
+                if (!_netNodes.TryGetValue(nodeId, out var node) || node.ConnectState != ConnectState.Connected)
                 {
-                    // 检查连接状态
-                    if (!_netNodes.TryGetValue(nodeId, out var node) || node.ConnectState != ConnectState.Connected)
-                    {
-                        Log.Warning($"节点 {nodeId} 连接已断开，停止认证");
-                        break;
-                    }
+                    Log.Warning($"节点 {nodeId} 连接已断开，停止认证");
+                    break;
+                }
 
-                    var authRequest = authProvider(nodeId);
-                    if (authRequest == null)
-                    {
-                        Log.Error($"节点 {nodeId} 认证请求提供者返回null");
-                        break;
-                    }
+                var authRequest = authProvider(nodeId);
+                if (authRequest == null)
+                {
+                    Log.Error($"节点 {nodeId} 认证请求提供者返回null");
+                    break;
+                }
 
-                    Log.Info($"节点 {nodeId} 开始认证，第 {authState.RetryCount + 1} 次尝试");
-                    var response = await SendRpcRequest(nodeId, authRequest, authState.Config.TimeoutMs);
-                    
-                    // 检查响应是否有错误
-                    if (response._IsError)
-                    {
-                        var errorMsg = $"认证失败，错误码: {response.ErrorCode}, 错误信息: {response.ErrorMsg}";
-                        Log.Error($"节点 {nodeId} {errorMsg}");
-                        
-                        // 触发认证失败回调
-                        if (_authFailureCallbacks.TryGetValue(nodeId, out var failureCallbacks))
-                        {
-                            foreach (var callback in failureCallbacks)
-                            {
-                                try
-                                {
-                                    callback?.Invoke(response);
-                                }
-                                catch (Exception ex)
-                                {
-                                    Log.Error($"认证失败回调执行异常: {ex}");
-                                }
-                            }
-                        }
-                        
-                        // 增加重试次数
-                        authState.RetryCount++;
-                        if (authState.RetryCount <= authState.Config.MaxRetryCount)
-                        {
-                            Log.Info($"节点 {nodeId} 认证失败，{authState.Config.RetryIntervalMs}ms后重试");
-                            await UniTask.Delay(authState.Config.RetryIntervalMs);
-                            continue;
-                        }
-                        else
-                        {
-                            Log.Error($"节点 {nodeId} 认证失败次数超过限制，停止重试");
-                            break;
-                        }
-                    }
-                    
+                Log.Info($"节点 {nodeId} 开始认证，第 {authState.RetryCount + 1} 次尝试");
+                
+                // 使用Result模式发送请求（认证请求不需要requireAuth参数）
+                var result = await SendRpcRequest(nodeId, authRequest, authState.Config.TimeoutMs, requireAuth: false);
+                
+                if (result.IsSuccess)
+                {
                     // 认证成功
                     _nodeAuthStatus[nodeId] = true;
                     authState.RetryCount = 0;
@@ -800,7 +1128,7 @@ namespace GameLogic
                         {
                             try
                             {
-                                callback?.Invoke(response);
+                                callback?.Invoke(result);
                             }
                             catch (Exception ex)
                             {
@@ -819,17 +1147,46 @@ namespace GameLogic
 
                     break; // 认证成功，退出循环
                 }
-                catch (Exception ex)
+                else
                 {
-                    Log.Error($"节点 {nodeId} 认证异常: {ex.Message}");
+                    // 认证失败
+                    Log.Error($"节点 {nodeId} 认证失败 [{result.ErrorType}]: {result.ErrorMsg}");
+                    
+                    // 触发认证失败回调
+                    if (_authFailureCallbacks.TryGetValue(nodeId, out var failureCallbacks))
+                    {
+                        foreach (var callback in failureCallbacks)
+                        {
+                            try
+                            {
+                                callback?.Invoke(result);
+                            }
+                            catch (Exception ex)
+                            {
+                                Log.Error($"认证失败回调执行异常: {ex}");
+                            }
+                        }
+                    }
+                    
+                    // 某些错误类型不适合重试
+                    if (result.ErrorType == RpcErrorType.NodeNotFound ||
+                        result.ErrorType == RpcErrorType.NodeClosed ||
+                        result.ErrorType == RpcErrorType.NotConnected)
+                    {
+                        Log.Error($"节点 {nodeId} 认证失败，不适合重试");
+                        break;
+                    }
+                    
+                    // 增加重试次数
                     authState.RetryCount++;
                     if (authState.RetryCount <= authState.Config.MaxRetryCount)
                     {
+                        Log.Info($"节点 {nodeId} 认证失败，{authState.Config.RetryIntervalMs}ms后重试");
                         await UniTask.Delay(authState.Config.RetryIntervalMs);
-                        continue;
                     }
                     else
                     {
+                        Log.Error($"节点 {nodeId} 认证失败次数超过限制，停止重试");
                         break;
                     }
                 }
@@ -845,9 +1202,6 @@ namespace GameLogic
         /// <summary>
         /// 设置节点的心跳请求提供者
         /// </summary>
-        /// <param name="nodeId">节点ID</param>
-        /// <param name="heartbeatRequestProvider">心跳请求提供者</param>
-        /// <param name="config">心跳配置</param>
         public void SetHeartbeatRequestProvider(uint nodeId, HeartbeatRequestProvider heartbeatRequestProvider, HeartbeatConfig config = default)
         {
             if (heartbeatRequestProvider == null)
@@ -878,8 +1232,6 @@ namespace GameLogic
         /// <summary>
         /// 获取节点心跳配置
         /// </summary>
-        /// <param name="nodeId">节点ID</param>
-        /// <returns>心跳配置</returns>
         public HeartbeatConfig? GetHeartbeatConfig(uint nodeId)
         {
             if (_heartbeatStates.TryGetValue(nodeId, out var state))
@@ -892,8 +1244,6 @@ namespace GameLogic
         /// <summary>
         /// 更新节点心跳配置
         /// </summary>
-        /// <param name="nodeId">节点ID</param>
-        /// <param name="config">新的心跳配置</param>
         public void UpdateHeartbeatConfig(uint nodeId, HeartbeatConfig config)
         {
             if (_heartbeatStates.TryGetValue(nodeId, out var state))
@@ -904,59 +1254,54 @@ namespace GameLogic
         }
 
         /// <summary>
-        /// 内部：发送心跳请求（认证成功后自动调用）
+        /// 内部：发送心跳请求 - Result模式
         /// </summary>
-        /// <param name="nodeId">节点ID</param>
-        private async UniTask<bool> SendHeartbeatInternal(uint nodeId)
+        private async UniTask<RpcResult<INetResponse>> SendHeartbeatInternal(uint nodeId)
         {
             if (!_heartbeatRequestProviders.TryGetValue(nodeId, out var heartbeatProvider) ||
                 !_heartbeatStates.TryGetValue(nodeId, out var state))
             {
-                return false;
+                return RpcResult<INetResponse>.Failure(
+                    RpcErrorType.Unknown,
+                    "未设置心跳请求提供者",
+                    nodeId
+                );
             }
 
             var heartbeatRequest = heartbeatProvider(nodeId);
             if (heartbeatRequest == null)
             {
-                Log.Error($"节点 {nodeId} 心跳请求提供者返回null");
-                return false;
+                return RpcResult<INetResponse>.Failure(
+                    RpcErrorType.RequestFailed,
+                    "心跳请求提供者返回null",
+                    nodeId
+                );
             }
 
             state.WaitingResponse = true;
-            try
+            
+            var result = await SendRpcRequest(nodeId, heartbeatRequest, state.Config.TimeoutMs, requireAuth: true);
+            
+            state.WaitingResponse = false;
+            
+            if (result.IsSuccess)
             {
-                var response = await SendRpcRequest(nodeId, heartbeatRequest, state.Config.TimeoutMs);
-                
-                // 检查响应是否有错误
-                if (response._IsError)
-                {
-                    var errorMsg = $"心跳失败，错误码: {response.ErrorCode}, 错误信息: {response.ErrorMsg}";
-                    Log.Warning($"节点 {nodeId} {errorMsg}");
-                    state.FailureCount++;
-                    state.WaitingResponse = false;
-                    return false;
-                }
-                
-                // 心跳成功
                 state.LastHeartbeatTime = DateTime.Now;
-                state.WaitingResponse = false;
                 state.FailureCount = 0;
                 //Log.Debug($"节点 {nodeId} 心跳响应正常");
-                return true;
             }
-            catch (Exception ex)
+            else
             {
-                state.WaitingResponse = false;
                 state.FailureCount++;
-                Log.Warning($"节点 {nodeId} 心跳请求失败: {ex.Message}，失败次数: {state.FailureCount}");
-                return false;
+                Log.Warning($"节点 {nodeId} 心跳失败 [{result.ErrorType}]: {result.ErrorMsg}，失败次数: {state.FailureCount}");
             }
+            
+            return result;
         }
 
         /// <summary>
         /// 内部：启动心跳循环（认证成功后自动调用）
         /// </summary>
-        /// <param name="nodeId">节点ID</param>
         private async UniTaskVoid StartHeartbeatAsync(uint nodeId)
         {
             Log.Info($"节点 {nodeId} 开始心跳循环");
@@ -983,9 +1328,9 @@ namespace GameLogic
                     }
 
                     // 发送心跳
-                    bool success = await SendHeartbeatInternal(nodeId);
+                    var result = await SendHeartbeatInternal(nodeId);
                     
-                    if (!success)
+                    if (!result.IsSuccess)
                     {
                         // 检查是否超过最大重试次数
                         if (state.FailureCount >= state.Config.MaxRetryCount)
@@ -1052,21 +1397,7 @@ namespace GameLogic
                 }
                 _rpcWaitingMap.Remove(nodeId);
             }
-            
-            // 重置认证状态和心跳状态
-            _nodeAuthStatus[nodeId] = false;
-            if (_authStates.TryGetValue(nodeId, out var authState))
-            {
-                authState.RetryCount = 0;
-                authState.IsAuthenticating = false;
-            }
-            if (_heartbeatStates.TryGetValue(nodeId, out var heartbeatState))
-            {
-                heartbeatState.WaitingResponse = false;
-                heartbeatState.LastHeartbeatTime = DateTime.MinValue;
-                heartbeatState.FailureCount = 0;
-            }
-            
+
             // 触发该节点的断线回调
             if (_disconnectCallbacks.TryGetValue(nodeId, out var callbacks))
             {
@@ -1081,6 +1412,20 @@ namespace GameLogic
                         Log.Error($"断线回调执行异常: {ex} {ex.StackTrace}");
                     }
                 }
+            }
+            
+            // 重置认证状态和心跳状态
+            _nodeAuthStatus[nodeId] = false;
+            if (_authStates.TryGetValue(nodeId, out var authState))
+            {
+                authState.RetryCount = 0;
+                authState.IsAuthenticating = false;
+            }
+            if (_heartbeatStates.TryGetValue(nodeId, out var heartbeatState))
+            {
+                heartbeatState.WaitingResponse = false;
+                heartbeatState.LastHeartbeatTime = DateTime.MinValue;
+                heartbeatState.FailureCount = 0;
             }
         }
 
@@ -1150,5 +1495,4 @@ namespace GameLogic
         #endregion
     }
 }
-
 

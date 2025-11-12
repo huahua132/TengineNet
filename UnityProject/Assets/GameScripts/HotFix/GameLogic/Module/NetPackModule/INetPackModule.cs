@@ -18,6 +18,7 @@ namespace GameLogic
         /// <param name="networkType">网络类型</param>
         /// <param name="ip">服务器IP</param>
         /// <param name="port">服务器端口</param>
+        /// <param name="msgBodyHelper">消息体帮助器</param>
         /// <returns>节点ID</returns>
         uint Connect(uint nodeId, NetworkType networkType, string ip, int port, IMsgBodyHelper msgBodyHelper);
 
@@ -57,11 +58,15 @@ namespace GameLogic
         /// <summary>
         /// 关闭指定节点, 下一帧删除
         /// </summary>
+        /// <param name="nodeId">节点ID</param>
+        /// <returns>是否成功标记关闭</returns>
         bool Close(uint nodeId);
 
-        /// <summary
+        /// <summary>
         /// 获取重连失败次数，成功后次数会重置
-        /// </summary> 
+        /// </summary>
+        /// <param name="nodeId">节点ID</param>
+        /// <returns>重连尝试次数</returns>
         int GetReconnectAttempts(uint nodeId);
 
         #endregion
@@ -99,6 +104,7 @@ namespace GameLogic
         #endregion
 
         #region 消息处理功能
+
         /// <summary>
         /// 注册消息监听器
         /// </summary>
@@ -120,20 +126,42 @@ namespace GameLogic
         /// </summary>
         /// <param name="nodeId">节点ID</param>
         /// <param name="request">请求对象</param>
-        /// <returns>是否发送成功</returns>
-        bool SendMessage(uint nodeId, INetRequest request);
+        /// <param name="requireAuth">是否需要认证（默认false）</param>
+        /// <returns>操作结果</returns>
+        RpcResult SendMessage(uint nodeId, INetRequest request, bool requireAuth = false);
 
         /// <summary>
-        /// 发送RPC请求（等待响应）
+        /// 发送RPC请求（等待响应）- Result模式
         /// </summary>
         /// <param name="nodeId">节点ID</param>
         /// <param name="request">请求对象</param>
         /// <param name="timeoutMs">超时时间（毫秒）</param>
-        /// <returns>响应对象</returns>
-        UniTask<INetResponse> SendRpcRequest(uint nodeId, INetRequest request, int timeoutMs = 5000);
+        /// <param name="requireAuth">是否需要认证（默认false）</param>
+        /// <returns>RPC结果</returns>
+        UniTask<RpcResult<INetResponse>> SendRpcRequest(uint nodeId, INetRequest request, int timeoutMs = 10000, bool requireAuth = false);
+
+        /// <summary>
+        /// 发送RPC请求并自动重试
+        /// </summary>
+        /// <param name="nodeId">节点ID</param>
+        /// <param name="request">请求对象</param>
+        /// <param name="timeoutMs">超时时间（毫秒）</param>
+        /// <param name="maxRetries">最大重试次数（默认3次）</param>
+        /// <param name="retryDelayMs">重试延迟（毫秒，默认1000ms）</param>
+        /// <param name="requireAuth">是否需要认证（默认false）</param>
+        /// <returns>RPC结果</returns>
+        UniTask<RpcResult<INetResponse>> SendRpcRequestWithRetry(
+            uint nodeId, 
+            INetRequest request, 
+            int timeoutMs = 10000,
+            int maxRetries = 3,
+            int retryDelayMs = 1000,
+            bool requireAuth = false);
+
         #endregion
 
         #region 认证功能
+
         /// <summary>
         /// 设置节点的认证请求提供者
         /// </summary>

@@ -1,3 +1,4 @@
+using TEngine;
 using UnityEngine;
 
 namespace GameLogic
@@ -12,6 +13,11 @@ namespace GameLogic
 			Toast = FindChild("Toast");
 			Toast.gameObject.SetActive(false);
 		}
+
+        protected override void OnCreate()
+		{
+			IsForever = true;
+        }
 		#endregion
 
 		#region 事件

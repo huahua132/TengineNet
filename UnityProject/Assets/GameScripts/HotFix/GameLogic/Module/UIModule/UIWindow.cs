@@ -79,6 +79,8 @@ namespace GameLogic
         
         public int HideTimerId { get; set; }
 
+        public bool IsForever { get; set; }
+
         /// <summary>
         /// 窗口深度值。
         /// </summary>

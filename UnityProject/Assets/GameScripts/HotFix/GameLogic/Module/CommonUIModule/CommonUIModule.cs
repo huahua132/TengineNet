@@ -312,6 +312,21 @@ namespace GameLogic
         }
         #endregion
 
+        /// <summary>
+        /// 显示加载中
+        /// </summary>
+        public void ShowLoading()
+        {
+            GameModule.UI.ShowUIAsync<NetLoadingUI>();
+        }
+        /// <summary>
+        /// 取消显示加载中
+        /// </summary>
+        public void HideLoading()
+        {
+            GameModule.UI.CloseUI<NetLoadingUI>();
+        }
+
         #region RedDot
         /// <summary>
         /// 获取一个红点

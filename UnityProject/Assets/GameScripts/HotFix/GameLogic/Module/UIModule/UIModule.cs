@@ -472,6 +472,24 @@ namespace GameLogic
             }
         }
 
+        /// <summary>
+        /// 关闭所有窗口除了常驻界面
+        /// </summary>
+        public void CloseAllWithOutForever()
+        {
+            for (int i = _uiStack.Count - 1; i >= 0; i--)
+            {
+                UIWindow window = _uiStack[i];
+                if (window.IsForever)
+                {
+                    continue;
+                }
+
+                window.InternalDestroy();
+                _uiStack.RemoveAt(i);
+            }
+        }
+
         private void OnWindowPrepare(UIWindow window)
         {
             OnSortWindowDepth(window.WindowLayer);

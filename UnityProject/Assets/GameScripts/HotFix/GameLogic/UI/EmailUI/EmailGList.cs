@@ -64,8 +64,8 @@ namespace GameLogic
 
 			_dataGeter = new EmailRewardDataGeter();
 			_loopInit.Init(CellCreater, _dataGeter);
-			AddEvent<long>(IEmailLogic_Event.EmailReadFlag, OnEmailReadFlag);
-			AddEvent<long>(IEmailLogic_Event.EmailRewardFlag, OnEmailRewardFlag);
+			AddUIEvent<long>(IEmailLogic_Event.EmailReadFlag, OnEmailReadFlag);
+			AddUIEvent<long>(IEmailLogic_Event.EmailRewardFlag, OnEmailRewardFlag);
 		}
 
 		private void OnEmailReadFlag(long guid)
@@ -158,7 +158,6 @@ namespace GameLogic
 	public class EmailRewardCell : LoopCellBase
 	{
 		private IItemIcon _IitemIcon;
-		private int _index;
 
 		private void OnItemCoinLoadSucc(IItemIcon itemIcon)
 		{
@@ -172,7 +171,7 @@ namespace GameLogic
 		}
 		protected override void OnInit()
 		{
-			GameModule.CommonUI.GetItemIcon(OnItemCoinLoadSucc);
+			//GameModule.CommonUI.GetItemIcon(OnItemCoinLoadSucc);
 		}
 
 		protected override void OnRefresh(int index)
