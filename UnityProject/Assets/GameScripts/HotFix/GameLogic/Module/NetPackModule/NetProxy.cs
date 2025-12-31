@@ -323,7 +323,7 @@ namespace GameLogic
 
         #region 连接相关回调
 
-        private void ReconnectTimeOut(object[] args)
+        private void ReconnectTimeOut(Params args)
         {
             GameModule.CommonUI.ShowLoading();
             int attempts = GameModule.NetPack.GetReconnectAttempts((uint)_nodeID);

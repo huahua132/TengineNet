@@ -77,7 +77,7 @@ namespace GameLogic
         /// </summary>
         public int HideTimeToClose { get; set; }
         
-        public int HideTimerId { get; set; }
+        public long HideTimerId { get; set; }
 
         public bool IsForever { get; set; }
 
