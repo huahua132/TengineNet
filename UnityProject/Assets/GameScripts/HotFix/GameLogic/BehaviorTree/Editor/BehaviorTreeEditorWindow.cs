@@ -709,11 +709,7 @@ namespace BehaviorTree.Editor
                 return;
             }
             
-            // 确保parameters字典已初始化
-            if (_selectedNode.parameters == null)
-            {
-                _selectedNode.parameters = new Dictionary<string, string>();
-            }
+            // parameters属性会自动初始化，无需手动检查
             
             foreach (var field in fields)
             {
@@ -729,7 +725,7 @@ namespace BehaviorTree.Editor
                 string newValue = EditorGUILayout.TextField(currentValue);
                 if (EditorGUI.EndChangeCheck() && newValue != currentValue)
                 {
-                    _selectedNode.parameters[fieldName] = newValue;
+                    _selectedNode.SetParameter(fieldName, newValue);
                     MarkDirty();
                 }
                 
@@ -1054,7 +1050,7 @@ namespace BehaviorTree.Editor
                 editorPosition = (position - _offset) / _zoom,
                 childrenIds = new List<int>(),
                 comment = "", // 确保初始化为空字符串而不是null
-                parameters = new Dictionary<string, string>()
+                parametersList = new List<SerializableParameter>()
             };
 
             _currentAsset.AddNode(node);

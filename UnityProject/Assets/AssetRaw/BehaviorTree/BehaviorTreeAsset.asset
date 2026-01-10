@@ -14,5 +14,21 @@ MonoBehaviour:
   m_EditorClassIdentifier: GameLogic:BehaviorTree:BehaviorTreeAsset
   treeData:
     treeName: 
-    rootId: 0
-    nodes: []
+    rootId: 1
+    nodes:
+    - id: 1
+      name: IfElseNode_2
+      processTypeName: IfElseNode
+      parentId: -1
+      childrenIds: 02000000
+      editorPosition: {x: 156, y: 26.000008}
+      comment: 
+      parametersList: []
+    - id: 2
+      name: ParallelNode_3
+      processTypeName: ParallelNode
+      parentId: 1
+      childrenIds: 
+      editorPosition: {x: 344, y: 405}
+      comment: 
+      parametersList: []
