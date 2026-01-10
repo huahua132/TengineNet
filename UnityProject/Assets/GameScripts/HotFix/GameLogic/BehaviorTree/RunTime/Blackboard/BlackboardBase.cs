@@ -3,20 +3,15 @@ using TEngine;
 
 namespace BehaviorTree
 {
-    // 内部生命周期接口
-    internal interface IBlackboardLifecycle
-    {
-        void Create();
-    }
     //黑板基类
-    public abstract class BlackboardBase:IBlackboardLifecycle, IMemory
+    public abstract class BlackboardBase: IMemory
     {
-        void IMemory.Clear()
+        public void Clear()
         {
             OnRelease();
         }
 
-        void IBlackboardLifecycle.Create()
+        public void Create()
         {
             OnCreate();
         }
