@@ -19,6 +19,9 @@ namespace BehaviorTree
         private BehaviorContext _context;
         private BehaviorTreeAsset _asset;
         private Dictionary<int, BehaviorNode> _nodeDict = new();
+        
+        // 运行时调试回调
+        public System.Action<int, BehaviorRet> OnNodeStatusChanged;
 
         public void Clear()
         {
@@ -147,6 +150,10 @@ namespace BehaviorTree
                 while (lastNode != null)
                 {
                     lastRet = lastNode.TickRun();
+                    
+                    // 报告节点状态
+                    OnNodeStatusChanged?.Invoke(lastNode.ID, lastRet);
+                    
                     if (lastRet == BehaviorRet.RUNNING)
                     {
                         break;
@@ -157,6 +164,9 @@ namespace BehaviorTree
             else
             {
                 lastRet = _root.TickRun();
+                
+                // 报告根节点状态
+                OnNodeStatusChanged?.Invoke(_root.ID, lastRet);
             }
 
             if (_context.IsAbort())
@@ -171,6 +181,16 @@ namespace BehaviorTree
         public BehaviorContext GetContext()
         {
             return _context;
+        }
+        
+        public BehaviorTreeAsset GetAsset()
+        {
+            return _asset;
+        }
+        
+        public Dictionary<int, BehaviorNode> GetNodeDict()
+        {
+            return _nodeDict;
         }
     }
 }

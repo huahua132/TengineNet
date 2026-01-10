@@ -13,6 +13,11 @@ namespace BehaviorTree
         public int parentId = -1;
         public List<int> childrenIds = new List<int>();
         public Vector2 editorPosition;
+        
+        // 节点备注
+        public string comment = "";
+        
+        // 节点参数（用于序列化节点的配置参数）
         public Dictionary<string, string> parameters = new Dictionary<string, string>();
     }
 

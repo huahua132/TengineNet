@@ -10,9 +10,9 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 0}
-  m_Name: NewBehaviorTree
+  m_Name: BehaviorTreeAsset
   m_EditorClassIdentifier: GameLogic:BehaviorTree:BehaviorTreeAsset
   treeData:
-    treeName: NewBehaviorTree
+    treeName: 
     rootId: 0
     nodes: []

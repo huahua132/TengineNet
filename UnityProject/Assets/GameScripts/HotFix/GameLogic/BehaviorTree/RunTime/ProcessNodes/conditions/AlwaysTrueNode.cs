@@ -1,15 +1,12 @@
-using UnityEngine;
 using TEngine;
 
 namespace BehaviorTree
 {
-    [BehaviorProcessNode("LogNode",
-    "打印日志消息",
-    BehaviorProcessType.action)]
-    public class LogNode : BehaviorProcessNodeBase
+    [BehaviorProcessNode("AlwaysTrueNode",
+    "总是返回成功的条件节点",
+    BehaviorProcessType.condition)]
+    public class AlwaysTrueNode : BehaviorProcessNodeBase
     {
-        public string message = "Log message";
-        
         public override void OnCreate()
         {
             
@@ -22,7 +19,6 @@ namespace BehaviorTree
         
         public override BehaviorRet OnTickRun()
         {
-            Debug.Log($"[LogNode] {message}");
             return BehaviorRet.SUCCESS;
         }
     }
