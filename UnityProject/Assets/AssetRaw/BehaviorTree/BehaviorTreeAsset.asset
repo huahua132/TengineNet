@@ -19,15 +19,17 @@ MonoBehaviour:
     name: SelectorNode_2
     processTypeName: SelectorNode
     parentId: -1
-    childrenIds: 07000000
+    childrenIds: 02000000
     editorPosition: {x: 168.00003, y: 93}
     comment: 
     parametersList: []
-  - id: 7
+  - id: 2
     name: LogNode_8
     processTypeName: LogNode
     parentId: 1
     childrenIds: 
-    editorPosition: {x: 177.65956, y: 287.23404}
+    editorPosition: {x: 263.65955, y: 348.23404}
     comment: "\u7684\u53D1\u5C04\u70B9\u53D1\u5C04\u70B9"
-    parametersList: []
+    parametersList:
+    - key: message
+      value: hello

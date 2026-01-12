@@ -397,21 +397,19 @@ namespace BehaviorTree.Editor
 
             rect = GUI.Window(index, rect, (id) =>
             {
-                // 处理节点选择（在Window内部处理左键点击）
+                // 处理右键菜单
                 Event e = Event.current;
-                if (e != null && e.type == EventType.MouseDown)
+                if (e != null && e.type == EventType.MouseDown && e.button == 1) // 只处理右键
                 {
-                    if (e.button == 0) // 左键点击
-                    {
-                        _selectedNode = node;
-                        e.Use();
-                        Repaint();
-                    }
-                    else if (e.button == 1) // 右键
-                    {
-                        ShowNodeContextMenu(node);
-                        e.Use();
-                    }
+                    ShowNodeContextMenu(node);
+                    e.Use();
+                }
+                
+                // 处理节点选择（使用 MouseUp 而不是 MouseDown，避免影响拖动）
+                if (e != null && e.type == EventType.MouseUp && e.button == 0)
+                {
+                    _selectedNode = node;
+                    Repaint();
                 }
                 
                 // 在Window内部，坐标是相对于窗口的本地坐标，已经是缩放后的尺寸
