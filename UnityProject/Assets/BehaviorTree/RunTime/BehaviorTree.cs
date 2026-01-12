@@ -22,6 +22,10 @@ namespace BehaviorTree
         
         // 运行时调试回调
         public System.Action<int, BehaviorRet> OnNodeStatusChanged;
+        
+        // 类型缓存，避免重复反射查找
+        private static Dictionary<string, Type> _typeCache = new Dictionary<string, Type>();
+        private static bool _typeCacheInitialized = false;
 
         public void Clear()
         {
@@ -118,21 +122,85 @@ namespace BehaviorTree
         }
 
         /// <summary>
-        /// 获取处理节点类型
+        /// 获取处理节点类型（带缓存优化）
         /// </summary>
         private Type GetProcessNodeType(string typeName)
         {
-            // 这里可以使用反射或预注册的类型字典
+            // 初始化类型缓存
+            if (!_typeCacheInitialized)
+            {
+                InitializeTypeCache();
+            }
+            
+            // 从缓存中查找
+            if (_typeCache.TryGetValue(typeName, out Type cachedType))
+            {
+                return cachedType;
+            }
+            
+            // 缓存中没有，尝试动态查找（用于运行时动态加载的类型）
             var assemblies = AppDomain.CurrentDomain.GetAssemblies();
             foreach (var assembly in assemblies)
             {
                 var type = assembly.GetType($"BehaviorTree.{typeName}");
                 if (type != null && typeof(BehaviorProcessNodeBase).IsAssignableFrom(type))
                 {
+                    // 找到后添加到缓存
+                    _typeCache[typeName] = type;
                     return type;
                 }
             }
+            
+            Debug.LogError($"ProcessNode type not found: {typeName}");
             return null;
+        }
+        
+        /// <summary>
+        /// 初始化类型缓存
+        /// 一次性扫描所有程序集，建立类型名到Type的映射
+        /// </summary>
+        private static void InitializeTypeCache()
+        {
+            if (_typeCacheInitialized) return;
+            
+            _typeCache.Clear();
+            var assemblies = AppDomain.CurrentDomain.GetAssemblies();
+            int typeCount = 0;
+            
+            foreach (var assembly in assemblies)
+            {
+                try
+                {
+                    var types = assembly.GetTypes();
+                    foreach (var type in types)
+                    {
+                        // 只缓存继承自 BehaviorProcessNodeBase 的类型
+                        if (type.IsClass && !type.IsAbstract &&
+                            typeof(BehaviorProcessNodeBase).IsAssignableFrom(type))
+                        {
+                            // 使用简单类名作为键
+                            _typeCache[type.Name] = type;
+                            typeCount++;
+                        }
+                    }
+                }
+                catch (System.Exception ex)
+                {
+                    Debug.LogWarning($"Failed to load types from assembly {assembly.FullName}: {ex.Message}");
+                }
+            }
+            
+            _typeCacheInitialized = true;
+            Debug.Log($"[BehaviorTree] Type cache initialized with {typeCount} node types");
+        }
+        
+        /// <summary>
+        /// 清理类型缓存（用于热重载等场景）
+        /// </summary>
+        public static void ClearTypeCache()
+        {
+            _typeCache.Clear();
+            _typeCacheInitialized = false;
         }
 
         public BehaviorRet TickRun()
