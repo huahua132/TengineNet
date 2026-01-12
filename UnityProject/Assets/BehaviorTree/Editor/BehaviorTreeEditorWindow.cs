@@ -343,12 +343,12 @@ namespace BehaviorTree.Editor
 
         private void DrawNodes()
         {
-            if (_currentAsset == null || _currentAsset.treeData == null || _currentAsset.treeData.nodes == null)
+            if (_currentAsset == null || _currentAsset.nodes == null)
                 return;
 
-            for (int i = 0; i < _currentAsset.treeData.nodes.Count; i++)
+            for (int i = 0; i < _currentAsset.nodes.Count; i++)
             {
-                var node = _currentAsset.treeData.nodes[i];
+                var node = _currentAsset.nodes[i];
                 DrawNode(node, i);
             }
         }
@@ -366,7 +366,7 @@ namespace BehaviorTree.Editor
             Color originalColor = GUI.backgroundColor;
             
             // 根节点用绿色边框
-            if (_currentAsset.treeData != null && node.id == _currentAsset.treeData.rootId)
+            if (_currentAsset != null && node.id == _currentAsset.rootId)
             {
                 EditorGUI.DrawRect(new Rect(rect.x - 2, rect.y - 2, rect.width + 4, rect.height + 4), Color.green);
             }
@@ -498,13 +498,13 @@ namespace BehaviorTree.Editor
 
         private void DrawConnections()
         {
-            if (_currentAsset == null || _currentAsset.treeData == null)
+            if (_currentAsset == null || _currentAsset.nodes == null)
                 return;
 
             Handles.BeginGUI();
             
             // 使用ToList()创建副本，避免在遍历时修改集合
-            var nodesCopy = _currentAsset.treeData.nodes.ToList();
+            var nodesCopy = _currentAsset.nodes.ToList();
             foreach (var node in nodesCopy)
             {
                 if (node.childrenIds == null) continue;
@@ -676,9 +676,9 @@ namespace BehaviorTree.Editor
             EditorGUILayout.LabelField("操作", EditorStyles.boldLabel);
             if (GUILayout.Button("设为根节点", GUILayout.Height(25)))
             {
-                if (_currentAsset != null && _currentAsset.treeData != null)
+                if (_currentAsset != null)
                 {
-                    _currentAsset.treeData.rootId = _selectedNode.id;
+                    _currentAsset.rootId = _selectedNode.id;
                     MarkDirty();
                 }
             }
@@ -709,13 +709,17 @@ namespace BehaviorTree.Editor
                 return;
             }
             
-            // parameters属性会自动初始化，无需手动检查
+            // 确保parametersList已初始化
+            if (_selectedNode.parametersList == null)
+            {
+                _selectedNode.parametersList = new List<SerializableParameter>();
+            }
             
             foreach (var field in fields)
             {
                 string fieldName = field.Name;
-                string currentValue = _selectedNode.parameters.ContainsKey(fieldName) 
-                    ? _selectedNode.parameters[fieldName] 
+                string currentValue = _selectedNode.HasParameter(fieldName)
+                    ? _selectedNode.GetParameter(fieldName)
                     : GetDefaultValue(field);
                 
                 EditorGUILayout.BeginHorizontal();
@@ -855,16 +859,16 @@ namespace BehaviorTree.Editor
 
         private BehaviorNodeData GetNodeAtPosition(Vector2 mousePosition)
         {
-            if (_currentAsset == null || _currentAsset.treeData == null || _currentAsset.treeData.nodes == null)
+            if (_currentAsset == null || _currentAsset.nodes == null)
                 return null;
 
             // 调整鼠标位置（考虑左侧面板偏移）
             float canvasX = _leftPanelFoldout ? _leftPanelWidth : 0;
             Vector2 adjustedPos = new Vector2(mousePosition.x - canvasX, mousePosition.y - TOOLBAR_HEIGHT);
 
-            for (int i = _currentAsset.treeData.nodes.Count - 1; i >= 0; i--)
+            for (int i = _currentAsset.nodes.Count - 1; i >= 0; i--)
             {
-                var node = _currentAsset.treeData.nodes[i];
+                var node = _currentAsset.nodes[i];
                 Vector2 pos = node.editorPosition * _zoom + _offset;
                 Rect rect = new Rect(pos.x, pos.y, NODE_WIDTH * _zoom, NODE_HEIGHT * _zoom);
                 
@@ -885,9 +889,9 @@ namespace BehaviorTree.Editor
             
             menu.AddItem(new GUIContent("设为根节点"), false, () =>
             {
-                if (_currentAsset != null && _currentAsset.treeData != null)
+                if (_currentAsset != null)
                 {
-                    _currentAsset.treeData.rootId = node.id;
+                    _currentAsset.rootId = node.id;
                     MarkDirty();
                 }
             });
@@ -938,11 +942,11 @@ namespace BehaviorTree.Editor
         /// </summary>
         private void ReassignNodeIds()
         {
-            if (_currentAsset == null || _currentAsset.treeData == null || _currentAsset.treeData.nodes == null)
+            if (_currentAsset == null || _currentAsset.nodes == null)
                 return;
 
             // 找到根节点
-            var rootNode = _currentAsset.GetNode(_currentAsset.treeData.rootId);
+            var rootNode = _currentAsset.GetNode(_currentAsset.rootId);
             if (rootNode == null)
             {
                 EditorUtility.DisplayDialog("错误", "未找到根节点！", "确定");
@@ -983,7 +987,7 @@ namespace BehaviorTree.Editor
             }
 
             // 应用新ID
-            foreach (var node in _currentAsset.treeData.nodes)
+            foreach (var node in _currentAsset.nodes)
             {
                 if (idMapping.ContainsKey(node.id))
                 {
@@ -1011,9 +1015,9 @@ namespace BehaviorTree.Editor
             }
 
             // 更新根节点ID
-            if (idMapping.ContainsKey(_currentAsset.treeData.rootId))
+            if (idMapping.ContainsKey(_currentAsset.rootId))
             {
-                _currentAsset.treeData.rootId = idMapping[_currentAsset.treeData.rootId];
+                _currentAsset.rootId = idMapping[_currentAsset.rootId];
             }
 
             // 更新下一个节点ID
@@ -1033,13 +1037,9 @@ namespace BehaviorTree.Editor
                 return;
             }
 
-            if (_currentAsset.treeData == null)
+            if (_currentAsset.nodes == null)
             {
-                _currentAsset.treeData = new BehaviorTreeData();
-            }
-            if (_currentAsset.treeData.nodes == null)
-            {
-                _currentAsset.treeData.nodes = new List<BehaviorNodeData>();
+                _currentAsset.nodes = new List<BehaviorNodeData>();
             }
 
             var node = new BehaviorNodeData
@@ -1055,9 +1055,9 @@ namespace BehaviorTree.Editor
 
             _currentAsset.AddNode(node);
             
-            if (_currentAsset.treeData.nodes.Count == 1)
+            if (_currentAsset.nodes.Count == 1)
             {
-                _currentAsset.treeData.rootId = node.id;
+                _currentAsset.rootId = node.id;
             }
 
             MarkDirty();
@@ -1069,10 +1069,10 @@ namespace BehaviorTree.Editor
             if (_currentAsset == null || node == null)
                 return;
 
-            if (_currentAsset.treeData == null || _currentAsset.treeData.nodes == null)
+            if (_currentAsset.nodes == null)
                 return;
 
-            foreach (var n in _currentAsset.treeData.nodes)
+            foreach (var n in _currentAsset.nodes)
             {
                 if (n.childrenIds != null)
                 {
@@ -1128,10 +1128,10 @@ namespace BehaviorTree.Editor
             _nodeRuntimeStatus.Clear();
             _isDirty = false;
             
-            if (_currentAsset != null && _currentAsset.treeData != null && _currentAsset.treeData.nodes != null)
+            if (_currentAsset != null && _currentAsset.nodes != null)
             {
-                _nextNodeId = _currentAsset.treeData.nodes.Count > 0
-                    ? _currentAsset.treeData.nodes.Max(n => n.id) + 1
+                _nextNodeId = _currentAsset.nodes.Count > 0
+                    ? _currentAsset.nodes.Max(n => n.id) + 1
                     : 1;
             }
             else
@@ -1153,11 +1153,9 @@ namespace BehaviorTree.Editor
             if (!string.IsNullOrEmpty(path))
             {
                 var asset = CreateInstance<BehaviorTreeAsset>();
-                asset.treeData = new BehaviorTreeData
-                {
-                    treeName = System.IO.Path.GetFileNameWithoutExtension(path),
-                    nodes = new List<BehaviorNodeData>()
-                };
+                asset.treeName = System.IO.Path.GetFileNameWithoutExtension(path);
+                asset.rootId = 0;
+                asset.nodes = new List<BehaviorNodeData>();
                 
                 AssetDatabase.CreateAsset(asset, path);
                 AssetDatabase.SaveAssets();

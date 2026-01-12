@@ -51,7 +51,7 @@ namespace BehaviorTree
         /// </summary>
         public bool InitFromAsset(BehaviorTreeAsset asset)
         {
-            if (asset == null || asset.treeData.nodes.Count == 0)
+            if (asset == null || asset.nodes == null || asset.nodes.Count == 0)
             {
                 Debug.LogError("BehaviorTree InitFromAsset failed: asset is null or empty");
                 return false;
@@ -61,7 +61,7 @@ namespace BehaviorTree
             _nodeDict.Clear();
 
             // 第一步：创建所有节点
-            foreach (var nodeData in asset.treeData.nodes)
+            foreach (var nodeData in asset.nodes)
             {
                 var node = CreateNode(nodeData);
                 if (node == null)
@@ -73,7 +73,7 @@ namespace BehaviorTree
             }
 
             // 第二步：建立父子关系
-            foreach (var nodeData in asset.treeData.nodes)
+            foreach (var nodeData in asset.nodes)
             {
                 if (nodeData.childrenIds.Count > 0)
                 {
@@ -89,7 +89,7 @@ namespace BehaviorTree
             }
 
             // 第三步：设置根节点
-            if (_nodeDict.TryGetValue(asset.treeData.rootId, out var root))
+            if (_nodeDict.TryGetValue(asset.rootId, out var root))
             {
                 _root = root;
                 return true;
