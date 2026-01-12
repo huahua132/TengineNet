@@ -3,10 +3,10 @@ using TEngine;
 
 namespace BehaviorTree
 {
-    [BehaviorProcessNode("AlwaysTrueNode",
-    "执行子节点，但总是返回成功（无论子节点返回什么）",
+    [BehaviorProcessNode("AlwaysFailNode",
+    "执行子节点，但总是返回失败（无论子节点返回什么）",
     BehaviorProcessType.decorator)]
-    public class AlwaysTrueNode : BehaviorProcessNodeBase
+    public class AlwaysFailNode : BehaviorProcessNodeBase
     {
         public override void OnCreate()
         {
@@ -22,8 +22,8 @@ namespace BehaviorTree
         {
             if (_Node.Childrens == null || _Node.Childrens.Count == 0)
             {
-                Debug.LogWarning("AlwaysTrueNode has no children");
-                return BehaviorRet.SUCCESS;
+                Debug.LogWarning("AlwaysFailNode has no children");
+                return BehaviorRet.FAIL;
             }
 
             // 如果是恢复执行，检查子节点结果
@@ -34,8 +34,8 @@ namespace BehaviorTree
                 {
                     return _Node.Yield();  // 子节点还在运行，继续等待
                 }
-                // 无论子节点返回什么（SUCCESS 或 FAIL），都返回 SUCCESS
-                return BehaviorRet.SUCCESS;
+                // 无论子节点返回什么（SUCCESS 或 FAIL），都返回 FAIL
+                return BehaviorRet.FAIL;
             }
 
             // 首次执行子节点
@@ -47,8 +47,8 @@ namespace BehaviorTree
                 return _Node.Yield();  // 子节点挂起，自己也挂起
             }
 
-            // 无论子节点返回什么，都返回 SUCCESS
-            return BehaviorRet.SUCCESS;
+            // 无论子节点返回什么，都返回 FAIL
+            return BehaviorRet.FAIL;
         }
     }
 }
