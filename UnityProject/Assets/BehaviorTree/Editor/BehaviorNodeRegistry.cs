@@ -227,6 +227,38 @@ namespace BehaviorTree.Editor
             // 过滤出允许的程序集中的节点
             return nodes.FindAll(node => allowedAssemblies.Contains(node.AssemblyName));
         }
+        
+        /// <summary>
+        /// 获取所有包含行为树节点的程序集名称列表
+        /// </summary>
+        /// <param name="excludeRuntime">是否排除Runtime程序集</param>
+        public static List<string> GetAllNodeAssemblies(bool excludeRuntime = false)
+        {
+            if (_allNodes == null)
+            {
+                DiscoverNodes();
+            }
+            
+            // 从所有节点中提取唯一的程序集名称
+            var assemblies = new HashSet<string>();
+            foreach (var node in _allNodes)
+            {
+                if (!string.IsNullOrEmpty(node.AssemblyName))
+                {
+                    // 根据参数决定是否排除Runtime程序集
+                    if (excludeRuntime && node.AssemblyName == "BehaviorTree.Runtime")
+                        continue;
+                    
+                    assemblies.Add(node.AssemblyName);
+                }
+            }
+            
+            // 转换为列表并排序
+            var result = assemblies.ToList();
+            result.Sort();
+            return result;
+        }
+        
     }
 }
 #endif

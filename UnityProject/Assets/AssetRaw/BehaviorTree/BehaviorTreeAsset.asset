@@ -33,3 +33,6 @@ MonoBehaviour:
     parametersList:
     - key: message
       value: hello
+  ownerAssembly: BehaviorTree.Test1
+  sharedAssemblies:
+  - BehaviorTree.SharedTree

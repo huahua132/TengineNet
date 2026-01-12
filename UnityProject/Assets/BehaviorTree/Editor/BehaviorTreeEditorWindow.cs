@@ -212,10 +212,15 @@ namespace BehaviorTree.Editor
             _leftPanelScroll = EditorGUILayout.BeginScrollView(_leftPanelScroll);
             
             // 获取允许的程序集列表
-            List<string> allowedAssemblies = null;
+            // 如果没有加载资产，默认只显示运行时程序集的节点
+            List<string> allowedAssemblies;
             if (_currentAsset != null)
             {
                 allowedAssemblies = _currentAsset.GetAllowedAssemblies();
+            }
+            else
+            {
+                allowedAssemblies = new List<string> { "BehaviorTree.Runtime" };
             }
             
             // 按类型分组显示节点
@@ -231,10 +236,8 @@ namespace BehaviorTree.Editor
 
         private void DrawNodeCategory(BehaviorProcessType type, List<string> allowedAssemblies)
         {
-            // 使用程序集过滤获取节点
-            var nodes = allowedAssemblies != null && allowedAssemblies.Count > 0
-                ? BehaviorNodeRegistry.GetNodesByTypeAndAssemblies(type, allowedAssemblies)
-                : BehaviorNodeRegistry.GetNodesByType(type);
+            // 使用程序集过滤获取节点（allowedAssemblies 现在总是有值）
+            var nodes = BehaviorNodeRegistry.GetNodesByTypeAndAssemblies(type, allowedAssemblies);
             
             if (nodes.Count == 0) return;
 
@@ -671,13 +674,31 @@ namespace BehaviorTree.Editor
             EditorGUILayout.HelpBox("配置后，该行为树只能使用指定程序集中的节点", MessageType.Info);
             
             // 归属程序集
+            EditorGUILayout.BeginHorizontal();
+            EditorGUILayout.LabelField("归属程序集", GUILayout.Width(100));
+            
+            // 获取所有可用的程序集（排除Runtime程序集）
+            var availableAssemblies = BehaviorNodeRegistry.GetAllNodeAssemblies(excludeRuntime: true);
+            
+            // 查找当前选中的索引
+            int currentIndex = string.IsNullOrEmpty(_currentAsset.ownerAssembly)
+                ? 0
+                : availableAssemblies.IndexOf(_currentAsset.ownerAssembly) + 1;
+            if (currentIndex < 0) currentIndex = 0;
+            
+            // 创建选项列表 (添加"无"选项)
+            var options = new List<string> { "(无)" };
+            options.AddRange(availableAssemblies);
+            
             EditorGUI.BeginChangeCheck();
-            _currentAsset.ownerAssembly = EditorGUILayout.TextField("归属程序集", _currentAsset.ownerAssembly);
+            int newIndex = EditorGUILayout.Popup(currentIndex, options.ToArray());
             if (EditorGUI.EndChangeCheck())
             {
+                _currentAsset.ownerAssembly = newIndex == 0 ? "" : availableAssemblies[newIndex - 1];
                 MarkDirty();
                 Repaint(); // 重新绘制以更新节点列表
             }
+            EditorGUILayout.EndHorizontal();
             
             EditorGUILayout.Space(5);
             EditorGUILayout.LabelField("共享程序集列表", EditorStyles.miniLabel);
@@ -691,10 +712,25 @@ namespace BehaviorTree.Editor
             for (int i = 0; i < _currentAsset.sharedAssemblies.Count; i++)
             {
                 EditorGUILayout.BeginHorizontal();
+                
+                // 获取所有可用的程序集（排除Runtime程序集，因为它自动包含）
+                var sharedAvailableAssemblies = BehaviorNodeRegistry.GetAllNodeAssemblies(excludeRuntime: true);
+                
+                // 查找当前选中的索引
+                int sharedCurrentIndex = string.IsNullOrEmpty(_currentAsset.sharedAssemblies[i])
+                    ? 0
+                    : sharedAvailableAssemblies.IndexOf(_currentAsset.sharedAssemblies[i]) + 1;
+                if (sharedCurrentIndex < 0) sharedCurrentIndex = 0;
+                
+                // 创建选项列表 (添加"选择程序集"选项)
+                var sharedOptions = new List<string> { "(选择程序集)" };
+                sharedOptions.AddRange(sharedAvailableAssemblies);
+                
                 EditorGUI.BeginChangeCheck();
-                _currentAsset.sharedAssemblies[i] = EditorGUILayout.TextField(_currentAsset.sharedAssemblies[i]);
+                int sharedNewIndex = EditorGUILayout.Popup(sharedCurrentIndex, sharedOptions.ToArray());
                 if (EditorGUI.EndChangeCheck())
                 {
+                    _currentAsset.sharedAssemblies[i] = sharedNewIndex == 0 ? "" : sharedAvailableAssemblies[sharedNewIndex - 1];
                     MarkDirty();
                     Repaint();
                 }
@@ -709,7 +745,7 @@ namespace BehaviorTree.Editor
                 EditorGUILayout.EndHorizontal();
             }
             
-            if (GUILayout.Button("添加共享程序集", GUILayout.Height(25)))
+            if (GUILayout.Button("+ 添加共享程序集", GUILayout.Height(25)))
             {
                 _currentAsset.sharedAssemblies.Add("");
                 MarkDirty();

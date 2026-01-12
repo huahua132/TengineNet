@@ -57,16 +57,23 @@ namespace BehaviorTree
         }
         
         /// <summary>
-        /// 获取允许的程序集列表（归属程序集 + 共享程序集）
+        /// 获取允许的程序集列表（归属程序集 + 共享程序集 + Runtime程序集）
+        /// Runtime程序集始终包含在内
         /// </summary>
         public List<string> GetAllowedAssemblies()
         {
             var allowed = new List<string>();
             
+            // 始终添加Runtime程序集（核心行为树库）
+            allowed.Add("BehaviorTree.Runtime");
+            
             // 添加归属程序集
             if (!string.IsNullOrEmpty(ownerAssembly))
             {
-                allowed.Add(ownerAssembly);
+                if (!allowed.Contains(ownerAssembly))
+                {
+                    allowed.Add(ownerAssembly);
+                }
             }
             
             // 添加共享程序集
@@ -91,10 +98,6 @@ namespace BehaviorTree
         {
             if (string.IsNullOrEmpty(assemblyName))
                 return true; // 空程序集名默认允许
-            
-            // 如果没有配置任何程序集限制，允许所有
-            if (string.IsNullOrEmpty(ownerAssembly) && (sharedAssemblies == null || sharedAssemblies.Count == 0))
-                return true;
             
             var allowed = GetAllowedAssemblies();
             return allowed.Contains(assemblyName);
