@@ -45,10 +45,10 @@ namespace BehaviorTree.Editor
         {
             _typeColors = new Dictionary<BehaviorProcessType, Color>
             {
-                { BehaviorProcessType.composite, new Color(0.4f, 0.6f, 0.9f) },    // 蓝色 - 组合节点
+                { BehaviorProcessType.composite, new Color(0.4f, 0.9f, 0.6f) },    // 绿色 - 组合节点
                 { BehaviorProcessType.decorator, new Color(0.9f, 0.6f, 0.4f) },    // 橙色 - 装饰节点
-                { BehaviorProcessType.condition, new Color(0.9f, 0.9f, 0.4f) },    // 黄色 - 条件节点
-                { BehaviorProcessType.action, new Color(0.4f, 0.9f, 0.6f) }        // 绿色 - 行为节点
+                { BehaviorProcessType.condition, new Color(0.9f, 0.4f, 0.4f) },    // 红色 - 条件节点
+                { BehaviorProcessType.action, new Color(0.4f, 0.6f, 0.9f) }        // 蓝色 - 行为节点
             };
         }
 

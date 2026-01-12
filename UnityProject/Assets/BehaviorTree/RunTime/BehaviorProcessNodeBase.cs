@@ -18,6 +18,7 @@ namespace BehaviorTree
         public string Name {get; private set;}                       //名称
         public string Desc {get; private set;}                       //描述
         public BehaviorProcessType Type {get; private set;}          //类型
+        
         public BehaviorProcessNodeAttribute(string name, string desc, BehaviorProcessType type)
         {
             Name = name;
