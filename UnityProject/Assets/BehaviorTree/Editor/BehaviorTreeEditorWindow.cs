@@ -1062,11 +1062,14 @@ namespace BehaviorTree.Editor
                     ? _selectedNode.GetParameter(fieldName)
                     : GetDefaultValue(field);
                 
+                // 获取字段的描述信息用于Tooltip
+                string tooltip = GetFieldTooltip(field);
+                
                 EditorGUILayout.BeginHorizontal();
-                EditorGUILayout.LabelField(fieldName, GUILayout.Width(100));
+                EditorGUILayout.LabelField(new GUIContent(fieldName, tooltip), GUILayout.Width(100));
                 
                 EditorGUI.BeginChangeCheck();
-                string newValue = EditorGUILayout.TextField(currentValue);
+                string newValue = EditorGUILayout.TextField(new GUIContent("", tooltip), currentValue);
                 if (EditorGUI.EndChangeCheck() && newValue != currentValue)
                 {
                     _selectedNode.SetParameter(fieldName, newValue);
@@ -1102,6 +1105,29 @@ namespace BehaviorTree.Editor
                 return "false";
             
             return "";
+        }
+        
+        /// <summary>
+        /// 获取字段的Tooltip描述
+        /// </summary>
+        private string GetFieldTooltip(FieldInfo field)
+        {
+            // 优先使用TooltipAttribute
+            var tooltipAttr = field.GetCustomAttribute<TooltipAttribute>();
+            if (tooltipAttr != null && !string.IsNullOrEmpty(tooltipAttr.tooltip))
+            {
+                return tooltipAttr.tooltip;
+            }
+            
+            // 其次使用System.ComponentModel.DescriptionAttribute
+            var descAttr = field.GetCustomAttribute<System.ComponentModel.DescriptionAttribute>();
+            if (descAttr != null && !string.IsNullOrEmpty(descAttr.Description))
+            {
+                return descAttr.Description;
+            }
+            
+            // 返回字段类型信息作为默认tooltip
+            return $"类型: {field.FieldType.Name}";
         }
         #endregion
 

@@ -3,10 +3,13 @@ using System.Collections.Generic;
 
 namespace BehaviorTree.Test1
 {
-    [BehaviorProcessNode("Find Nearby Enemies", "Search for enemies within specified range", BehaviorProcessType.condition)]
+    [BehaviorProcessNode("查找附近敌人", "在指定范围内查找敌人", BehaviorProcessType.condition)]
     public class FindNearbyEnemiesNode : BehaviorProcessNodeBase
     {
+        [Tooltip("搜索半径范围（单位）")]
         public float searchRadius = 10f;
+        
+        [Tooltip("敌人的Tag标签，默认为Enemy")]
         public string enemyTag = "Enemy";
         
         private Transform _transform;

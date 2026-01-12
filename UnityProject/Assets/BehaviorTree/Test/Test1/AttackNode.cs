@@ -2,11 +2,16 @@ using UnityEngine;
 
 namespace BehaviorTree.Test1
 {
-    [BehaviorProcessNode("Attack", "Attack target enemy", BehaviorProcessType.action)]
+    [BehaviorProcessNode("攻击", "攻击目标敌人", BehaviorProcessType.action)]
     public class AttackNode : BehaviorProcessNodeBase
     {
+        [Tooltip("攻击范围（单位）")]
         public float attackRange = 2f;
+        
+        [Tooltip("攻击伤害值")]
         public float attackDamage = 10f;
+        
+        [Tooltip("攻击冷却时间（秒）")]
         public float attackCooldown = 1f;
         
         private Transform _transform;

@@ -2,12 +2,19 @@ using UnityEngine;
 
 namespace BehaviorTree.Test1
 {
-    [BehaviorProcessNode("Move To Target", "Move to specified target position", BehaviorProcessType.action)]
+    [BehaviorProcessNode("移动到目标", "移动到指定的目标位置", BehaviorProcessType.action)]
     public class MoveToTargetNode : BehaviorProcessNodeBase
     {
+        [Tooltip("目标位置的X坐标")]
         public float targetX = 0f;
+        
+        [Tooltip("目标位置的Y坐标")]
         public float targetY = 0f;
+        
+        [Tooltip("目标位置的Z坐标")]
         public float targetZ = 0f;
+        
+        [Tooltip("移动速度（单位/秒）")]
         public float speed = 5f;
         
         private Vector3 _targetPosition;
