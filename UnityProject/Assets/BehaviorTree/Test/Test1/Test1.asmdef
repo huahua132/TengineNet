@@ -1,0 +1,17 @@
+{
+    "name": "BehaviorTree.Test1",
+    "rootNamespace": "BehaviorTree.Test1",
+    "references": [
+        "BehaviorTree.Runtime",
+        "BehaviorTree.SharedTree"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

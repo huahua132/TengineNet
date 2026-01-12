@@ -138,6 +138,13 @@ namespace BehaviorTree
                 Debug.LogError($"Process node type not found: {nodeData.processTypeName}");
                 return null;
             }
+            
+            // 检查程序集权限
+            if (_asset != null && !_asset.IsAssemblyAllowed(processType.Assembly.GetName().Name))
+            {
+                Debug.LogError($"Node type '{nodeData.processTypeName}' from assembly '{processType.Assembly.GetName().Name}' is not allowed in this behavior tree. Allowed assemblies: {string.Join(", ", _asset.GetAllowedAssemblies())}");
+                return null;
+            }
 
             var node = MemoryPool.Acquire<BehaviorNode>();
             node.Init(nodeData.id, processType, _context, nodeData);

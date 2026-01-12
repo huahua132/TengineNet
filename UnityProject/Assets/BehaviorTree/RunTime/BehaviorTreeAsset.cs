@@ -18,6 +18,13 @@ namespace BehaviorTree
         
         [Tooltip("所有节点数据")]
         public List<BehaviorNodeData> nodes = new List<BehaviorNodeData>();
+        
+        [Header("程序集配置")]
+        [Tooltip("归属程序集名称（该树只能使用此程序集中的节点）")]
+        public string ownerAssembly = "";
+        
+        [Tooltip("共享程序集列表（除归属程序集外，还可以使用这些程序集中的节点）")]
+        public List<string> sharedAssemblies = new List<string>();
 
         /// <summary>
         /// 根据ID获取节点
@@ -47,6 +54,50 @@ namespace BehaviorTree
         {
             if (nodes == null) return;
             nodes.RemoveAll(n => n.id == id);
+        }
+        
+        /// <summary>
+        /// 获取允许的程序集列表（归属程序集 + 共享程序集）
+        /// </summary>
+        public List<string> GetAllowedAssemblies()
+        {
+            var allowed = new List<string>();
+            
+            // 添加归属程序集
+            if (!string.IsNullOrEmpty(ownerAssembly))
+            {
+                allowed.Add(ownerAssembly);
+            }
+            
+            // 添加共享程序集
+            if (sharedAssemblies != null)
+            {
+                foreach (var assembly in sharedAssemblies)
+                {
+                    if (!string.IsNullOrEmpty(assembly) && !allowed.Contains(assembly))
+                    {
+                        allowed.Add(assembly);
+                    }
+                }
+            }
+            
+            return allowed;
+        }
+        
+        /// <summary>
+        /// 检查是否允许使用指定程序集中的节点
+        /// </summary>
+        public bool IsAssemblyAllowed(string assemblyName)
+        {
+            if (string.IsNullOrEmpty(assemblyName))
+                return true; // 空程序集名默认允许
+            
+            // 如果没有配置任何程序集限制，允许所有
+            if (string.IsNullOrEmpty(ownerAssembly) && (sharedAssemblies == null || sharedAssemblies.Count == 0))
+                return true;
+            
+            var allowed = GetAllowedAssemblies();
+            return allowed.Contains(assemblyName);
         }
     }
 }

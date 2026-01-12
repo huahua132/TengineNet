@@ -125,7 +125,7 @@ namespace BehaviorTree.Editor
             DrawCanvas(canvasRect);
             
             // 右侧属性面板
-            if (_rightPanelFoldout && _selectedNode != null)
+            if (_rightPanelFoldout)
             {
                 DrawRightPanel(new Rect(position.width - _rightPanelWidth, TOOLBAR_HEIGHT, _rightPanelWidth, mainRect.height));
             }
@@ -211,10 +211,17 @@ namespace BehaviorTree.Editor
             
             _leftPanelScroll = EditorGUILayout.BeginScrollView(_leftPanelScroll);
             
+            // 获取允许的程序集列表
+            List<string> allowedAssemblies = null;
+            if (_currentAsset != null)
+            {
+                allowedAssemblies = _currentAsset.GetAllowedAssemblies();
+            }
+            
             // 按类型分组显示节点
             foreach (BehaviorProcessType type in System.Enum.GetValues(typeof(BehaviorProcessType)))
             {
-                DrawNodeCategory(type);
+                DrawNodeCategory(type, allowedAssemblies);
             }
             
             EditorGUILayout.EndScrollView();
@@ -222,9 +229,13 @@ namespace BehaviorTree.Editor
             GUILayout.EndArea();
         }
 
-        private void DrawNodeCategory(BehaviorProcessType type)
+        private void DrawNodeCategory(BehaviorProcessType type, List<string> allowedAssemblies)
         {
-            var nodes = BehaviorNodeRegistry.GetNodesByType(type);
+            // 使用程序集过滤获取节点
+            var nodes = allowedAssemblies != null && allowedAssemblies.Count > 0
+                ? BehaviorNodeRegistry.GetNodesByTypeAndAssemblies(type, allowedAssemblies)
+                : BehaviorNodeRegistry.GetNodesByType(type);
+            
             if (nodes.Count == 0) return;
 
             // 分类标题
@@ -618,11 +629,18 @@ namespace BehaviorTree.Editor
         {
             GUILayout.BeginArea(rect, GUI.skin.box);
             
-            EditorGUILayout.LabelField("Node Inspector", EditorStyles.boldLabel);
+            EditorGUILayout.LabelField("Inspector", EditorStyles.boldLabel);
             EditorGUILayout.Space(5);
             
             _rightPanelScroll = EditorGUILayout.BeginScrollView(_rightPanelScroll);
             
+            // 显示行为树资产配置
+            if (_currentAsset != null && _selectedNode == null)
+            {
+                DrawAssetInspector();
+            }
+            
+            // 显示选中节点的属性
             if (_selectedNode != null)
             {
                 DrawNodeInspector();
@@ -631,6 +649,78 @@ namespace BehaviorTree.Editor
             EditorGUILayout.EndScrollView();
             
             GUILayout.EndArea();
+        }
+        
+        private void DrawAssetInspector()
+        {
+            EditorGUILayout.BeginVertical();
+            
+            EditorGUILayout.LabelField("行为树配置", EditorStyles.boldLabel);
+            EditorGUILayout.Space(5);
+            
+            // 行为树名称
+            EditorGUI.BeginChangeCheck();
+            _currentAsset.treeName = EditorGUILayout.TextField("树名称", _currentAsset.treeName);
+            if (EditorGUI.EndChangeCheck())
+            {
+                MarkDirty();
+            }
+            
+            EditorGUILayout.Space(10);
+            EditorGUILayout.LabelField("程序集配置", EditorStyles.boldLabel);
+            EditorGUILayout.HelpBox("配置后，该行为树只能使用指定程序集中的节点", MessageType.Info);
+            
+            // 归属程序集
+            EditorGUI.BeginChangeCheck();
+            _currentAsset.ownerAssembly = EditorGUILayout.TextField("归属程序集", _currentAsset.ownerAssembly);
+            if (EditorGUI.EndChangeCheck())
+            {
+                MarkDirty();
+                Repaint(); // 重新绘制以更新节点列表
+            }
+            
+            EditorGUILayout.Space(5);
+            EditorGUILayout.LabelField("共享程序集列表", EditorStyles.miniLabel);
+            
+            // 共享程序集列表
+            if (_currentAsset.sharedAssemblies == null)
+            {
+                _currentAsset.sharedAssemblies = new List<string>();
+            }
+            
+            for (int i = 0; i < _currentAsset.sharedAssemblies.Count; i++)
+            {
+                EditorGUILayout.BeginHorizontal();
+                EditorGUI.BeginChangeCheck();
+                _currentAsset.sharedAssemblies[i] = EditorGUILayout.TextField(_currentAsset.sharedAssemblies[i]);
+                if (EditorGUI.EndChangeCheck())
+                {
+                    MarkDirty();
+                    Repaint();
+                }
+                
+                if (GUILayout.Button("-", GUILayout.Width(25)))
+                {
+                    _currentAsset.sharedAssemblies.RemoveAt(i);
+                    MarkDirty();
+                    Repaint();
+                    break;
+                }
+                EditorGUILayout.EndHorizontal();
+            }
+            
+            if (GUILayout.Button("添加共享程序集", GUILayout.Height(25)))
+            {
+                _currentAsset.sharedAssemblies.Add("");
+                MarkDirty();
+            }
+            
+            EditorGUILayout.Space(10);
+            EditorGUILayout.LabelField("统计信息", EditorStyles.boldLabel);
+            EditorGUILayout.LabelField($"节点总数: {_currentAsset.nodes?.Count ?? 0}");
+            EditorGUILayout.LabelField($"根节点ID: {_currentAsset.rootId}");
+            
+            EditorGUILayout.EndVertical();
         }
 
         private void DrawNodeInspector()

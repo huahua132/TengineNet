@@ -18,6 +18,7 @@ namespace BehaviorTree.Editor
         public BehaviorProcessType ProcessType { get; set; }
         public Color Color { get; set; }
         public string Icon { get; set; }
+        public string AssemblyName { get; set; }  // 所属程序集名称
     }
 
     /// <summary>
@@ -102,7 +103,8 @@ namespace BehaviorTree.Editor
                                 Description = attribute.Desc,
                                 ProcessType = attribute.Type,
                                 Color = _typeColors[attribute.Type],
-                                Icon = _typeIcons[attribute.Type]
+                                Icon = _typeIcons[attribute.Type],
+                                AssemblyName = assembly.GetName().Name  // 记录程序集名称
                             };
 
                             _allNodes.Add(nodeInfo);
@@ -177,6 +179,53 @@ namespace BehaviorTree.Editor
         public static void Refresh()
         {
             DiscoverNodes();
+        }
+        
+        /// <summary>
+        /// 根据程序集过滤获取所有节点
+        /// </summary>
+        public static List<BehaviorNodeTypeInfo> GetNodesByAssemblies(List<string> allowedAssemblies)
+        {
+            if (_allNodes == null)
+            {
+                DiscoverNodes();
+            }
+            
+            // 如果没有指定程序集限制，返回所有节点
+            if (allowedAssemblies == null || allowedAssemblies.Count == 0)
+            {
+                return _allNodes;
+            }
+            
+            // 过滤出允许的程序集中的节点
+            return _allNodes.FindAll(node => allowedAssemblies.Contains(node.AssemblyName));
+        }
+        
+        /// <summary>
+        /// 按类型和程序集获取节点
+        /// </summary>
+        public static List<BehaviorNodeTypeInfo> GetNodesByTypeAndAssemblies(BehaviorProcessType type, List<string> allowedAssemblies)
+        {
+            if (_nodesByType == null)
+            {
+                DiscoverNodes();
+            }
+            
+            if (!_nodesByType.ContainsKey(type))
+            {
+                return new List<BehaviorNodeTypeInfo>();
+            }
+            
+            var nodes = _nodesByType[type];
+            
+            // 如果没有指定程序集限制，返回该类型的所有节点
+            if (allowedAssemblies == null || allowedAssemblies.Count == 0)
+            {
+                return nodes;
+            }
+            
+            // 过滤出允许的程序集中的节点
+            return nodes.FindAll(node => allowedAssemblies.Contains(node.AssemblyName));
         }
     }
 }
