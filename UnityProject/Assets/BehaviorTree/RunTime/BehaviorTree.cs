@@ -113,7 +113,7 @@ namespace BehaviorTree
             }
 
             var node = MemoryPool.Acquire<BehaviorNode>();
-            node.Init(nodeData.id, processType, _context);
+            node.Init(nodeData.id, processType, _context, nodeData);
             return node;
         }
 

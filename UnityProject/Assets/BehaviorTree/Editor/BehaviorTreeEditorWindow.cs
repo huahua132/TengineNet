@@ -397,6 +397,23 @@ namespace BehaviorTree.Editor
 
             rect = GUI.Window(index, rect, (id) =>
             {
+                // 处理节点选择（在Window内部处理左键点击）
+                Event e = Event.current;
+                if (e != null && e.type == EventType.MouseDown)
+                {
+                    if (e.button == 0) // 左键点击
+                    {
+                        _selectedNode = node;
+                        e.Use();
+                        Repaint();
+                    }
+                    else if (e.button == 1) // 右键
+                    {
+                        ShowNodeContextMenu(node);
+                        e.Use();
+                    }
+                }
+                
                 // 在Window内部，坐标是相对于窗口的本地坐标，已经是缩放后的尺寸
                 float windowWidth = NODE_WIDTH * _zoom;
                 float windowHeight = NODE_HEIGHT * _zoom;
@@ -462,22 +479,6 @@ namespace BehaviorTree.Editor
                     
                     Rect statusRect = new Rect(0, yPos, windowWidth, lineHeight * 0.8f);
                     GUI.Label(statusRect, $"{_nodeRuntimeStatus[node.id]}", statusStyle);
-                }
-
-                // 处理右键菜单
-                Event e = Event.current;
-                if (e != null)
-                {
-                    if (e.type == EventType.MouseDown && e.button == 1) // 右键
-                    {
-                        ShowNodeContextMenu(node);
-                        e.Use();
-                    }
-                    else if (e.type == EventType.ContextClick)
-                    {
-                        ShowNodeContextMenu(node);
-                        e.Use();
-                    }
                 }
 
                 GUI.DragWindow();
@@ -707,16 +708,28 @@ namespace BehaviorTree.Editor
             
             // 使用反射获取节点类型的公共字段
             var nodeInfo = BehaviorNodeRegistry.GetNodeInfo(_selectedNode.processTypeName);
-            if (nodeInfo == null) return;
+            if (nodeInfo == null)
+            {
+                EditorGUILayout.HelpBox($"无法获取节点类型信息: {_selectedNode.processTypeName}", MessageType.Warning);
+                return;
+            }
             
-            var fields = nodeInfo.Type.GetFields(BindingFlags.Public | BindingFlags.Instance)
-                .Where(f => f.DeclaringType == nodeInfo.Type).ToList();
+            // 获取所有公共实例字段
+            var allFields = nodeInfo.Type.GetFields(BindingFlags.Public | BindingFlags.Instance);
+            
+            // 过滤掉基类的字段（_Node, _Context 等）
+            var fields = allFields.Where(f =>
+                f.DeclaringType != typeof(BehaviorProcessNodeBase) &&
+                !f.Name.StartsWith("_")
+            ).ToList();
             
             if (fields.Count == 0)
             {
                 EditorGUILayout.HelpBox("此节点没有可配置的参数", MessageType.Info);
                 return;
             }
+            
+            EditorGUILayout.Space(5);
             
             // 确保parametersList已初始化
             if (_selectedNode.parametersList == null)
