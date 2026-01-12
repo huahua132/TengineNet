@@ -12,27 +12,17 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: da40eb0b01baf9f458cc9176f665d9d7, type: 3}
   m_Name: BehaviorTreeAsset
   m_EditorClassIdentifier: 
-  treeName: 
+  treeName: Hero
   rootId: 1
   nodes:
   - id: 1
-    name: SelectorNode_2
     processTypeName: SelectorNode
     parentId: -1
-    childrenIds: 02000000
-    editorPosition: {x: 128.99998, y: 107}
+    childrenIds: 
+    editorPosition: {x: 447.8977, y: 79.44093}
     comment: 
     parametersList: []
-  - id: 2
-    name: LogNode_8
-    processTypeName: LogNode
-    parentId: 1
-    childrenIds: 
-    editorPosition: {x: 299.65933, y: 304.26312}
-    comment: "\u7684\u53D1\u5C04\u70B9\u53D1\u5C04\u70B9"
-    parametersList:
-    - key: message
-      value: hello
   ownerAssembly: BehaviorTree.Test1
   sharedAssemblies:
   - BehaviorTree.SharedTree
+  - 

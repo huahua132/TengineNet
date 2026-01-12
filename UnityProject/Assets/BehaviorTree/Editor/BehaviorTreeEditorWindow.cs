@@ -801,13 +801,8 @@ namespace BehaviorTree.Editor
             EditorGUILayout.LabelField("行为树配置", EditorStyles.boldLabel);
             EditorGUILayout.Space(5);
             
-            // 行为树名称
-            EditorGUI.BeginChangeCheck();
-            _currentAsset.treeName = EditorGUILayout.TextField("树名称", _currentAsset.treeName);
-            if (EditorGUI.EndChangeCheck())
-            {
-                MarkDirty();
-            }
+            // 行为树名称（只读，显示文件名）
+            EditorGUILayout.LabelField("树名称", _currentAsset.name);
             
             EditorGUILayout.Space(10);
             EditorGUILayout.LabelField("程序集配置", EditorStyles.boldLabel);
@@ -1433,7 +1428,6 @@ namespace BehaviorTree.Editor
             if (!string.IsNullOrEmpty(path))
             {
                 var asset = CreateInstance<BehaviorTreeAsset>();
-                asset.treeName = System.IO.Path.GetFileNameWithoutExtension(path);
                 asset.rootId = 0;
                 asset.nodes = new List<BehaviorNodeData>();
                 

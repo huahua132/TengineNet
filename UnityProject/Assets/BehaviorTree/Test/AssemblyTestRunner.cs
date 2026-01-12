@@ -99,7 +99,6 @@ namespace BehaviorTree.Test
         private void LogAssetInfo()
         {
             Debug.Log($"<color=cyan>测试资产信息:</color>");
-            Debug.Log($"  名称: {testAsset.treeName}");
             Debug.Log($"  归属程序集: {(string.IsNullOrEmpty(testAsset.ownerAssembly) ? "未设置" : testAsset.ownerAssembly)}");
             
             if (testAsset.sharedAssemblies != null && testAsset.sharedAssemblies.Count > 0)

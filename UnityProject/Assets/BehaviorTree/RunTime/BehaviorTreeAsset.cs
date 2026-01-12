@@ -10,9 +10,6 @@ namespace BehaviorTree
     [CreateAssetMenu(fileName = "BehaviorTreeAsset", menuName = "BehaviorTree/Tree Asset")]
     public class BehaviorTreeAsset : ScriptableObject
     {
-        [Tooltip("行为树名称")]
-        public string treeName = "";
-        
         [Tooltip("根节点ID")]
         public int rootId;
         
