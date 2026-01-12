@@ -54,34 +54,4 @@ namespace BehaviorTree
             return parametersList.Exists(p => p.key == key);
         }
     }
-
-    [CreateAssetMenu(fileName = "BehaviorTreeAsset", menuName = "BehaviorTree/Tree Asset")]
-    public class BehaviorTreeAsset : ScriptableObject
-    {
-        // 直接存储，不使用中间层包装
-        public string treeName = "";
-        public int rootId;
-        public List<BehaviorNodeData> nodes = new List<BehaviorNodeData>();
-
-        public BehaviorNodeData GetNode(int id)
-        {
-            if (nodes == null) return null;
-            return nodes.Find(n => n.id == id);
-        }
-
-        public void AddNode(BehaviorNodeData node)
-        {
-            if (nodes == null)
-            {
-                nodes = new List<BehaviorNodeData>();
-            }
-            nodes.Add(node);
-        }
-
-        public void RemoveNode(int id)
-        {
-            if (nodes == null) return;
-            nodes.RemoveAll(n => n.id == id);
-        }
-    }
 }
