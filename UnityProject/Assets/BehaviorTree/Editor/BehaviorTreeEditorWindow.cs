@@ -466,20 +466,30 @@ namespace BehaviorTree.Editor
             
             float height = NODE_HEADER_HEIGHT; // 标题栏
             
-            // 计算参数数量（标题已显示类型，内容只显示参数）
+            // 计算备注高度
+            int commentLines = 0;
+            if (!string.IsNullOrEmpty(node.comment))
+            {
+                // 估算备注行数（假设每行约25个字符）
+                commentLines = Mathf.CeilToInt(node.comment.Length / 25f);
+                commentLines = Mathf.Max(commentLines, 1);
+                height += commentLines * NODE_PARAM_LINE_HEIGHT;
+            }
+            
+            // 计算参数数量
             int paramCount = 0;
             if (node.parametersList != null)
             {
                 paramCount = node.parametersList.Count(p => !string.IsNullOrEmpty(p.value));
             }
             
-            if (paramCount > 0)
+            if (paramCount > 0 || commentLines > 0)
             {
                 height += paramCount * NODE_PARAM_LINE_HEIGHT + NODE_PADDING * 2;
             }
             else
             {
-                // 即使没有参数，也保留一定空间
+                // 即使没有参数和备注，也保留一定空间
                 height += NODE_PADDING * 2;
             }
             
@@ -599,21 +609,62 @@ namespace BehaviorTree.Editor
                 contentStyle.alignment = TextAnchor.UpperLeft;
                 contentStyle.normal.textColor = Color.black;
                 contentStyle.wordWrap = true;
-                
                 float contentY = headerHeight + NODE_PADDING * _zoom;
                 float contentPadding = NODE_PADDING * _zoom;
                 
-                // 显示参数（不显示类型，因为标题已显示）
                 contentStyle.hover.textColor = Color.black; // 鼠标悬停不改变颜色
+                
+                // 优先显示备注（如果有）
+                if (!string.IsNullOrEmpty(node.comment))
+                {
+                    GUIStyle commentLabelStyle = new GUIStyle(EditorStyles.label);
+                    commentLabelStyle.fontSize = Mathf.RoundToInt(8 * _zoom);
+                    commentLabelStyle.alignment = TextAnchor.UpperLeft;
+                    commentLabelStyle.normal.textColor = new Color(0.5f, 0.5f, 0.5f); // 灰色标签
+                    commentLabelStyle.hover.textColor = new Color(0.5f, 0.5f, 0.5f);
+                    commentLabelStyle.fontStyle = FontStyle.Bold;
+                    
+                    GUIStyle commentStyle = new GUIStyle(EditorStyles.label);
+                    commentStyle.fontSize = Mathf.RoundToInt(8 * _zoom);
+                    commentStyle.alignment = TextAnchor.UpperLeft;
+                    commentStyle.normal.textColor = new Color(0.3f, 0.3f, 0.3f); // 深灰色
+                    commentStyle.hover.textColor = new Color(0.3f, 0.3f, 0.3f);
+                    commentStyle.wordWrap = true;
+                    commentStyle.fontStyle = FontStyle.Italic;
+                    
+                    float labelWidth = 50 * _zoom;
+                    
+                    // 绘制"备注:"标签
+                    Rect commentLabelRect = new Rect(contentPadding, contentY, labelWidth, NODE_PARAM_LINE_HEIGHT * _zoom);
+                    GUI.Label(commentLabelRect, "备注:", commentLabelStyle);
+                    
+                    // 计算备注内容区域
+                    float commentContentWidth = windowWidth - contentPadding * 2 - labelWidth;
+                    float commentHeight = commentStyle.CalcHeight(new GUIContent(node.comment), commentContentWidth);
+                    Rect commentRect = new Rect(contentPadding + labelWidth, contentY, commentContentWidth, commentHeight);
+                    GUI.Label(commentRect, node.comment, commentStyle);
+                    contentY += Mathf.Max(commentHeight, NODE_PARAM_LINE_HEIGHT * _zoom) + NODE_PADDING * _zoom * 0.5f;
+                }
+                
+                // 显示参数
                 if (node.parametersList != null && node.parametersList.Count > 0)
                 {
                     foreach (var param in node.parametersList)
                     {
                         if (!string.IsNullOrEmpty(param.value))
                         {
-                            Rect paramRect = new Rect(contentPadding, contentY, windowWidth - contentPadding * 2, NODE_PARAM_LINE_HEIGHT * _zoom);
-                            string displayValue = param.value.Length > 15 ? param.value.Substring(0, 12) + "..." : param.value;
-                            GUI.Label(paramRect, $"{param.key}: {displayValue}", contentStyle);
+                            float labelWidth = 70 * _zoom;
+                            
+                            // 绘制参数名（左侧）
+                            GUIStyle paramLabelStyle = new GUIStyle(contentStyle);
+                            paramLabelStyle.fontStyle = FontStyle.Bold;
+                            Rect paramLabelRect = new Rect(contentPadding, contentY, labelWidth, NODE_PARAM_LINE_HEIGHT * _zoom);
+                            GUI.Label(paramLabelRect, $"{param.key}:", paramLabelStyle);
+                            
+                            // 绘制参数值（右侧）
+                            Rect paramValueRect = new Rect(contentPadding + labelWidth, contentY, windowWidth - contentPadding * 2 - labelWidth, NODE_PARAM_LINE_HEIGHT * _zoom);
+                            string displayValue = param.value.Length > 12 ? param.value.Substring(0, 9) + "..." : param.value;
+                            GUI.Label(paramValueRect, displayValue, contentStyle);
                             contentY += NODE_PARAM_LINE_HEIGHT * _zoom;
                         }
                     }

@@ -12,7 +12,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: da40eb0b01baf9f458cc9176f665d9d7, type: 3}
   m_Name: BehaviorTreeAsset
   m_EditorClassIdentifier: 
-  treeName: Hero
   rootId: 1
   nodes:
   - id: 1
@@ -20,6 +19,13 @@ MonoBehaviour:
     parentId: -1
     childrenIds: 
     editorPosition: {x: 447.8977, y: 79.44093}
+    comment: "\u82F1\u96C4\u6D4B\u8BD5AI"
+    parametersList: []
+  - id: 2
+    processTypeName: SequenceNode
+    parentId: -1
+    childrenIds: 
+    editorPosition: {x: 121, y: 246}
     comment: 
     parametersList: []
   ownerAssembly: BehaviorTree.Test1
