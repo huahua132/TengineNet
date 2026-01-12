@@ -15,7 +15,6 @@ namespace BehaviorTree
     public class BehaviorNodeData
     {
         public int id;
-        public string name = "";
         public string processTypeName = "";
         public int parentId = -1;
         public List<int> childrenIds = new List<int>();

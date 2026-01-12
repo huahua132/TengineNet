@@ -905,12 +905,6 @@ namespace BehaviorTree.Editor
             
             // 基本信息
             EditorGUILayout.LabelField("基本信息", EditorStyles.boldLabel);
-            EditorGUI.BeginChangeCheck();
-            _selectedNode.name = EditorGUILayout.TextField("名称", _selectedNode.name);
-            if (EditorGUI.EndChangeCheck())
-            {
-                MarkDirty();
-            }
             EditorGUILayout.LabelField("类型", _selectedNode.processTypeName);
             EditorGUILayout.LabelField("ID", _selectedNode.id.ToString());
             
@@ -1332,7 +1326,6 @@ namespace BehaviorTree.Editor
             var node = new BehaviorNodeData
             {
                 id = _nextNodeId++,
-                name = nodeInfo.Name,  // 使用节点类型的默认名称
                 processTypeName = nodeInfo.Type.Name,
                 editorPosition = (position - _offset) / _zoom,
                 childrenIds = new List<int>(),

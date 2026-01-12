@@ -137,7 +137,7 @@ namespace BehaviorTree.Test
             
             foreach (var node in testAsset.nodes)
             {
-                Debug.Log($"  [{node.id}] {node.name} ({node.processTypeName})");
+                Debug.Log($"  [{node.id}] ({node.processTypeName})");
             }
         }
         

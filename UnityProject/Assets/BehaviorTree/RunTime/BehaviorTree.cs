@@ -93,7 +93,7 @@ namespace BehaviorTree
                 var node = CreateNode(nodeData);
                 if (node == null)
                 {
-                    Debug.LogError($"Create node failed: {nodeData.name}");
+                    Debug.LogError($"Create node failed: {nodeData.processTypeName}");
                     return false;
                 }
                 _nodeDict[nodeData.id] = node;
