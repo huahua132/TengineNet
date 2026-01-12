@@ -39,7 +39,7 @@ public class BehaviorTreeTest : MonoBehaviour
     [Tooltip("显示总执行次数")]
     public int executeCount = 0;
     
-    private BehaviorTree.BehaviorTree _behaviorTree;
+    private BehaviorTree.Tree _behaviorTree;
     private bool _isInitialized = false;
 
     void Start()
@@ -84,7 +84,7 @@ public class BehaviorTreeTest : MonoBehaviour
         Transform targetTransform = bindTransform != null ? bindTransform : transform;
 
         // 创建行为树实例，并绑定Transform
-        _behaviorTree = new BehaviorTree.BehaviorTree();
+        _behaviorTree = new BehaviorTree.Tree();
         _behaviorTree.Init(targetTransform);
         
         // 从资源加载

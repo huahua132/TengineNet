@@ -4,7 +4,7 @@ using UnityEngine;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-using BehaviorTreeRuntime = BehaviorTree.BehaviorTree;
+using BehaviorTreeRuntime = BehaviorTree.Tree;
 
 namespace BehaviorTree.Editor
 {
@@ -44,7 +44,7 @@ namespace BehaviorTree.Editor
         private bool _isDragging = false;
         
         // 运行时调试
-        private BehaviorTreeRuntime _runtimeTree;
+        private Tree _runtimeTree;
         private bool _isDebugMode = false;
         private Dictionary<int, BehaviorRet> _nodeRuntimeStatus = new Dictionary<int, BehaviorRet>();
         

@@ -17,7 +17,7 @@ namespace BehaviorTree.Test
         [Tooltip("启动时自动运行测试")]
         public bool runOnStart = true;
         
-        private BehaviorTree _tree;
+        private Tree _tree;
         
         private void Start()
         {
@@ -78,7 +78,7 @@ namespace BehaviorTree.Test
                 }
                 
                 // 创建新的行为树
-                _tree = new BehaviorTree();
+                _tree = new Tree();
                 _tree.Init(transform);
                 
                 // 从资产初始化

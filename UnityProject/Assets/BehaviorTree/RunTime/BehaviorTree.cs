@@ -13,7 +13,7 @@ namespace BehaviorTree
         ABORT,                             //中断执行
     }
 
-    public class BehaviorTree : IMemory
+    public class Tree : IMemory
     {
         private BehaviorNode _root;
         private BehaviorContext _context;
