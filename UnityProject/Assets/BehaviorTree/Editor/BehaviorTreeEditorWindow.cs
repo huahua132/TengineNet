@@ -50,6 +50,7 @@ namespace BehaviorTree.Editor
         
         // 折叠状态
         private Dictionary<BehaviorProcessType, bool> _categoryFoldouts = new Dictionary<BehaviorProcessType, bool>();
+        private Dictionary<string, bool> _assemblyFoldouts = new Dictionary<string, bool>(); // 程序集折叠状态
         #endregion
 
         [MenuItem("Tools/BehaviorTree/Editor Window")]
@@ -94,6 +95,13 @@ namespace BehaviorTree.Editor
             foreach (BehaviorProcessType type in System.Enum.GetValues(typeof(BehaviorProcessType)))
             {
                 _categoryFoldouts[type] = true;
+            }
+            
+            // 初始化程序集折叠状态
+            var assemblies = BehaviorNodeRegistry.GetAllNodeAssemblies(excludeRuntime: false);
+            foreach (var assembly in assemblies)
+            {
+                _assemblyFoldouts[assembly] = true;
             }
         }
 
@@ -211,22 +219,37 @@ namespace BehaviorTree.Editor
             
             _leftPanelScroll = EditorGUILayout.BeginScrollView(_leftPanelScroll);
             
-            // 获取允许的程序集列表
-            // 如果没有加载资产，默认只显示运行时程序集的节点
-            List<string> allowedAssemblies;
+            // 按特定顺序显示程序集：Runtime -> 共享程序集 -> 归属程序集
+            var orderedAssemblies = new List<string>();
+            
+            // 1. 优先显示Runtime
+            orderedAssemblies.Add("BehaviorTree.Runtime");
+            
             if (_currentAsset != null)
             {
-                allowedAssemblies = _currentAsset.GetAllowedAssemblies();
-            }
-            else
-            {
-                allowedAssemblies = new List<string> { "BehaviorTree.Runtime" };
+                // 2. 按添加顺序显示共享程序集
+                if (_currentAsset.sharedAssemblies != null)
+                {
+                    foreach (var assembly in _currentAsset.sharedAssemblies)
+                    {
+                        if (!string.IsNullOrEmpty(assembly) && !orderedAssemblies.Contains(assembly))
+                        {
+                            orderedAssemblies.Add(assembly);
+                        }
+                    }
+                }
+                
+                // 3. 最后显示归属程序集
+                if (!string.IsNullOrEmpty(_currentAsset.ownerAssembly) && !orderedAssemblies.Contains(_currentAsset.ownerAssembly))
+                {
+                    orderedAssemblies.Add(_currentAsset.ownerAssembly);
+                }
             }
             
-            // 按类型分组显示节点
-            foreach (BehaviorProcessType type in System.Enum.GetValues(typeof(BehaviorProcessType)))
+            // 按顺序绘制程序集分组
+            foreach (var assembly in orderedAssemblies)
             {
-                DrawNodeCategory(type, allowedAssemblies);
+                DrawAssemblyCategory(assembly);
             }
             
             EditorGUILayout.EndScrollView();
@@ -234,41 +257,90 @@ namespace BehaviorTree.Editor
             GUILayout.EndArea();
         }
 
-        private void DrawNodeCategory(BehaviorProcessType type, List<string> allowedAssemblies)
+        private void DrawAssemblyCategory(string assemblyName)
         {
-            // 使用程序集过滤获取节点（allowedAssemblies 现在总是有值）
-            var nodes = BehaviorNodeRegistry.GetNodesByTypeAndAssemblies(type, allowedAssemblies);
+            // 获取该程序集下的所有节点
+            var assemblyNodes = BehaviorNodeRegistry.GetNodesByAssemblies(new List<string> { assemblyName });
+            if (assemblyNodes.Count == 0) return;
+            
+            // 确保程序集在折叠字典中
+            if (!_assemblyFoldouts.ContainsKey(assemblyName))
+            {
+                _assemblyFoldouts[assemblyName] = true;
+            }
+            
+            // 程序集标题
+            EditorGUILayout.BeginHorizontal();
+            Color oldBgColor = GUI.backgroundColor;
+            GUI.backgroundColor = new Color(0.7f, 0.7f, 0.9f); // 淡蓝色
+            
+            _assemblyFoldouts[assemblyName] = EditorGUILayout.Foldout(
+                _assemblyFoldouts[assemblyName],
+                $"📦 {assemblyName} ({assemblyNodes.Count})",
+                true,
+                EditorStyles.foldoutHeader);
+            
+            GUI.backgroundColor = oldBgColor;
+            EditorGUILayout.EndHorizontal();
+            
+            if (!_assemblyFoldouts[assemblyName]) return;
+            
+            EditorGUI.indentLevel++;
+            
+            // 在该程序集下按节点类型分组
+            foreach (BehaviorProcessType type in System.Enum.GetValues(typeof(BehaviorProcessType)))
+            {
+                DrawNodeCategoryInAssembly(assemblyName, type);
+            }
+            
+            EditorGUI.indentLevel--;
+            EditorGUILayout.Space(5);
+        }
+        
+        private void DrawNodeCategoryInAssembly(string assemblyName, BehaviorProcessType type)
+        {
+            // 获取该程序集下该类型的节点
+            var allNodesInAssembly = BehaviorNodeRegistry.GetNodesByAssemblies(new List<string> { assemblyName });
+            var nodes = allNodesInAssembly.FindAll(n => n.ProcessType == type);
             
             if (nodes.Count == 0) return;
-
-            // 分类标题
+            
+            // 类型标题
             EditorGUILayout.BeginHorizontal();
             
             Color typeColor = BehaviorNodeRegistry.GetTypeColor(type);
             Color oldColor = GUI.backgroundColor;
-            GUI.backgroundColor = typeColor;
+            GUI.backgroundColor = typeColor * 0.9f;
             
-            _categoryFoldouts[type] = EditorGUILayout.Foldout(
-                _categoryFoldouts[type], 
-                $"{type} ({nodes.Count})", 
+            // 使用组合键作为折叠状态的key
+            string foldoutKey = $"{assemblyName}_{type}";
+            if (!_categoryFoldouts.ContainsKey(type))
+            {
+                _categoryFoldouts[type] = true;
+            }
+            
+            bool foldoutState = _categoryFoldouts.ContainsKey(type) ? _categoryFoldouts[type] : true;
+            foldoutState = EditorGUILayout.Foldout(
+                foldoutState,
+                $"  {type} ({nodes.Count})",
                 true,
-                EditorStyles.foldoutHeader);
+                EditorStyles.foldout);
+            _categoryFoldouts[type] = foldoutState;
             
             GUI.backgroundColor = oldColor;
             EditorGUILayout.EndHorizontal();
-
-            if (!_categoryFoldouts[type]) return;
-
+            
+            if (!foldoutState) return;
+            
             EditorGUI.indentLevel++;
             
-            // 显示该分类下的所有节点
+            // 显示该类型下的所有节点
             foreach (var nodeInfo in nodes)
             {
                 DrawNodeButton(nodeInfo);
             }
             
             EditorGUI.indentLevel--;
-            EditorGUILayout.Space(5);
         }
 
         private void DrawNodeButton(BehaviorNodeTypeInfo nodeInfo)
