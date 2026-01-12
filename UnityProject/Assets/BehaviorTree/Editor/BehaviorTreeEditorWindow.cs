@@ -608,7 +608,8 @@ namespace BehaviorTree.Editor
                 contentStyle.fontSize = Mathf.RoundToInt(9 * _zoom);
                 contentStyle.alignment = TextAnchor.UpperLeft;
                 contentStyle.normal.textColor = Color.black;
-                contentStyle.wordWrap = true;
+                contentStyle.wordWrap = false;  // 不换行
+                contentStyle.clipping = TextClipping.Clip;  // 超出部分裁剪
                 float contentY = headerHeight + NODE_PADDING * _zoom;
                 float contentPadding = NODE_PADDING * _zoom;
                 
@@ -655,16 +656,23 @@ namespace BehaviorTree.Editor
                         {
                             float labelWidth = 70 * _zoom;
                             
-                            // 绘制参数名（左侧）
+                            // 绘制参数名（左侧）- 确保不换行
                             GUIStyle paramLabelStyle = new GUIStyle(contentStyle);
                             paramLabelStyle.fontStyle = FontStyle.Bold;
+                            paramLabelStyle.wordWrap = false;
+                            paramLabelStyle.clipping = TextClipping.Clip;
+                            
                             Rect paramLabelRect = new Rect(contentPadding, contentY, labelWidth, NODE_PARAM_LINE_HEIGHT * _zoom);
                             GUI.Label(paramLabelRect, $"{param.key}:", paramLabelStyle);
                             
-                            // 绘制参数值（右侧）
+                            // 绘制参数值（右侧）- 确保不换行
+                            GUIStyle paramValueStyle = new GUIStyle(contentStyle);
+                            paramValueStyle.wordWrap = false;
+                            paramValueStyle.clipping = TextClipping.Clip;
+                            
                             Rect paramValueRect = new Rect(contentPadding + labelWidth, contentY, windowWidth - contentPadding * 2 - labelWidth, NODE_PARAM_LINE_HEIGHT * _zoom);
                             string displayValue = param.value.Length > 12 ? param.value.Substring(0, 9) + "..." : param.value;
-                            GUI.Label(paramValueRect, displayValue, contentStyle);
+                            GUI.Label(paramValueRect, displayValue, paramValueStyle);
                             contentY += NODE_PARAM_LINE_HEIGHT * _zoom;
                         }
                     }
@@ -975,7 +983,13 @@ namespace BehaviorTree.Editor
             _selectedNode.comment = EditorGUILayout.TextArea(_selectedNode.comment, GUILayout.Height(60));
             if (EditorGUI.EndChangeCheck())
             {
+                // 清除节点高度缓存，以便重新计算
+                if (_nodeHeights.ContainsKey(_selectedNode.id))
+                {
+                    _nodeHeights.Remove(_selectedNode.id);
+                }
                 MarkDirty();
+                Repaint();
             }
             
             EditorGUILayout.Space(10);
@@ -1056,7 +1070,13 @@ namespace BehaviorTree.Editor
                 if (EditorGUI.EndChangeCheck() && newValue != currentValue)
                 {
                     _selectedNode.SetParameter(fieldName, newValue);
+                    // 清除节点高度缓存，以便重新计算
+                    if (_nodeHeights.ContainsKey(_selectedNode.id))
+                    {
+                        _nodeHeights.Remove(_selectedNode.id);
+                    }
                     MarkDirty();
+                    Repaint();
                 }
                 
                 EditorGUILayout.EndHorizontal();
