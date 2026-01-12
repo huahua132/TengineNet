@@ -45,9 +45,32 @@ namespace BehaviorTree
             _asset = null;
         }
 
-        public void Init()
+        public void Init(UnityEngine.Transform bindTransform = null)
         {
             _context = MemoryPool.Acquire<BehaviorContext>();
+            if (bindTransform != null)
+            {
+                _context.SetBindTransform(bindTransform);
+            }
+        }
+        
+        /// <summary>
+        /// 设置绑定的Transform对象
+        /// </summary>
+        public void SetBindTransform(UnityEngine.Transform transform)
+        {
+            if (_context != null)
+            {
+                _context.SetBindTransform(transform);
+            }
+        }
+        
+        /// <summary>
+        /// 获取绑定的Transform对象
+        /// </summary>
+        public UnityEngine.Transform GetBindTransform()
+        {
+            return _context?.GetBindTransform();
         }
 
         /// <summary>

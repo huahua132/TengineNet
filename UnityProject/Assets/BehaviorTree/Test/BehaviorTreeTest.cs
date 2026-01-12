@@ -15,6 +15,9 @@ public class BehaviorTreeTest : MonoBehaviour
     [Tooltip("要运行的行为树资源")]
     public BehaviorTreeAsset treeAsset;
     
+    [Tooltip("绑定的Transform对象，如果为空则使用当前对象的Transform")]
+    public Transform bindTransform;
+    
     [Header("运行配置")]
     [Tooltip("是否在 Start 时自动运行")]
     public bool autoRun = true;
@@ -77,9 +80,12 @@ public class BehaviorTreeTest : MonoBehaviour
             return;
         }
 
-        // 创建行为树实例
+        // 确定绑定的Transform
+        Transform targetTransform = bindTransform != null ? bindTransform : transform;
+
+        // 创建行为树实例，并绑定Transform
         _behaviorTree = new BehaviorTree.BehaviorTree();
-        _behaviorTree.Init();
+        _behaviorTree.Init(targetTransform);
         
         // 从资源加载
         bool success = _behaviorTree.InitFromAsset(treeAsset);
@@ -98,7 +104,7 @@ public class BehaviorTreeTest : MonoBehaviour
             _behaviorTree.OnNodeStatusChanged += OnNodeStatusChanged;
         }
 
-        Debug.Log($"[BehaviorTreeTest] 行为树初始化成功: {treeAsset.name}");
+        Debug.Log($"[BehaviorTreeTest] 行为树初始化成功: {treeAsset.name}, 绑定Transform: {targetTransform.name}");
     }
 
     /// <summary>

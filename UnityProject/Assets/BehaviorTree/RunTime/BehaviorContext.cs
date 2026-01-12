@@ -15,6 +15,8 @@ namespace BehaviorTree
         public void SetLastRet(BehaviorRet ret);
         public BehaviorRet GetLastRet();
         public T GetBlackBoardData<T>() where T : BlackboardBase;
+        public UnityEngine.Transform GetBindTransform();
+        public void SetBindTransform(UnityEngine.Transform transform);
     }
 
     public class BehaviorContext : IBehaviorContext, IMemory
@@ -23,10 +25,13 @@ namespace BehaviorTree
         private bool _isAbort = false;
         private Stack<BehaviorNode> _runingStack = new Stack<BehaviorNode>(); // 确保初始化
         private Dictionary<Type, BlackboardBase> _blackBoards = new Dictionary<Type, BlackboardBase>();
+        private UnityEngine.Transform _bindTransform; // 绑定的Transform对象
 
         public void Clear()
         {
             _isAbort = false;
+            _bindTransform = null;
+            
             if (_runingStack != null)
             {
                 _runingStack.Clear();
@@ -125,6 +130,22 @@ namespace BehaviorTree
             board.Create();
             _blackBoards[type] = board;
             return board;
+        }
+        
+        /// <summary>
+        /// 获取绑定的Transform对象
+        /// </summary>
+        public UnityEngine.Transform GetBindTransform()
+        {
+            return _bindTransform;
+        }
+        
+        /// <summary>
+        /// 设置绑定的Transform对象
+        /// </summary>
+        public void SetBindTransform(UnityEngine.Transform transform)
+        {
+            _bindTransform = transform;
         }
     }
 }
