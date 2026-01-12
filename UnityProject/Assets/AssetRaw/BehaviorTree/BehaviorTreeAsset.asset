@@ -13,5 +13,21 @@ MonoBehaviour:
   m_Name: BehaviorTreeAsset
   m_EditorClassIdentifier: 
   treeName: 
-  rootId: 0
-  nodes: []
+  rootId: 1
+  nodes:
+  - id: 1
+    name: SelectorNode_2
+    processTypeName: SelectorNode
+    parentId: -1
+    childrenIds: 02000000
+    editorPosition: {x: 168, y: 95}
+    comment: 
+    parametersList: []
+  - id: 2
+    name: SequenceNode_3
+    processTypeName: SequenceNode
+    parentId: 1
+    childrenIds: 
+    editorPosition: {x: 436, y: 406}
+    comment: 
+    parametersList: []

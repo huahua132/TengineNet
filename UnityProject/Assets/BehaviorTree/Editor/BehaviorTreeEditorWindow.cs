@@ -60,6 +60,15 @@ namespace BehaviorTree.Editor
             window.UpdateTitle();
         }
         
+        /// <summary>
+        /// 加载指定的行为树资产（用于双击打开）
+        /// </summary>
+        public void LoadAsset(BehaviorTreeAsset asset)
+        {
+            _currentAsset = asset;
+            OnAssetChanged();
+        }
+        
         private void UpdateTitle()
         {
             string title = "Behavior Tree Editor";
