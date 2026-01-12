@@ -35,9 +35,15 @@ namespace BehaviorTree.Editor
         
         // 节点视图
         private const float NODE_WIDTH = 200f;
-        private const float NODE_HEIGHT = 60f;
+        private const float NODE_MIN_HEIGHT = 80f;  // 最小高度
+        private const float NODE_HEADER_HEIGHT = 30f; // 标题栏高度
+        private const float NODE_PARAM_LINE_HEIGHT = 20f; // 每个参数行高度
+        private const float NODE_PADDING = 5f; // 内边距
         private const float GRID_SIZE = 20f;
         private const float TOOLBAR_HEIGHT = 20f;
+        
+        // 节点高度缓存
+        private Dictionary<int, float> _nodeHeights = new Dictionary<int, float>();
         
         // 拖拽
         private BehaviorNodeTypeInfo _draggingNodeType;
@@ -448,14 +454,61 @@ namespace BehaviorTree.Editor
             }
         }
 
+        /// <summary>
+        /// 计算节点高度
+        /// </summary>
+        private float CalculateNodeHeight(BehaviorNodeData node)
+        {
+            if (_nodeHeights.TryGetValue(node.id, out float cachedHeight))
+            {
+                return cachedHeight;
+            }
+            
+            float height = NODE_HEADER_HEIGHT; // 标题栏
+            
+            // 计算参数数量（标题已显示类型，内容只显示参数）
+            int paramCount = 0;
+            if (node.parametersList != null)
+            {
+                paramCount = node.parametersList.Count(p => !string.IsNullOrEmpty(p.value));
+            }
+            
+            if (paramCount > 0)
+            {
+                height += paramCount * NODE_PARAM_LINE_HEIGHT + NODE_PADDING * 2;
+            }
+            else
+            {
+                // 即使没有参数，也保留一定空间
+                height += NODE_PADDING * 2;
+            }
+            
+            // 确保不小于最小高度
+            height = Mathf.Max(height, NODE_MIN_HEIGHT);
+            
+            _nodeHeights[node.id] = height;
+            return height;
+        }
+        
         private void DrawNode(BehaviorNodeData node, int index)
         {
             Vector2 pos = node.editorPosition * _zoom + _offset;
-            Rect rect = new Rect(pos.x, pos.y, NODE_WIDTH * _zoom, NODE_HEIGHT * _zoom);
-
+            float nodeHeight = CalculateNodeHeight(node);
+            
             // 获取节点信息
             var nodeInfo = BehaviorNodeRegistry.GetNodeInfo(node.processTypeName);
             Color nodeColor = nodeInfo != null ? nodeInfo.Color : Color.gray;
+
+            // 绘制节点ID（在节点正上方）
+            GUIStyle idStyle = new GUIStyle(EditorStyles.miniLabel);
+            idStyle.fontSize = Mathf.RoundToInt(10 * _zoom);
+            idStyle.alignment = TextAnchor.MiddleCenter;
+            idStyle.normal.textColor = Color.white;
+            
+            Rect idRect = new Rect(pos.x, pos.y - 15 * _zoom, NODE_WIDTH * _zoom, 15 * _zoom);
+            GUI.Label(idRect, $"ID: {node.id}", idStyle);
+            
+            Rect rect = new Rect(pos.x, pos.y, NODE_WIDTH * _zoom, nodeHeight * _zoom);
 
             // 设置颜色
             Color originalColor = GUI.backgroundColor;
@@ -478,91 +531,105 @@ namespace BehaviorTree.Editor
                 Color statusColor = GetStatusColor(_nodeRuntimeStatus[node.id]);
                 EditorGUI.DrawRect(new Rect(rect.x - 3, rect.y - 3, rect.width + 6, rect.height + 6), statusColor);
             }
-            
-            GUI.backgroundColor = nodeColor;
 
             rect = GUI.Window(index, rect, (id) =>
             {
                 // 处理右键菜单
                 Event e = Event.current;
-                if (e != null && e.type == EventType.MouseDown && e.button == 1) // 只处理右键
+                if (e != null && e.type == EventType.MouseDown && e.button == 1)
                 {
                     ShowNodeContextMenu(node);
                     e.Use();
                 }
                 
-                // 处理节点选择（使用 MouseUp 而不是 MouseDown，避免影响拖动）
+                // 处理节点选择
                 if (e != null && e.type == EventType.MouseUp && e.button == 0)
                 {
                     _selectedNode = node;
                     Repaint();
                 }
                 
-                // 在Window内部，坐标是相对于窗口的本地坐标，已经是缩放后的尺寸
                 float windowWidth = NODE_WIDTH * _zoom;
-                float windowHeight = NODE_HEIGHT * _zoom;
+                float windowHeight = nodeHeight * _zoom;
                 
-                // 字体大小随缩放变化
-                GUIStyle nameStyle = new GUIStyle(EditorStyles.boldLabel);
-                nameStyle.fontSize = Mathf.RoundToInt(12 * _zoom);
-                nameStyle.alignment = TextAnchor.MiddleCenter;
-                nameStyle.wordWrap = false;
+                // === 标题部分（彩色背景）===
+                float headerHeight = NODE_HEADER_HEIGHT * _zoom;
+                Rect headerRect = new Rect(0, 0, windowWidth, headerHeight);
                 
-                GUIStyle typeStyle = new GUIStyle(EditorStyles.miniLabel);
-                typeStyle.fontSize = Mathf.RoundToInt(9 * _zoom);
-                typeStyle.alignment = TextAnchor.MiddleCenter;
-                nameStyle.wordWrap = false;
+                // 绘制标题背景（使用节点类型颜色）
+                Color oldBg = GUI.backgroundColor;
+                GUI.backgroundColor = nodeColor;
+                GUI.Box(headerRect, "", GUI.skin.box);
+                GUI.backgroundColor = oldBg;
                 
-                // 计算固定位置（相对于窗口，使用缩放后的值）
-                float yPos = 8 * _zoom;
-                float lineHeight = 20 * _zoom;
+                // 绘制标题内容（左上角图标 + 节点类型）
+                float iconSize = 16 * _zoom;
+                float iconPadding = 5 * _zoom;
                 
-                // 绘制图标和名称
                 if (nodeInfo != null)
                 {
                     GUIContent iconContent = EditorGUIUtility.IconContent(nodeInfo.Icon);
                     if (iconContent != null && iconContent.image != null)
                     {
-                        float iconSize = 16 * _zoom;
-                        float textWidth = windowWidth * 0.7f;
-                        float iconX = (windowWidth - iconSize - textWidth) / 2;
-                        
-                        Rect iconRect = new Rect(iconX, yPos, iconSize, iconSize);
+                        Rect iconRect = new Rect(iconPadding, (headerHeight - iconSize) / 2, iconSize, iconSize);
                         GUI.Label(iconRect, iconContent);
-                        
-                        Rect nameRect = new Rect(iconRect.xMax + 5 * _zoom, yPos, textWidth, lineHeight);
-                        GUI.Label(nameRect, node.name, nameStyle);
-                        yPos += lineHeight;
                     }
-                    else
-                    {
-                        Rect nameRect = new Rect(0, yPos, windowWidth, lineHeight);
-                        GUI.Label(nameRect, node.name, nameStyle);
-                        yPos += lineHeight;
-                    }
-                }
-                else
-                {
-                    Rect nameRect = new Rect(0, yPos, windowWidth, lineHeight);
-                    GUI.Label(nameRect, node.name, nameStyle);
-                    yPos += lineHeight;
                 }
                 
-                // 绘制类型
-                Rect typeRect = new Rect(0, yPos, windowWidth, lineHeight * 0.9f);
-                GUI.Label(typeRect, node.processTypeName, typeStyle);
-                yPos += lineHeight * 0.9f;
-
+                // 节点显示名称（使用节点的Name属性）
+                GUIStyle typeNameStyle = new GUIStyle(EditorStyles.boldLabel);
+                typeNameStyle.fontSize = Mathf.RoundToInt(11 * _zoom);
+                typeNameStyle.alignment = TextAnchor.MiddleLeft;
+                typeNameStyle.normal.textColor = Color.white;
+                typeNameStyle.hover.textColor = Color.white;  // 鼠标悬停不改变颜色
+                
+                string displayName = nodeInfo != null ? nodeInfo.Name : node.processTypeName;
+                Rect typeNameRect = new Rect(iconSize + iconPadding * 2, 0, windowWidth - iconSize - iconPadding * 3, headerHeight);
+                GUI.Label(typeNameRect, displayName, typeNameStyle);
+                
+                // === 内容部分（纯白色背景）===
+                Rect contentRect = new Rect(0, headerHeight, windowWidth, windowHeight - headerHeight);
+                
+                // 绘制内容背景（纯白色） - 使用DrawRect确保是纯白色
+                EditorGUI.DrawRect(contentRect, Color.white);
+                
+                // 绘制内容
+                GUIStyle contentStyle = new GUIStyle(EditorStyles.label);
+                contentStyle.fontSize = Mathf.RoundToInt(9 * _zoom);
+                contentStyle.alignment = TextAnchor.UpperLeft;
+                contentStyle.normal.textColor = Color.black;
+                contentStyle.wordWrap = true;
+                
+                float contentY = headerHeight + NODE_PADDING * _zoom;
+                float contentPadding = NODE_PADDING * _zoom;
+                
+                // 显示参数（不显示类型，因为标题已显示）
+                contentStyle.hover.textColor = Color.black; // 鼠标悬停不改变颜色
+                if (node.parametersList != null && node.parametersList.Count > 0)
+                {
+                    foreach (var param in node.parametersList)
+                    {
+                        if (!string.IsNullOrEmpty(param.value))
+                        {
+                            Rect paramRect = new Rect(contentPadding, contentY, windowWidth - contentPadding * 2, NODE_PARAM_LINE_HEIGHT * _zoom);
+                            string displayValue = param.value.Length > 15 ? param.value.Substring(0, 12) + "..." : param.value;
+                            GUI.Label(paramRect, $"{param.key}: {displayValue}", contentStyle);
+                            contentY += NODE_PARAM_LINE_HEIGHT * _zoom;
+                        }
+                    }
+                }
+                
                 // 运行时状态显示
                 if (_isDebugMode && _nodeRuntimeStatus.ContainsKey(node.id))
                 {
                     GUIStyle statusStyle = new GUIStyle(EditorStyles.miniLabel);
                     statusStyle.fontSize = Mathf.RoundToInt(8 * _zoom);
                     statusStyle.alignment = TextAnchor.MiddleCenter;
-                    statusStyle.wordWrap = false;
+                    statusStyle.normal.textColor = GetStatusColor(_nodeRuntimeStatus[node.id]);
+                    statusStyle.fontStyle = FontStyle.Bold;
                     
-                    Rect statusRect = new Rect(0, yPos, windowWidth, lineHeight * 0.8f);
-                    GUI.Label(statusRect, $"{_nodeRuntimeStatus[node.id]}", statusStyle);
+                    Rect statusRect = new Rect(contentPadding, contentY, windowWidth - contentPadding * 2, NODE_PARAM_LINE_HEIGHT * _zoom);
+                    GUI.Label(statusRect, $"状态: {_nodeRuntimeStatus[node.id]}", statusStyle);
                 }
 
                 GUI.DragWindow();
@@ -674,9 +741,10 @@ namespace BehaviorTree.Editor
         private Vector2 GetNodeCenter(BehaviorNodeData node)
         {
             Vector2 pos = node.editorPosition * _zoom + _offset;
+            float nodeHeight = CalculateNodeHeight(node);
             return new Vector2(
                 pos.x + NODE_WIDTH * _zoom * 0.5f,
-                pos.y + NODE_HEIGHT * _zoom);
+                pos.y + nodeHeight * _zoom);
         }
 
         private void HandleDrop(Rect canvasRect)
@@ -1088,7 +1156,8 @@ namespace BehaviorTree.Editor
             {
                 var node = _currentAsset.nodes[i];
                 Vector2 pos = node.editorPosition * _zoom + _offset;
-                Rect rect = new Rect(pos.x, pos.y, NODE_WIDTH * _zoom, NODE_HEIGHT * _zoom);
+                float nodeHeight = CalculateNodeHeight(node);
+                Rect rect = new Rect(pos.x, pos.y, NODE_WIDTH * _zoom, nodeHeight * _zoom);
                 
                 if (rect.Contains(adjustedPos))
                 {
@@ -1263,7 +1332,7 @@ namespace BehaviorTree.Editor
             var node = new BehaviorNodeData
             {
                 id = _nextNodeId++,
-                name = $"{nodeInfo.Name}_{_nextNodeId}",
+                name = nodeInfo.Name,  // 使用节点类型的默认名称
                 processTypeName = nodeInfo.Type.Name,
                 editorPosition = (position - _offset) / _zoom,
                 childrenIds = new List<int>(),
