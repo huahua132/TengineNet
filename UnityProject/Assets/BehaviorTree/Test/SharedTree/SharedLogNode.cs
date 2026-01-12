@@ -2,7 +2,7 @@ using UnityEngine;
 
 namespace BehaviorTree.SharedTree
 {
-    [BehaviorProcessNode("共享日志", "共享程序集中的日志节点", BehaviorProcessType.action)]
+    [BehaviorProcessNode("Shared Log", "Log node from shared assembly", BehaviorProcessType.action)]
     public class SharedLogNode : BehaviorProcessNodeBase
     {
         public string message = "SharedTree Log";

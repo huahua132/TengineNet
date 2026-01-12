@@ -1,0 +1,66 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: da40eb0b01baf9f458cc9176f665d9d7, type: 3}
+  m_Name: HeroBtAsset
+  m_EditorClassIdentifier: 
+  rootId: 1
+  nodes:
+  - id: 1
+    processTypeName: SelectorNode
+    parentId: -1
+    childrenIds: 02000000030000000400000005000000
+    editorPosition: {x: 447.89764, y: 79.44092}
+    comment: "\u82F1\u96C4\u6D4B\u8BD5AI"
+    parametersList: []
+  - id: 2
+    processTypeName: SequenceNode
+    parentId: 1
+    childrenIds: 06000000
+    editorPosition: {x: 95.96906, y: 263.99988}
+    comment: "\u653B\u51FB"
+    parametersList: []
+  - id: 3
+    processTypeName: SequenceNode
+    parentId: 1
+    childrenIds: 
+    editorPosition: {x: 447.99997, y: 259}
+    comment: "\u79FB\u52A8"
+    parametersList: []
+  - id: 4
+    processTypeName: SelectorNode
+    parentId: 1
+    childrenIds: 
+    editorPosition: {x: 759.9999, y: 257}
+    comment: "\u9003\u8DD1"
+    parametersList: []
+  - id: 5
+    processTypeName: IdleNode
+    parentId: 1
+    childrenIds: 
+    editorPosition: {x: 1065.5869, y: 256.71906}
+    comment: "\u5F85\u673A"
+    parametersList: []
+  - id: 6
+    processTypeName: FindNearbyEnemiesNode
+    parentId: 2
+    childrenIds: 
+    editorPosition: {x: -141.53256, y: 394.81647}
+    comment: "\u67E5\u627E\u654C\u4EBA"
+    parametersList:
+    - key: searchRadius
+      value: 5
+    - key: enemyTag
+      value: enemy
+  ownerAssembly: BehaviorTree.Test1
+  sharedAssemblies:
+  - BehaviorTree.SharedTree
+  - 

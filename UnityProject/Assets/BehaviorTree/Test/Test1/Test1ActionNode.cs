@@ -2,7 +2,7 @@ using UnityEngine;
 
 namespace BehaviorTree.Test1
 {
-    [BehaviorProcessNode("测试1行为", "Test1程序集专属的行为节点", BehaviorProcessType.action)]
+    [BehaviorProcessNode("Test1 Action", "Test1 assembly specific action node", BehaviorProcessType.action)]
     public class Test1ActionNode : BehaviorProcessNodeBase
     {
         public string actionName = "Test1 Action";
