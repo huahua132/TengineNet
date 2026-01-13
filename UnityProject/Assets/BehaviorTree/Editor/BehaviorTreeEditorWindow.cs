@@ -1081,7 +1081,25 @@ namespace BehaviorTree.Editor
                 EditorGUILayout.LabelField(new GUIContent(fieldName, tooltip), GUILayout.Width(100));
                 
                 EditorGUI.BeginChangeCheck();
-                string newValue = EditorGUILayout.TextField(new GUIContent("", tooltip), currentValue);
+                string newValue;
+                
+                // 检测是否为枚举类型
+                if (field.FieldType.IsEnum)
+                {
+                    // 枚举类型使用下拉菜单
+                    var enumNames = System.Enum.GetNames(field.FieldType);
+                    int currentIndex = System.Array.IndexOf(enumNames, currentValue);
+                    if (currentIndex < 0) currentIndex = 0;
+                    
+                    int newIndex = EditorGUILayout.Popup(currentIndex, enumNames);
+                    newValue = enumNames[newIndex];
+                }
+                else
+                {
+                    // 其他类型使用文本输入框
+                    newValue = EditorGUILayout.TextField(new GUIContent("", tooltip), currentValue);
+                }
+                
                 if (EditorGUI.EndChangeCheck() && newValue != currentValue)
                 {
                     _selectedNode.SetParameter(fieldName, newValue);
