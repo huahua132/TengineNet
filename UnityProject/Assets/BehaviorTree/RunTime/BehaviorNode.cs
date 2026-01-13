@@ -9,7 +9,6 @@ namespace BehaviorTree
     {
         public int ID {get;}
         public List<IBehaviorNode> Childrens {get;}
-        public T GetBlackBoardData<T>() where T : BlackboardBase;
         public BehaviorRet TickRun();
         public BehaviorRet Yield();
         public bool IsResume();
@@ -22,7 +21,6 @@ namespace BehaviorTree
         List<IBehaviorNode> IBehaviorNode.Childrens => Childrens;
         public List<IBehaviorNode> Childrens = new();                              //子节点
         public BehaviorProcessNodeBase ProcessNode {get; private set;}             //执行结点
-        private Dictionary<Type, BlackboardBase> _blackBoards = new();             //黑板
         private bool _isYield  = false;                                            //是否挂起
         private IBehaviorContext _context;
 
@@ -41,11 +39,6 @@ namespace BehaviorTree
                 MemoryPool.Release((BehaviorNode)node);
             }
             Childrens.Clear();
-            foreach (var kv in _blackBoards)
-            {
-                MemoryPool.Release(kv.Value);
-            }
-            _blackBoards.Clear();
         }
 
         public void Init(int id, Type processType, IBehaviorContext context, BehaviorNodeData nodeData = null)
@@ -151,19 +144,6 @@ namespace BehaviorTree
         public void AddChild(BehaviorNode node)
         {
             Childrens.Add(node);
-        }
-
-        public T GetBlackBoardData<T>() where T : BlackboardBase
-        {
-            Type type = typeof(T);
-            if (_blackBoards.TryGetValue(type, out var blackboard))
-            {
-                return (T)blackboard;
-            }
-
-            var board = (T)MemoryPool.Acquire(type);
-            board.Create();
-            return board;
         }
 
         public BehaviorRet Yield()

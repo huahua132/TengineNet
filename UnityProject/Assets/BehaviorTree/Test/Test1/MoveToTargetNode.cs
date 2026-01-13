@@ -61,7 +61,7 @@ namespace BehaviorTree.Test1
             if (targetType == MoveTargetType.BlackboardTarget)
             {
                 // 从黑板获取目标
-                var blackboard = _Node.GetBlackBoardData<TargetBlackboard>();
+                var blackboard = _Context.GetBlackBoardData<TargetBlackboard>();
                 if (blackboard == null || blackboard.target == null)
                 {
                     Debug.LogWarning("[MoveToTargetNode] 未找到黑板目标");

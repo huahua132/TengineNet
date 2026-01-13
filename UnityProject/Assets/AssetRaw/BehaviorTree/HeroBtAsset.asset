@@ -18,21 +18,21 @@ MonoBehaviour:
     processTypeName: SelectorNode
     parentId: -1
     childrenIds: 02000000030000000500000004000000
-    editorPosition: {x: 500, y: 100}
+    editorPosition: {x: 500.00024, y: 100.000046}
     comment: "\u82F1\u96C4\u6D4B\u8BD5AI"
     parametersList: []
   - id: 2
     processTypeName: SequenceNode
     parentId: 1
     childrenIds: 0600000007000000
-    editorPosition: {x: -200, y: 250}
+    editorPosition: {x: -199.99988, y: 250}
     comment: "\u653B\u51FB"
     parametersList: []
   - id: 3
     processTypeName: SequenceNode
     parentId: 1
     childrenIds: 0800000009000000
-    editorPosition: {x: 360.00003, y: 250}
+    editorPosition: {x: 360.0003, y: 250}
     comment: "\u79FB\u52A8"
     parametersList: []
   - id: 4
@@ -53,18 +53,18 @@ MonoBehaviour:
     processTypeName: FindNearbyEnemiesNode
     parentId: 2
     childrenIds: 
-    editorPosition: {x: -340, y: 400}
+    editorPosition: {x: -340, y: 400.00012}
     comment: "\u67E5\u627E\u654C\u4EBA"
     parametersList:
     - key: searchRadius
       value: 5
     - key: enemyTag
-      value: enemy
+      value: Enemy
   - id: 7
     processTypeName: AttackNode
     parentId: 2
     childrenIds: 
-    editorPosition: {x: -59.999996, y: 400}
+    editorPosition: {x: -59.999878, y: 400.00012}
     comment: "\u653B\u51FB"
     parametersList:
     - key: attackRange
@@ -77,18 +77,18 @@ MonoBehaviour:
     processTypeName: FindNearbyEnemiesNode
     parentId: 3
     childrenIds: 
-    editorPosition: {x: 220, y: 400}
+    editorPosition: {x: 220.00012, y: 400.00012}
     comment: 
     parametersList:
     - key: searchRadius
       value: 1000
     - key: enemyTag
-      value: enemy
+      value: Enemy
   - id: 9
     processTypeName: MoveToTargetNode
     parentId: 3
     childrenIds: 
-    editorPosition: {x: 500, y: 400}
+    editorPosition: {x: 500.00024, y: 400.00012}
     comment: 
     parametersList:
     - key: speed
@@ -101,7 +101,7 @@ MonoBehaviour:
     processTypeName: CheckHealthNode
     parentId: 4
     childrenIds: 
-    editorPosition: {x: 780, y: 400}
+    editorPosition: {x: 779.9995, y: 399.00012}
     comment: 
     parametersList:
     - key: checkType
@@ -114,7 +114,7 @@ MonoBehaviour:
     processTypeName: MoveToTargetNode
     parentId: 4
     childrenIds: 
-    editorPosition: {x: 1060, y: 400}
+    editorPosition: {x: 1059.9999, y: 400.00012}
     comment: "\u56DE\u5230\u539F\u70B9"
     parametersList:
     - key: targetType

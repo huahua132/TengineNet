@@ -83,7 +83,7 @@ namespace BehaviorTree.Test1
             else // Target
             {
                 // 检查目标血量
-                var blackboard = _Node.GetBlackBoardData<TargetBlackboard>();
+                var blackboard = _Context.GetBlackBoardData<TargetBlackboard>();
                 if (blackboard == null || blackboard.target == null)
                 {
                     Debug.LogWarning("[CheckHealthNode] 未找到目标");

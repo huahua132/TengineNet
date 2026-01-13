@@ -37,7 +37,7 @@ namespace BehaviorTree.Test1
             }
             
             // 从黑板获取目标
-            var blackboard = _Node.GetBlackBoardData<TargetBlackboard>();
+            var blackboard = _Context.GetBlackBoardData<TargetBlackboard>();
             if (blackboard == null || blackboard.target == null)
             {
                 Debug.LogWarning("[AttackNode] 未找到攻击目标");

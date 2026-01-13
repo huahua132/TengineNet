@@ -69,7 +69,7 @@ namespace BehaviorTree.Test1
                 }
                 
                 // 将最近的敌人存储到黑板
-                var blackboard = _Node.GetBlackBoardData<TargetBlackboard>();
+                var blackboard = _Context.GetBlackBoardData<TargetBlackboard>();
                 blackboard.target = closestEnemy.transform;
                 
                 Debug.Log($"[FindNearbyEnemiesNode] 找到{nearbyEnemies.Count}个敌人，最近敌人距离: {closestDistance:F2}");
