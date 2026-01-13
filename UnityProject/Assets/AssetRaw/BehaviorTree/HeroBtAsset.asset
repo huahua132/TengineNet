@@ -31,7 +31,7 @@ MonoBehaviour:
   - id: 3
     processTypeName: SequenceNode
     parentId: 1
-    childrenIds: 
+    childrenIds: 09000000
     editorPosition: {x: 448, y: 259}
     comment: "\u79FB\u52A8"
     parametersList: []
@@ -53,7 +53,7 @@ MonoBehaviour:
     processTypeName: FindNearbyEnemiesNode
     parentId: 2
     childrenIds: 
-    editorPosition: {x: -141.53258, y: 394.81647}
+    editorPosition: {x: -141.5326, y: 394.81647}
     comment: "\u67E5\u627E\u654C\u4EBA"
     parametersList:
     - key: searchRadius
@@ -73,6 +73,17 @@ MonoBehaviour:
       value: 5
     - key: attackCooldown
       value: 5
+  - id: 9
+    processTypeName: FindNearbyEnemiesNode
+    parentId: 3
+    childrenIds: 
+    editorPosition: {x: 451, y: 408}
+    comment: 
+    parametersList:
+    - key: searchRadius
+      value: 1000
+    - key: enemyTag
+      value: enemy
   ownerAssembly: BehaviorTree.Test1
   sharedAssemblies:
   - BehaviorTree.SharedTree

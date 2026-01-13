@@ -552,11 +552,23 @@ namespace BehaviorTree.Editor
                     e.Use();
                 }
                 
-                // 处理节点选择
+                // 处理节点点击
                 if (e != null && e.type == EventType.MouseUp && e.button == 0)
                 {
-                    _selectedNode = node;
-                    Repaint();
+                    // 如果正在连接状态，点击完成连接
+                    if (_connectingNode != null && _connectingNode != node)
+                    {
+                        ConnectNodes(_connectingNode, node);
+                        _connectingNode = null;
+                        e.Use();
+                        Repaint();
+                    }
+                    else
+                    {
+                        // 否则选中节点
+                        _selectedNode = node;
+                        Repaint();
+                    }
                 }
                 
                 float windowWidth = NODE_WIDTH * _zoom;
