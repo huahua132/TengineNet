@@ -1349,55 +1349,64 @@ namespace BehaviorTree.Editor
         }
         
         /// <summary>
-        /// 按照树的层级顺序重新分配节点ID
+        /// 按照节点层级（从上到下），同层级内从左到右重新分配节点ID
         /// </summary>
         private void ReassignNodeIds()
         {
-            if (_currentAsset == null || _currentAsset.nodes == null)
+            if (_currentAsset == null || _currentAsset.nodes == null || _currentAsset.nodes.Count == 0)
                 return;
-
-            // 找到根节点
-            var rootNode = _currentAsset.GetNode(_currentAsset.rootId);
-            if (rootNode == null)
-            {
-                EditorUtility.DisplayDialog("错误", "未找到根节点！", "确定");
-                return;
-            }
 
             // 创建旧ID到新ID的映射
             Dictionary<int, int> idMapping = new Dictionary<int, int>();
             int newId = 1;
 
-            // 广度优先遍历，按连接顺序分配ID
-            Queue<BehaviorNodeData> queue = new Queue<BehaviorNodeData>();
-            HashSet<int> visited = new HashSet<int>();
+            // 按层级分组（Y坐标相近的视为同一层）
+            const float LEVEL_THRESHOLD = 50f; // Y坐标差值小于50视为同一层
             
-            queue.Enqueue(rootNode);
-            visited.Add(rootNode.id);
-            idMapping[rootNode.id] = newId++;
-
-            while (queue.Count > 0)
+            // 先按Y坐标排序
+            var nodesByY = _currentAsset.nodes.OrderBy(n => n.editorPosition.y).ToList();
+            
+            // 分层
+            List<List<BehaviorNodeData>> levels = new List<List<BehaviorNodeData>>();
+            List<BehaviorNodeData> currentLevel = new List<BehaviorNodeData>();
+            float currentLevelY = nodesByY[0].editorPosition.y;
+            
+            foreach (var node in nodesByY)
             {
-                var current = queue.Dequeue();
-                
-                if (current.childrenIds != null)
+                if (Mathf.Abs(node.editorPosition.y - currentLevelY) <= LEVEL_THRESHOLD)
                 {
-                    foreach (var childId in current.childrenIds)
+                    // 同一层级
+                    currentLevel.Add(node);
+                }
+                else
+                {
+                    // 新层级
+                    if (currentLevel.Count > 0)
                     {
-                        if (visited.Contains(childId)) continue;
-                        
-                        var childNode = _currentAsset.GetNode(childId);
-                        if (childNode != null)
-                        {
-                            visited.Add(childId);
-                            idMapping[childId] = newId++;
-                            queue.Enqueue(childNode);
-                        }
+                        levels.Add(currentLevel);
                     }
+                    currentLevel = new List<BehaviorNodeData> { node };
+                    currentLevelY = node.editorPosition.y;
+                }
+            }
+            
+            // 添加最后一层
+            if (currentLevel.Count > 0)
+            {
+                levels.Add(currentLevel);
+            }
+
+            // 对每一层内的节点按X坐标（从左到右）排序，然后分配ID
+            foreach (var level in levels)
+            {
+                var sortedLevel = level.OrderBy(n => n.editorPosition.x).ToList();
+                foreach (var node in sortedLevel)
+                {
+                    idMapping[node.id] = newId++;
                 }
             }
 
-            // 应用新ID
+            // 应用新ID到所有节点
             foreach (var node in _currentAsset.nodes)
             {
                 if (idMapping.ContainsKey(node.id))
@@ -1431,13 +1440,16 @@ namespace BehaviorTree.Editor
                 _currentAsset.rootId = idMapping[_currentAsset.rootId];
             }
 
+            // 按新ID排序节点列表
+            _currentAsset.nodes = _currentAsset.nodes.OrderBy(n => n.id).ToList();
+
             // 更新下一个节点ID
             _nextNodeId = newId;
 
             MarkDirty();
             Repaint();
             
-            Debug.Log($"已重新分配节点ID（共{idMapping.Count}个节点）");
+            Debug.Log($"已按层级位置重新分配节点ID（共{levels.Count}层，{idMapping.Count}个节点）");
         }
 
         private void AddNodeToCanvas(BehaviorNodeTypeInfo nodeInfo, Vector2 position)
@@ -1530,7 +1542,7 @@ namespace BehaviorTree.Editor
         }
         
         /// <summary>
-        /// 自动整理节点布局 - 树状结构（防止重叠）
+        /// 自动整理节点布局 - 树状结构（防止重叠，保持ID不变）
         /// </summary>
         private void AutoLayoutNodes()
         {
@@ -1562,12 +1574,16 @@ namespace BehaviorTree.Editor
             CalculateLayout(rootNode, layoutInfos, NODE_SPACING);
             
             // 第二步：应用绝对位置（从根节点开始）
+            // 注意：只修改节点的editorPosition，不修改ID
             ApplyAbsolutePositions(rootNode, START_X, START_Y, VERTICAL_SPACING, layoutInfos);
+            
+            // 确保节点列表按ID排序（保持数据有序）
+            _currentAsset.nodes = _currentAsset.nodes.OrderBy(n => n.id).ToList();
             
             MarkDirty();
             Repaint();
             
-            Debug.Log($"已自动整理布局，共 {layoutInfos.Count} 个节点");
+            Debug.Log($"已自动整理布局（保持ID不变），共 {layoutInfos.Count} 个节点");
         }
         
         /// <summary>

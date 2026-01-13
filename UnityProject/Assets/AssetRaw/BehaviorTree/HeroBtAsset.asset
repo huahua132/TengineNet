@@ -17,25 +17,32 @@ MonoBehaviour:
   - id: 1
     processTypeName: SelectorNode
     parentId: -1
-    childrenIds: 02000000030000000400000005000000
-    editorPosition: {x: 500, y: 100.00001}
+    childrenIds: 02000000030000000500000004000000
+    editorPosition: {x: 500, y: 100}
     comment: "\u82F1\u96C4\u6D4B\u8BD5AI"
     parametersList: []
   - id: 2
     processTypeName: SequenceNode
     parentId: 1
     childrenIds: 0600000007000000
-    editorPosition: {x: -199.99998, y: 250}
+    editorPosition: {x: -200, y: 250}
     comment: "\u653B\u51FB"
     parametersList: []
   - id: 3
     processTypeName: SequenceNode
     parentId: 1
     childrenIds: 0800000009000000
-    editorPosition: {x: 360.00003, y: 250}
+    editorPosition: {x: 360, y: 250}
     comment: "\u79FB\u52A8"
     parametersList: []
   - id: 4
+    processTypeName: SequenceNode
+    parentId: 0
+    childrenIds: 0a0000000b000000
+    editorPosition: {x: 1200, y: 250}
+    comment: "\u9003\u8DD1"
+    parametersList: []
+  - id: 5
     processTypeName: IdleNode
     parentId: 1
     childrenIds: 
@@ -46,7 +53,7 @@ MonoBehaviour:
     processTypeName: FindNearbyEnemiesNode
     parentId: 2
     childrenIds: 
-    editorPosition: {x: -340, y: 399.99997}
+    editorPosition: {x: -340, y: 400}
     comment: "\u67E5\u627E\u654C\u4EBA"
     parametersList:
     - key: searchRadius
@@ -57,7 +64,7 @@ MonoBehaviour:
     processTypeName: AttackNode
     parentId: 2
     childrenIds: 
-    editorPosition: {x: -60.000004, y: 399.99997}
+    editorPosition: {x: -60, y: 400}
     comment: "\u653B\u51FB"
     parametersList:
     - key: attackRange
@@ -70,7 +77,7 @@ MonoBehaviour:
     processTypeName: FindNearbyEnemiesNode
     parentId: 3
     childrenIds: 
-    editorPosition: {x: 219.99997, y: 399.99997}
+    editorPosition: {x: 220, y: 400}
     comment: 
     parametersList:
     - key: searchRadius
@@ -81,7 +88,7 @@ MonoBehaviour:
     processTypeName: MoveToTargetNode
     parentId: 3
     childrenIds: 
-    editorPosition: {x: 500, y: 399.99997}
+    editorPosition: {x: 500, y: 400}
     comment: 
     parametersList:
     - key: speed
@@ -90,18 +97,11 @@ MonoBehaviour:
       value: 1
     - key: targetType
       value: BlackboardTarget
-  - id: 5
-    processTypeName: SequenceNode
-    parentId: 0
-    childrenIds: 0a0000000b000000
-    editorPosition: {x: 1199.9999, y: 250}
-    comment: "\u9003\u8DD1"
-    parametersList: []
   - id: 10
     processTypeName: CheckHealthNode
-    parentId: 5
+    parentId: 4
     childrenIds: 
-    editorPosition: {x: 1060, y: 399.99997}
+    editorPosition: {x: 1060, y: 400}
     comment: 
     parametersList:
     - key: checkType
@@ -112,9 +112,9 @@ MonoBehaviour:
       value: LessThan
   - id: 11
     processTypeName: MoveToTargetNode
-    parentId: 5
+    parentId: 4
     childrenIds: 
-    editorPosition: {x: 1340.0001, y: 399.99997}
+    editorPosition: {x: 1340, y: 400}
     comment: "\u56DE\u5230\u539F\u70B9"
     parametersList:
     - key: targetType
@@ -126,4 +126,3 @@ MonoBehaviour:
   ownerAssembly: BehaviorTree.Test1
   sharedAssemblies:
   - BehaviorTree.SharedTree
-  - 
