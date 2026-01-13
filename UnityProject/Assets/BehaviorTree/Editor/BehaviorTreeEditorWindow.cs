@@ -205,6 +205,14 @@ namespace BehaviorTree.Editor
                 SaveAsset();
             }
             GUI.backgroundColor = saveButtonColor;
+            
+            GUILayout.Space(10);
+            
+            // 自动布局按钮
+            if (GUILayout.Button("Auto Layout", EditorStyles.toolbarButton, GUILayout.Width(80)))
+            {
+                AutoLayoutNodes();
+            }
 
             GUILayout.Space(10);
 
@@ -1518,6 +1526,138 @@ namespace BehaviorTree.Editor
                 to.parentId = -1;
                 MarkDirty();
                 Repaint();
+            }
+        }
+        
+        /// <summary>
+        /// 自动整理节点布局 - 树状结构（防止重叠）
+        /// </summary>
+        private void AutoLayoutNodes()
+        {
+            if (_currentAsset == null || _currentAsset.nodes == null || _currentAsset.nodes.Count == 0)
+            {
+                EditorUtility.DisplayDialog("提示", "没有节点需要整理", "确定");
+                return;
+            }
+            
+            // 找到根节点
+            var rootNode = _currentAsset.GetNode(_currentAsset.rootId);
+            if (rootNode == null)
+            {
+                EditorUtility.DisplayDialog("错误", "未找到根节点", "确定");
+                return;
+            }
+            
+            // 清除高度缓存
+            _nodeHeights.Clear();
+            
+            // 布局参数
+            const float NODE_SPACING = 280f;      // 节点间距
+            const float VERTICAL_SPACING = 150f;  // 垂直间距
+            const float START_X = 500f;           // 起始X坐标（居中）
+            const float START_Y = 100f;           // 起始Y坐标
+            
+            // 第一步：计算布局信息（递归计算每个子树的宽度和相对位置）
+            Dictionary<int, LayoutNodeInfo> layoutInfos = new Dictionary<int, LayoutNodeInfo>();
+            CalculateLayout(rootNode, layoutInfos, NODE_SPACING);
+            
+            // 第二步：应用绝对位置（从根节点开始）
+            ApplyAbsolutePositions(rootNode, START_X, START_Y, VERTICAL_SPACING, layoutInfos);
+            
+            MarkDirty();
+            Repaint();
+            
+            Debug.Log($"已自动整理布局，共 {layoutInfos.Count} 个节点");
+        }
+        
+        /// <summary>
+        /// 节点布局信息
+        /// </summary>
+        private class LayoutNodeInfo
+        {
+            public float subtreeWidth;           // 子树总宽度
+            public float relativeX;              // 相对于父节点的X偏移
+            public List<float> childrenOffsets;  // 子节点的相对X偏移列表
+        }
+        
+        /// <summary>
+        /// 递归计算布局信息
+        /// </summary>
+        private float CalculateLayout(BehaviorNodeData node, Dictionary<int, LayoutNodeInfo> layoutInfos, float nodeSpacing)
+        {
+            var info = new LayoutNodeInfo();
+            info.childrenOffsets = new List<float>();
+            
+            // 没有子节点
+            if (node.childrenIds == null || node.childrenIds.Count == 0)
+            {
+                info.subtreeWidth = nodeSpacing;
+                info.relativeX = 0;
+                layoutInfos[node.id] = info;
+                return nodeSpacing;
+            }
+            
+            // 递归计算所有子节点的宽度
+            List<float> childWidths = new List<float>();
+            foreach (var childId in node.childrenIds)
+            {
+                var childNode = _currentAsset.GetNode(childId);
+                if (childNode != null)
+                {
+                    float childWidth = CalculateLayout(childNode, layoutInfos, nodeSpacing);
+                    childWidths.Add(childWidth);
+                }
+            }
+            
+            // 计算总宽度
+            float totalWidth = 0;
+            foreach (var width in childWidths)
+            {
+                totalWidth += width;
+            }
+            
+            // 计算每个子节点的偏移量（从左到右排列）
+            float currentOffset = -totalWidth / 2;
+            for (int i = 0; i < childWidths.Count; i++)
+            {
+                float childCenterOffset = currentOffset + childWidths[i] / 2;
+                info.childrenOffsets.Add(childCenterOffset);
+                currentOffset += childWidths[i];
+            }
+            
+            info.subtreeWidth = Mathf.Max(totalWidth, nodeSpacing);
+            info.relativeX = 0; // 父节点居中
+            layoutInfos[node.id] = info;
+            
+            return info.subtreeWidth;
+        }
+        
+        /// <summary>
+        /// 应用绝对位置
+        /// </summary>
+        private void ApplyAbsolutePositions(BehaviorNodeData node, float absoluteX, float absoluteY, float verticalSpacing, Dictionary<int, LayoutNodeInfo> layoutInfos)
+        {
+            // 设置当前节点的绝对位置
+            node.editorPosition = new Vector2(absoluteX, absoluteY);
+            
+            // 没有子节点，直接返回
+            if (node.childrenIds == null || node.childrenIds.Count == 0)
+                return;
+            
+            // 获取布局信息
+            if (!layoutInfos.TryGetValue(node.id, out var info))
+                return;
+            
+            // 递归设置子节点位置
+            for (int i = 0; i < node.childrenIds.Count && i < info.childrenOffsets.Count; i++)
+            {
+                var childNode = _currentAsset.GetNode(node.childrenIds[i]);
+                if (childNode != null)
+                {
+                    float childX = absoluteX + info.childrenOffsets[i];
+                    float childY = absoluteY + verticalSpacing;
+                    ApplyAbsolutePositions(childNode, childX, childY, verticalSpacing, layoutInfos);
+                }
             }
         }
         #endregion
