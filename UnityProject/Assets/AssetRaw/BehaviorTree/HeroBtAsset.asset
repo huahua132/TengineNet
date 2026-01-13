@@ -32,21 +32,21 @@ MonoBehaviour:
     processTypeName: SequenceNode
     parentId: 1
     childrenIds: 0800000009000000
-    editorPosition: {x: 360, y: 250}
+    editorPosition: {x: 360.00003, y: 250}
     comment: "\u79FB\u52A8"
     parametersList: []
   - id: 4
     processTypeName: SequenceNode
     parentId: 0
     childrenIds: 0a0000000b000000
-    editorPosition: {x: 1200, y: 250}
+    editorPosition: {x: 920, y: 250}
     comment: "\u9003\u8DD1"
     parametersList: []
   - id: 5
     processTypeName: IdleNode
     parentId: 1
     childrenIds: 
-    editorPosition: {x: 780, y: 250}
+    editorPosition: {x: 1340.0001, y: 250}
     comment: "\u5F85\u673A"
     parametersList: []
   - id: 6
@@ -64,7 +64,7 @@ MonoBehaviour:
     processTypeName: AttackNode
     parentId: 2
     childrenIds: 
-    editorPosition: {x: -60, y: 400}
+    editorPosition: {x: -59.999996, y: 400}
     comment: "\u653B\u51FB"
     parametersList:
     - key: attackRange
@@ -101,7 +101,7 @@ MonoBehaviour:
     processTypeName: CheckHealthNode
     parentId: 4
     childrenIds: 
-    editorPosition: {x: 1060, y: 400}
+    editorPosition: {x: 780, y: 400}
     comment: 
     parametersList:
     - key: checkType
@@ -114,7 +114,7 @@ MonoBehaviour:
     processTypeName: MoveToTargetNode
     parentId: 4
     childrenIds: 
-    editorPosition: {x: 1340, y: 400}
+    editorPosition: {x: 1060, y: 400}
     comment: "\u56DE\u5230\u539F\u70B9"
     parametersList:
     - key: targetType

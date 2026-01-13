@@ -1574,16 +1574,13 @@ namespace BehaviorTree.Editor
             CalculateLayout(rootNode, layoutInfos, NODE_SPACING);
             
             // 第二步：应用绝对位置（从根节点开始）
-            // 注意：只修改节点的editorPosition，不修改ID
+            // 注意：只修改节点的editorPosition，不修改ID、不修改childrenIds、不修改nodes列表顺序
             ApplyAbsolutePositions(rootNode, START_X, START_Y, VERTICAL_SPACING, layoutInfos);
-            
-            // 确保节点列表按ID排序（保持数据有序）
-            _currentAsset.nodes = _currentAsset.nodes.OrderBy(n => n.id).ToList();
             
             MarkDirty();
             Repaint();
             
-            Debug.Log($"已自动整理布局（保持ID不变），共 {layoutInfos.Count} 个节点");
+            Debug.Log($"已自动整理布局（仅调整视觉位置），共 {layoutInfos.Count} 个节点");
         }
         
         /// <summary>
@@ -1598,6 +1595,7 @@ namespace BehaviorTree.Editor
         
         /// <summary>
         /// 递归计算布局信息
+        /// 注意：同一层级的子节点按ID从小到大排列（从左到右）
         /// </summary>
         private float CalculateLayout(BehaviorNodeData node, Dictionary<int, LayoutNodeInfo> layoutInfos, float nodeSpacing)
         {
@@ -1613,16 +1611,19 @@ namespace BehaviorTree.Editor
                 return nodeSpacing;
             }
             
-            // 递归计算所有子节点的宽度
+            // 获取所有子节点并按ID排序（从小到大）
+            var sortedChildNodes = node.childrenIds
+                .Select(id => _currentAsset.GetNode(id))
+                .Where(n => n != null)
+                .OrderBy(n => n.id)
+                .ToList();
+            
+            // 递归计算所有子节点的宽度（按ID排序后的顺序）
             List<float> childWidths = new List<float>();
-            foreach (var childId in node.childrenIds)
+            foreach (var childNode in sortedChildNodes)
             {
-                var childNode = _currentAsset.GetNode(childId);
-                if (childNode != null)
-                {
-                    float childWidth = CalculateLayout(childNode, layoutInfos, nodeSpacing);
-                    childWidths.Add(childWidth);
-                }
+                float childWidth = CalculateLayout(childNode, layoutInfos, nodeSpacing);
+                childWidths.Add(childWidth);
             }
             
             // 计算总宽度
@@ -1632,7 +1633,7 @@ namespace BehaviorTree.Editor
                 totalWidth += width;
             }
             
-            // 计算每个子节点的偏移量（从左到右排列）
+            // 计算每个子节点的偏移量（从左到右排列，ID小的在左边）
             float currentOffset = -totalWidth / 2;
             for (int i = 0; i < childWidths.Count; i++)
             {
@@ -1649,11 +1650,11 @@ namespace BehaviorTree.Editor
         }
         
         /// <summary>
-        /// 应用绝对位置
+        /// 应用绝对位置（只修改editorPosition，不修改树结构）
         /// </summary>
         private void ApplyAbsolutePositions(BehaviorNodeData node, float absoluteX, float absoluteY, float verticalSpacing, Dictionary<int, LayoutNodeInfo> layoutInfos)
         {
-            // 设置当前节点的绝对位置
+            // 设置当前节点的绝对位置（只修改视觉位置）
             node.editorPosition = new Vector2(absoluteX, absoluteY);
             
             // 没有子节点，直接返回
@@ -1664,16 +1665,20 @@ namespace BehaviorTree.Editor
             if (!layoutInfos.TryGetValue(node.id, out var info))
                 return;
             
-            // 递归设置子节点位置
-            for (int i = 0; i < node.childrenIds.Count && i < info.childrenOffsets.Count; i++)
+            // 获取所有子节点并按ID排序
+            var sortedChildNodes = node.childrenIds
+                .Select(id => _currentAsset.GetNode(id))
+                .Where(n => n != null)
+                .OrderBy(n => n.id)
+                .ToList();
+            
+            // 递归设置子节点位置（按ID排序，ID小的在左边）
+            for (int i = 0; i < sortedChildNodes.Count && i < info.childrenOffsets.Count; i++)
             {
-                var childNode = _currentAsset.GetNode(node.childrenIds[i]);
-                if (childNode != null)
-                {
-                    float childX = absoluteX + info.childrenOffsets[i];
-                    float childY = absoluteY + verticalSpacing;
-                    ApplyAbsolutePositions(childNode, childX, childY, verticalSpacing, layoutInfos);
-                }
+                var childNode = sortedChildNodes[i];
+                float childX = absoluteX + info.childrenOffsets[i];
+                float childY = absoluteY + verticalSpacing;
+                ApplyAbsolutePositions(childNode, childX, childY, verticalSpacing, layoutInfos);
             }
         }
         #endregion
