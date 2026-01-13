@@ -2,7 +2,7 @@ using UnityEngine;
 
 namespace BehaviorTree.Test1
 {
-    [BehaviorProcessNode("移动到目标", "移动到指定的目标位置", BehaviorProcessType.action)]
+    [BehaviorProcessNode("Move To Target", "移动到指定的目标位置", BehaviorProcessType.action)]
     public class MoveToTargetNode : BehaviorProcessNodeBase
     {
         [Tooltip("目标位置的X坐标")]

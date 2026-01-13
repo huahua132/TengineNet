@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace BehaviorTree.Test1
 {
-    [BehaviorProcessNode("查找附近敌人", "在指定范围内查找敌人", BehaviorProcessType.condition)]
+    [BehaviorProcessNode("Find Nearby Enemies", "在指定范围内查找敌人", BehaviorProcessType.condition)]
     public class FindNearbyEnemiesNode : BehaviorProcessNodeBase
     {
         [Tooltip("搜索半径范围（单位）")]

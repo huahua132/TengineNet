@@ -2,7 +2,7 @@ using UnityEngine;
 
 namespace BehaviorTree.Test1
 {
-    [BehaviorProcessNode("攻击", "攻击目标敌人", BehaviorProcessType.action)]
+    [BehaviorProcessNode("Attack", "攻击目标敌人", BehaviorProcessType.action)]
     public class AttackNode : BehaviorProcessNodeBase
     {
         [Tooltip("攻击范围（单位）")]
