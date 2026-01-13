@@ -49,6 +49,9 @@ namespace BehaviorTree.Editor
         private BehaviorNodeTypeInfo _draggingNodeType;
         private bool _isDragging = false;
         
+        // 鼠标悬停
+        private BehaviorNodeData _hoveredNode;
+        
         // 运行时调试
         private Tree _runtimeTree;
         private bool _isDebugMode = false;
@@ -513,6 +516,29 @@ namespace BehaviorTree.Editor
             Vector2 pos = node.editorPosition * _zoom + _offset;
             float nodeHeight = CalculateNodeHeight(node);
             
+            // 鼠标悬停检测（在窗口坐标系中）
+            bool isHovered = false;
+            if (Event.current != null && Event.current.type == EventType.Repaint)
+            {
+                Vector2 mousePos = Event.current.mousePosition;
+                Rect nodeRect = new Rect(pos.x, pos.y, NODE_WIDTH * _zoom, nodeHeight * _zoom);
+                isHovered = nodeRect.Contains(mousePos);
+            }
+            
+            // 如果是悬停节点，放大20%
+            float scaleMultiplier = (isHovered && !_isDragging) ? 1.2f : 1.0f;
+            float scaledWidth = NODE_WIDTH * _zoom * scaleMultiplier;
+            float scaledHeight = nodeHeight * _zoom * scaleMultiplier;
+            
+            // 居中放大（从中心点缩放）
+            if (scaleMultiplier > 1.0f)
+            {
+                float widthDiff = scaledWidth - NODE_WIDTH * _zoom;
+                float heightDiff = scaledHeight - nodeHeight * _zoom;
+                pos.x -= widthDiff / 2;
+                pos.y -= heightDiff / 2;
+            }
+            
             // 获取节点信息
             var nodeInfo = BehaviorNodeRegistry.GetNodeInfo(node.processTypeName);
             Color nodeColor = nodeInfo != null ? nodeInfo.Color : Color.gray;
@@ -526,30 +552,38 @@ namespace BehaviorTree.Editor
             Rect idRect = new Rect(pos.x, pos.y - 15 * _zoom, NODE_WIDTH * _zoom, 15 * _zoom);
             GUI.Label(idRect, $"ID: {node.id}", idStyle);
             
-            Rect rect = new Rect(pos.x, pos.y, NODE_WIDTH * _zoom, nodeHeight * _zoom);
+            Rect rect = new Rect(pos.x, pos.y, scaledWidth, scaledHeight);
 
             // 设置颜色
             Color originalColor = GUI.backgroundColor;
             
+            // 绘制边框（使用节点类型颜色）
+            float borderWidth = 2f;
+            EditorGUI.DrawRect(new Rect(rect.x - borderWidth, rect.y - borderWidth, rect.width + borderWidth * 2, rect.height + borderWidth * 2), nodeColor);
+            
             // 根节点用绿色边框
             if (_currentAsset != null && node.id == _currentAsset.rootId)
             {
-                EditorGUI.DrawRect(new Rect(rect.x - 2, rect.y - 2, rect.width + 4, rect.height + 4), Color.green);
+                EditorGUI.DrawRect(new Rect(rect.x - 3, rect.y - 3, rect.width + 6, rect.height + 6), Color.green);
             }
             
-            // 选中节点高亮
+            // 选中节点高亮（黄色边框）
             if (node == _selectedNode)
             {
-                EditorGUI.DrawRect(new Rect(rect.x - 2, rect.y - 2, rect.width + 4, rect.height + 4), Color.yellow);
+                EditorGUI.DrawRect(new Rect(rect.x - 3, rect.y - 3, rect.width + 6, rect.height + 6), Color.yellow);
             }
             
             // 运行时状态颜色
             if (_isDebugMode && _nodeRuntimeStatus.ContainsKey(node.id))
             {
                 Color statusColor = GetStatusColor(_nodeRuntimeStatus[node.id]);
-                EditorGUI.DrawRect(new Rect(rect.x - 3, rect.y - 3, rect.width + 6, rect.height + 6), statusColor);
+                EditorGUI.DrawRect(new Rect(rect.x - 4, rect.y - 4, rect.width + 8, rect.height + 8), statusColor);
             }
 
+            // 保存原始zoom值用于窗口内的绘制
+            float originalZoom = _zoom;
+            float effectiveZoom = _zoom * scaleMultiplier;
+            
             rect = GUI.Window(index, rect, (id) =>
             {
                 // 处理右键菜单
@@ -579,22 +613,19 @@ namespace BehaviorTree.Editor
                     }
                 }
                 
-                float windowWidth = NODE_WIDTH * _zoom;
-                float windowHeight = nodeHeight * _zoom;
+                float windowWidth = scaledWidth;
+                float windowHeight = scaledHeight;
                 
                 // === 标题部分（彩色背景）===
-                float headerHeight = NODE_HEADER_HEIGHT * _zoom;
+                float headerHeight = NODE_HEADER_HEIGHT * effectiveZoom;
                 Rect headerRect = new Rect(0, 0, windowWidth, headerHeight);
                 
-                // 绘制标题背景（使用节点类型颜色）
-                Color oldBg = GUI.backgroundColor;
-                GUI.backgroundColor = nodeColor;
-                GUI.Box(headerRect, "", GUI.skin.box);
-                GUI.backgroundColor = oldBg;
+                // 绘制标题背景（使用节点类型颜色，完全不透明）
+                EditorGUI.DrawRect(headerRect, nodeColor);
                 
                 // 绘制标题内容（左上角图标 + 节点类型）
-                float iconSize = 16 * _zoom;
-                float iconPadding = 5 * _zoom;
+                float iconSize = 16 * effectiveZoom;
+                float iconPadding = 5 * effectiveZoom;
                 
                 if (nodeInfo != null)
                 {
@@ -606,12 +637,13 @@ namespace BehaviorTree.Editor
                     }
                 }
                 
-                // 节点显示名称（使用节点的Name属性）
+                // 节点显示名称（使用节点的Name属性，黑色加粗）
                 GUIStyle typeNameStyle = new GUIStyle(EditorStyles.boldLabel);
-                typeNameStyle.fontSize = Mathf.RoundToInt(11 * _zoom);
+                typeNameStyle.fontSize = Mathf.RoundToInt(11 * effectiveZoom);
                 typeNameStyle.alignment = TextAnchor.MiddleLeft;
-                typeNameStyle.normal.textColor = Color.white;
-                typeNameStyle.hover.textColor = Color.white;  // 鼠标悬停不改变颜色
+                typeNameStyle.normal.textColor = Color.black;
+                typeNameStyle.hover.textColor = Color.black;  // 鼠标悬停不改变颜色
+                typeNameStyle.fontStyle = FontStyle.Bold;
                 
                 string displayName = nodeInfo != null ? nodeInfo.Name : node.processTypeName;
                 Rect typeNameRect = new Rect(iconSize + iconPadding * 2, 0, windowWidth - iconSize - iconPadding * 3, headerHeight);
@@ -625,13 +657,13 @@ namespace BehaviorTree.Editor
                 
                 // 绘制内容
                 GUIStyle contentStyle = new GUIStyle(EditorStyles.label);
-                contentStyle.fontSize = Mathf.RoundToInt(9 * _zoom);
+                contentStyle.fontSize = Mathf.RoundToInt(9 * effectiveZoom);
                 contentStyle.alignment = TextAnchor.UpperLeft;
                 contentStyle.normal.textColor = Color.black;
                 contentStyle.wordWrap = false;  // 不换行
                 contentStyle.clipping = TextClipping.Clip;  // 超出部分裁剪
-                float contentY = headerHeight + NODE_PADDING * _zoom;
-                float contentPadding = NODE_PADDING * _zoom;
+                float contentY = headerHeight + NODE_PADDING * effectiveZoom;
+                float contentPadding = NODE_PADDING * effectiveZoom;
                 
                 contentStyle.hover.textColor = Color.black; // 鼠标悬停不改变颜色
                 
@@ -639,24 +671,24 @@ namespace BehaviorTree.Editor
                 if (!string.IsNullOrEmpty(node.comment))
                 {
                     GUIStyle commentLabelStyle = new GUIStyle(EditorStyles.label);
-                    commentLabelStyle.fontSize = Mathf.RoundToInt(8 * _zoom);
+                    commentLabelStyle.fontSize = Mathf.RoundToInt(8 * effectiveZoom);
                     commentLabelStyle.alignment = TextAnchor.UpperLeft;
                     commentLabelStyle.normal.textColor = new Color(0.5f, 0.5f, 0.5f); // 灰色标签
                     commentLabelStyle.hover.textColor = new Color(0.5f, 0.5f, 0.5f);
                     commentLabelStyle.fontStyle = FontStyle.Bold;
                     
                     GUIStyle commentStyle = new GUIStyle(EditorStyles.label);
-                    commentStyle.fontSize = Mathf.RoundToInt(8 * _zoom);
+                    commentStyle.fontSize = Mathf.RoundToInt(8 * effectiveZoom);
                     commentStyle.alignment = TextAnchor.UpperLeft;
                     commentStyle.normal.textColor = new Color(0.3f, 0.3f, 0.3f); // 深灰色
                     commentStyle.hover.textColor = new Color(0.3f, 0.3f, 0.3f);
                     commentStyle.wordWrap = true;
                     commentStyle.fontStyle = FontStyle.Italic;
                     
-                    float labelWidth = 50 * _zoom;
+                    float labelWidth = 50 * effectiveZoom;
                     
                     // 绘制"备注:"标签
-                    Rect commentLabelRect = new Rect(contentPadding, contentY, labelWidth, NODE_PARAM_LINE_HEIGHT * _zoom);
+                    Rect commentLabelRect = new Rect(contentPadding, contentY, labelWidth, NODE_PARAM_LINE_HEIGHT * effectiveZoom);
                     GUI.Label(commentLabelRect, "备注:", commentLabelStyle);
                     
                     // 计算备注内容区域
@@ -664,7 +696,7 @@ namespace BehaviorTree.Editor
                     float commentHeight = commentStyle.CalcHeight(new GUIContent(node.comment), commentContentWidth);
                     Rect commentRect = new Rect(contentPadding + labelWidth, contentY, commentContentWidth, commentHeight);
                     GUI.Label(commentRect, node.comment, commentStyle);
-                    contentY += Mathf.Max(commentHeight, NODE_PARAM_LINE_HEIGHT * _zoom) + NODE_PADDING * _zoom * 0.5f;
+                    contentY += Mathf.Max(commentHeight, NODE_PARAM_LINE_HEIGHT * effectiveZoom) + NODE_PADDING * effectiveZoom * 0.5f;
                 }
                 
                 // 显示参数
@@ -674,7 +706,7 @@ namespace BehaviorTree.Editor
                     {
                         if (!string.IsNullOrEmpty(param.value))
                         {
-                            float labelWidth = 70 * _zoom;
+                            float labelWidth = 70 * effectiveZoom;
                             
                             // 绘制参数名（左侧）- 确保不换行
                             GUIStyle paramLabelStyle = new GUIStyle(contentStyle);
@@ -682,7 +714,7 @@ namespace BehaviorTree.Editor
                             paramLabelStyle.wordWrap = false;
                             paramLabelStyle.clipping = TextClipping.Clip;
                             
-                            Rect paramLabelRect = new Rect(contentPadding, contentY, labelWidth, NODE_PARAM_LINE_HEIGHT * _zoom);
+                            Rect paramLabelRect = new Rect(contentPadding, contentY, labelWidth, NODE_PARAM_LINE_HEIGHT * effectiveZoom);
                             GUI.Label(paramLabelRect, $"{param.key}:", paramLabelStyle);
                             
                             // 绘制参数值（右侧）- 确保不换行
@@ -690,10 +722,10 @@ namespace BehaviorTree.Editor
                             paramValueStyle.wordWrap = false;
                             paramValueStyle.clipping = TextClipping.Clip;
                             
-                            Rect paramValueRect = new Rect(contentPadding + labelWidth, contentY, windowWidth - contentPadding * 2 - labelWidth, NODE_PARAM_LINE_HEIGHT * _zoom);
+                            Rect paramValueRect = new Rect(contentPadding + labelWidth, contentY, windowWidth - contentPadding * 2 - labelWidth, NODE_PARAM_LINE_HEIGHT * effectiveZoom);
                             string displayValue = param.value.Length > 12 ? param.value.Substring(0, 9) + "..." : param.value;
                             GUI.Label(paramValueRect, displayValue, paramValueStyle);
-                            contentY += NODE_PARAM_LINE_HEIGHT * _zoom;
+                            contentY += NODE_PARAM_LINE_HEIGHT * effectiveZoom;
                         }
                     }
                 }
@@ -702,12 +734,12 @@ namespace BehaviorTree.Editor
                 if (_isDebugMode && _nodeRuntimeStatus.ContainsKey(node.id))
                 {
                     GUIStyle statusStyle = new GUIStyle(EditorStyles.miniLabel);
-                    statusStyle.fontSize = Mathf.RoundToInt(8 * _zoom);
+                    statusStyle.fontSize = Mathf.RoundToInt(8 * effectiveZoom);
                     statusStyle.alignment = TextAnchor.MiddleCenter;
                     statusStyle.normal.textColor = GetStatusColor(_nodeRuntimeStatus[node.id]);
                     statusStyle.fontStyle = FontStyle.Bold;
                     
-                    Rect statusRect = new Rect(contentPadding, contentY, windowWidth - contentPadding * 2, NODE_PARAM_LINE_HEIGHT * _zoom);
+                    Rect statusRect = new Rect(contentPadding, contentY, windowWidth - contentPadding * 2, NODE_PARAM_LINE_HEIGHT * effectiveZoom);
                     GUI.Label(statusRect, $"状态: {_nodeRuntimeStatus[node.id]}", statusStyle);
                 }
 
@@ -716,7 +748,17 @@ namespace BehaviorTree.Editor
 
             GUI.backgroundColor = originalColor;
 
-            node.editorPosition = (rect.position - _offset) / _zoom;
+            // 只在非悬停状态更新位置（避免悬停时位置抖动）
+            if (scaleMultiplier == 1.0f)
+            {
+                node.editorPosition = (rect.position - _offset) / _zoom;
+            }
+            
+            // 如果有悬停，触发重绘
+            if (isHovered)
+            {
+                Repaint();
+            }
         }
 
         private Color GetStatusColor(BehaviorRet status)

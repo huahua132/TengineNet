@@ -39,16 +39,16 @@ namespace BehaviorTree.Editor
         }
 
         /// <summary>
-        /// 初始化类型颜色
+        /// 初始化类型颜色（参考标准行为树编辑器配色）
         /// </summary>
         private static void InitializeColors()
         {
             _typeColors = new Dictionary<BehaviorProcessType, Color>
             {
-                { BehaviorProcessType.composite, new Color(0.4f, 0.9f, 0.6f) },    // 绿色 - 组合节点
-                { BehaviorProcessType.decorator, new Color(0.9f, 0.6f, 0.4f) },    // 橙色 - 装饰节点
-                { BehaviorProcessType.condition, new Color(0.9f, 0.4f, 0.4f) },    // 红色 - 条件节点
-                { BehaviorProcessType.action, new Color(0.4f, 0.6f, 0.9f) }        // 蓝色 - 行为节点
+                { BehaviorProcessType.composite, new Color(0.3f, 0.85f, 0.3f) },   // 鲜绿色 - 组合节点 (Selector, Sequence)
+                { BehaviorProcessType.decorator, new Color(1.0f, 0.6f, 0.2f) },    // 橙色 - 装饰节点 (AlwaysFail, Once)
+                { BehaviorProcessType.condition, new Color(0.95f, 0.3f, 0.7f) },   // 洋红色/粉红色 - 条件节点 (FindEnemy)
+                { BehaviorProcessType.action, new Color(0.3f, 0.6f, 1.0f) }        // 亮蓝色 - 行为节点 (Listen, Log, Attack, Wait, MoveToTarget)
             };
         }
 
