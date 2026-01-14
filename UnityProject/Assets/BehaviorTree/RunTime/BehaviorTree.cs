@@ -20,9 +20,6 @@ namespace BehaviorTree
         private BehaviorTreeAsset _asset;
         private Dictionary<int, BehaviorNode> _nodeDict = new();
         
-        // 运行时调试回调
-        public System.Action<int, BehaviorRet> OnNodeStatusChanged;
-        
         // 类型缓存，避免重复反射查找
         private static Dictionary<string, Type> _typeCache = new Dictionary<string, Type>();
         private static bool _typeCacheInitialized = false;
@@ -249,9 +246,6 @@ namespace BehaviorTree
                 {
                     lastRet = lastNode.TickRun();
                     
-                    // 报告节点状态
-                    OnNodeStatusChanged?.Invoke(lastNode.ID, lastRet);
-                    
                     if (lastRet == BehaviorRet.RUNNING)
                     {
                         break;
@@ -262,9 +256,6 @@ namespace BehaviorTree
             else
             {
                 lastRet = _root.TickRun();
-                
-                // 报告根节点状态
-                OnNodeStatusChanged?.Invoke(_root.ID, lastRet);
             }
 
             if (_context.IsAbort())

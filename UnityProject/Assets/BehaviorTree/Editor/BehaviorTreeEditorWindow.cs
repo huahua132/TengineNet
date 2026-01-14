@@ -52,11 +52,6 @@ namespace BehaviorTree.Editor
         // 鼠标悬停
         private BehaviorNodeData _hoveredNode;
         
-        // 运行时调试
-        private Tree _runtimeTree;
-        private bool _isDebugMode = false;
-        private Dictionary<int, BehaviorRet> _nodeRuntimeStatus = new Dictionary<int, BehaviorRet>();
-        
         // 折叠状态
         private Dictionary<BehaviorProcessType, bool> _categoryFoldouts = new Dictionary<BehaviorProcessType, bool>();
         private Dictionary<string, bool> _assemblyFoldouts = new Dictionary<string, bool>(); // 程序集折叠状态
@@ -175,20 +170,6 @@ namespace BehaviorTree.Editor
             }
 
             GUILayout.FlexibleSpace();
-
-            // 调试模式开关
-            Color oldColor = GUI.backgroundColor;
-            if (_isDebugMode)
-            {
-                GUI.backgroundColor = Color.green;
-            }
-            if (GUILayout.Button(_isDebugMode ? "Debug: ON" : "Debug: OFF", EditorStyles.toolbarButton, GUILayout.Width(100)))
-            {
-                _isDebugMode = !_isDebugMode;
-            }
-            GUI.backgroundColor = oldColor;
-
-            GUILayout.Space(10);
 
             // 文件操作
             if (GUILayout.Button("New", EditorStyles.toolbarButton, GUILayout.Width(50)))
@@ -572,13 +553,6 @@ namespace BehaviorTree.Editor
             {
                 EditorGUI.DrawRect(new Rect(rect.x - 3, rect.y - 3, rect.width + 6, rect.height + 6), Color.yellow);
             }
-            
-            // 运行时状态颜色
-            if (_isDebugMode && _nodeRuntimeStatus.ContainsKey(node.id))
-            {
-                Color statusColor = GetStatusColor(_nodeRuntimeStatus[node.id]);
-                EditorGUI.DrawRect(new Rect(rect.x - 4, rect.y - 4, rect.width + 8, rect.height + 8), statusColor);
-            }
 
             // 保存原始zoom值用于窗口内的绘制
             float originalZoom = _zoom;
@@ -729,19 +703,6 @@ namespace BehaviorTree.Editor
                         }
                     }
                 }
-                
-                // 运行时状态显示
-                if (_isDebugMode && _nodeRuntimeStatus.ContainsKey(node.id))
-                {
-                    GUIStyle statusStyle = new GUIStyle(EditorStyles.miniLabel);
-                    statusStyle.fontSize = Mathf.RoundToInt(8 * effectiveZoom);
-                    statusStyle.alignment = TextAnchor.MiddleCenter;
-                    statusStyle.normal.textColor = GetStatusColor(_nodeRuntimeStatus[node.id]);
-                    statusStyle.fontStyle = FontStyle.Bold;
-                    
-                    Rect statusRect = new Rect(contentPadding, contentY, windowWidth - contentPadding * 2, NODE_PARAM_LINE_HEIGHT * effectiveZoom);
-                    GUI.Label(statusRect, $"状态: {_nodeRuntimeStatus[node.id]}", statusStyle);
-                }
 
                 GUI.DragWindow();
             }, GUIContent.none);
@@ -758,23 +719,6 @@ namespace BehaviorTree.Editor
             if (isHovered)
             {
                 Repaint();
-            }
-        }
-
-        private Color GetStatusColor(BehaviorRet status)
-        {
-            switch (status)
-            {
-                case BehaviorRet.SUCCESS:
-                    return Color.green;
-                case BehaviorRet.FAIL:
-                    return Color.red;
-                case BehaviorRet.RUNNING:
-                    return Color.yellow;
-                case BehaviorRet.ABORT:
-                    return Color.magenta;
-                default:
-                    return Color.white;
             }
         }
 
@@ -1730,7 +1674,6 @@ namespace BehaviorTree.Editor
         {
             _selectedNode = null;
             _connectingNode = null;
-            _nodeRuntimeStatus.Clear();
             _isDirty = false;
             
             if (_currentAsset != null && _currentAsset.nodes != null)
@@ -1796,25 +1739,6 @@ namespace BehaviorTree.Editor
                 _isDirty = true;
                 UpdateTitle();
             }
-        }
-        #endregion
-
-        #region Runtime Debug
-        public void SetRuntimeTree(BehaviorTreeRuntime tree)
-        {
-            _runtimeTree = tree;
-        }
-
-        public void UpdateNodeStatus(int nodeId, BehaviorRet status)
-        {
-            _nodeRuntimeStatus[nodeId] = status;
-            Repaint();
-        }
-
-        public void ClearRuntimeStatus()
-        {
-            _nodeRuntimeStatus.Clear();
-            Repaint();
         }
         #endregion
     }
