@@ -97,12 +97,6 @@ public class BehaviorTreeTest : MonoBehaviour
 
         _isInitialized = true;
         executeCount = 0;
-        
-        // 启用调试模式
-        if (enableDebug)
-        {
-            _behaviorTree.OnNodeStatusChanged += OnNodeStatusChanged;
-        }
 
         Debug.Log($"[BehaviorTreeTest] 行为树初始化成功: {treeAsset.name}, 绑定Transform: {targetTransform.name}");
     }

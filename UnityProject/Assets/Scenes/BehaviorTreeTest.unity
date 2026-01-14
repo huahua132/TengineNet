@@ -229,6 +229,7 @@ GameObject:
   - component: {fileID: 371571616}
   - component: {fileID: 371571615}
   - component: {fileID: 371571619}
+  - component: {fileID: 371571620}
   m_Layer: 0
   m_Name: Hero
   m_TagString: Player
@@ -331,7 +332,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 371571614}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: eb7a1ce175cc82243bab39bd83c64445, type: 3}
   m_Name: 
@@ -344,6 +345,23 @@ MonoBehaviour:
   manualRunKey: 32
   lastResult: 0
   executeCount: 0
+--- !u!114 &371571620
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 371571614}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 943afe8e6ef7b004882877f4a4ec11c5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  maxHP: 100
+  currentHP: 100
+  attackPower: 10
+  moveSpeed: 5
+  behaviorTreeAsset: {fileID: 11400000, guid: 86b81038362ac7143a38e713ca7e90ae, type: 2}
 --- !u!1 &1388123099
 GameObject:
   m_ObjectHideFlags: 0
@@ -554,6 +572,7 @@ GameObject:
   - component: {fileID: 2118858408}
   - component: {fileID: 2118858407}
   - component: {fileID: 2118858406}
+  - component: {fileID: 2118858410}
   m_Layer: 0
   m_Name: e
   m_TagString: Enemy
@@ -643,12 +662,29 @@ Transform:
   m_GameObject: {fileID: 2118858405}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -5.99, y: 1.9289999, z: -9.489}
+  m_LocalPosition: {x: -10.91, y: 1.9289999, z: -9.489}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &2118858410
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2118858405}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e920cde8be7431044bbb3cb1f851062b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  maxHP: 50
+  currentHP: 50
+  attackPower: 5
+  moveSpeed: 3
+  behaviorTreeAsset: {fileID: 0}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
