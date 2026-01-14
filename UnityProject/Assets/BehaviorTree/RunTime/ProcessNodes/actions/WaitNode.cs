@@ -94,7 +94,7 @@ namespace BehaviorTree
                 // 首次执行，初始化计数
                 _runCount = 0;
             }
-            
+            //Debug.Log($"{_Node.ID} WaitByRunCount {_runCount} {count}");
             // 检查是否达到指定次数
             if (_runCount >= count)
             {

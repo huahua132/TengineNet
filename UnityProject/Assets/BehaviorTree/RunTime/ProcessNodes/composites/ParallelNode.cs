@@ -29,9 +29,6 @@ namespace BehaviorTree
         BehaviorProcessType.composite)]
     public class ParallelNode : BehaviorProcessNodeBase
     {
-        // 日志开关（可在Inspector中配置）
-        public bool enableLog = false;
-        
         // 子节点执行栈数组（对应Lua的last表）
         private ChildExecutionStack[] _childStacks = null;
         
@@ -161,15 +158,15 @@ namespace BehaviorTree
             // 所有子节点完成（对应Lua的 if count == #node.children）
             if (completedCount == childCount)
             {
-                // 释放资源
+                // 释放栈对象，但保留数组供下次使用
                 for (int i = 0; i < _childStacks.Length; i++)
                 {
                     if (_childStacks[i] != null)
                     {
                         MemoryPool.Release(_childStacks[i]);
+                        _childStacks[i] = null;
                     }
                 }
-                _childStacks = null;
                 return BehaviorRet.SUCCESS;
             }
 

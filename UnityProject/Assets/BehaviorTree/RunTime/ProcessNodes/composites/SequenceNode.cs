@@ -23,8 +23,10 @@ namespace BehaviorTree
             if (_Node.IsResume())
             {
                 var lastRet = _Context.GetLastRet();
+                //Debug.Log($"SequenceNode[{_Node.ID}] {lastRet}");
                 if (lastRet == BehaviorRet.FAIL)
                 {
+                    
                     return lastRet;
                 }
                 else if (lastRet == BehaviorRet.SUCCESS)
@@ -42,12 +44,15 @@ namespace BehaviorTree
                 lastIdx = 0;
             }
 
+            //Debug.Log($"SequenceNode lastIdx[{_Node.ID}] {lastIdx}");
+
             for (int i = lastIdx; i < _Node.Childrens.Count; i++)
             {
                 var child = _Node.Childrens[i];
                 var r = child.TickRun();
                 if (r == BehaviorRet.RUNNING)
                 {
+                    lastIdx = i;
                     return _Node.Yield();
                 }
                 if (r == BehaviorRet.FAIL)
