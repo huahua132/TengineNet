@@ -467,14 +467,33 @@ namespace BehaviorTree.Editor
             Vector2 startPos = GetNodeBottomCenter(from, canvasRect);
             Vector2 endPos = GetNodeTopCenter(to, canvasRect);
             
-            // 绘制贝塞尔曲线 (参考编辑器风格)
+            // 判断是否是执行路径（父子节点都在执行栈中）
+            bool isInExecutionPath = IsNodeInStack(from) && IsNodeInStack(to);
+            Color lineColor = isInExecutionPath ? new Color(0.3f, 0.85f, 0.3f) : Color.white; // 绿色或白色
+            
+            // 绘制贝塞尔曲线
             float distance = Vector2.Distance(startPos, endPos);
             float tangentLength = Mathf.Min(distance * 0.5f, 80f);
             
             Vector2 startTangent = startPos + Vector2.down * tangentLength;
             Vector2 endTangent = endPos + Vector2.up * tangentLength;
             
-            Handles.DrawBezier(startPos, endPos, startTangent, endTangent, Color.white, null, 3f);
+            Handles.DrawBezier(startPos, endPos, startTangent, endTangent, lineColor, null, 3f);
+        }
+        
+        /// <summary>
+        /// 检查节点是否在执行栈中
+        /// </summary>
+        private bool IsNodeInStack(BehaviorNode node)
+        {
+            if (_selectedTree == null || _selectedTree.Tree == null) return false;
+            
+            var context = _selectedTree.Tree.GetContext();
+            if (context == null) return false;
+            
+            // 通过检查节点的IsResume状态来判断是否在栈中
+            // 或者通过遍历栈来检查（如果有公开的栈访问方法）
+            return node.IsResume();
         }
 
         private Vector2 GetNodeTopCenter(BehaviorNode node, Rect canvasRect)
