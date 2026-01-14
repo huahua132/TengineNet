@@ -23,9 +23,19 @@ namespace BehaviorTree
         // 类型缓存，避免重复反射查找
         private static Dictionary<string, Type> _typeCache = new Dictionary<string, Type>();
         private static bool _typeCacheInitialized = false;
+        
+        // 运行时追踪（默认启用）
+        private int _runtimeInstanceId = -1;
 
         public void Clear()
         {
+            // 注销运行时追踪
+            if (_runtimeInstanceId != -1)
+            {
+                BehaviorTreeRuntimeManager.Unregister(_runtimeInstanceId);
+                _runtimeInstanceId = -1;
+            }
+            
             if (_context != null)
             {
                 MemoryPool.Release(_context);
@@ -116,11 +126,39 @@ namespace BehaviorTree
             if (_nodeDict.TryGetValue(asset.rootId, out var root))
             {
                 _root = root;
+                
+                // 自动注册运行时追踪
+                RegisterRuntimeTracking();
+                
                 return true;
             }
 
             Debug.LogError("Root node not found");
             return false;
+        }
+        
+        /// <summary>
+        /// 注册运行时追踪（自动调用）
+        /// </summary>
+        private void RegisterRuntimeTracking()
+        {
+            if (_runtimeInstanceId == -1)
+            {
+                GameObject boundGO = null;
+                var transform = GetBindTransform();
+                if (transform != null)
+                {
+                    boundGO = transform.gameObject;
+                }
+                
+                string name = _asset != null ? _asset.name : "Behavior Tree";
+                if (boundGO != null)
+                {
+                    name = $"{name} ({boundGO.name})";
+                }
+                
+                _runtimeInstanceId = BehaviorTreeRuntimeManager.Register(this, name, boundGO);
+            }
         }
 
         /// <summary>
@@ -261,10 +299,24 @@ namespace BehaviorTree
             if (_context.IsAbort())
             {
                 _context.AbortDoing();
-                return BehaviorRet.ABORT;
+                lastRet = BehaviorRet.ABORT;
+            }
+            
+            // 更新运行时追踪信息
+            if (_runtimeInstanceId != -1)
+            {
+                BehaviorTreeRuntimeManager.UpdateTreeTick(_runtimeInstanceId, lastRet);
             }
 
             return lastRet;
+        }
+        
+        /// <summary>
+        /// 获取根节点
+        /// </summary>
+        public BehaviorNode GetRootNode()
+        {
+            return _root;
         }
 
         public BehaviorContext GetContext()

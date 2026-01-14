@@ -87,7 +87,7 @@ public class BehaviorTreeTest : MonoBehaviour
         _behaviorTree = new BehaviorTree.Tree();
         _behaviorTree.Init(targetTransform);
         
-        // 从资源加载
+        // 从资源加载（会自动启用运行时追踪）
         bool success = _behaviorTree.InitFromAsset(treeAsset);
         if (!success)
         {
@@ -99,6 +99,7 @@ public class BehaviorTreeTest : MonoBehaviour
         executeCount = 0;
 
         Debug.Log($"[BehaviorTreeTest] 行为树初始化成功: {treeAsset.name}, 绑定Transform: {targetTransform.name}");
+        Debug.Log($"[BehaviorTreeTest] 运行时追踪已自动启用，可通过 Tools > BehaviorTree > Runtime Debugger 查看");
     }
 
     /// <summary>
@@ -189,7 +190,7 @@ public class BehaviorTreeTest : MonoBehaviour
 
     void OnDestroy()
     {
-        // 清理资源
+        // 清理资源（会自动注销运行时追踪）
         if (_behaviorTree != null)
         {
             _behaviorTree.Clear();
