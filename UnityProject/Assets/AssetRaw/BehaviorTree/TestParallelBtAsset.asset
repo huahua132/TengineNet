@@ -18,21 +18,21 @@ MonoBehaviour:
     processTypeName: SequenceNode
     parentId: -1
     childrenIds: 0200000003000000
-    editorPosition: {x: 99.999985, y: 300}
+    editorPosition: {x: 100, y: 260}
     comment: 
     parametersList: []
   - id: 2
     processTypeName: ParallelNode
     parentId: 1
     childrenIds: 04000000080000000c000000
-    editorPosition: {x: 399.99994, y: 239.99995}
+    editorPosition: {x: 400, y: 205}
     comment: 
     parametersList: []
   - id: 3
     processTypeName: LogNode
     parentId: 1
     childrenIds: 
-    editorPosition: {x: 399.99994, y: 959.9998}
+    editorPosition: {x: 400, y: 945}
     comment: 
     parametersList:
     - key: message
@@ -41,14 +41,14 @@ MonoBehaviour:
     processTypeName: SequenceNode
     parentId: 2
     childrenIds: 050000000600000007000000
-    editorPosition: {x: 700, y: -239.99995}
+    editorPosition: {x: 700, y: -295}
     comment: 
     parametersList: []
   - id: 5
     processTypeName: LogNode
     parentId: 4
     childrenIds: 
-    editorPosition: {x: 1000.0001, y: -360.00003}
+    editorPosition: {x: 1000, y: -425}
     comment: 
     parametersList:
     - key: message
@@ -57,16 +57,22 @@ MonoBehaviour:
     processTypeName: WaitNode
     parentId: 4
     childrenIds: 
-    editorPosition: {x: 1000.0001, y: -239.99995}
+    editorPosition: {x: 1000, y: -315}
     comment: 
     parametersList:
     - key: duration
+      value: 3
+    - key: mode
+      value: RunCount
+    - key: time
+      value: 0
+    - key: count
       value: 3
   - id: 7
     processTypeName: LogNode
     parentId: 4
     childrenIds: 
-    editorPosition: {x: 1000.0001, y: -119.99998}
+    editorPosition: {x: 1000, y: -165}
     comment: 
     parametersList:
     - key: message
@@ -75,14 +81,14 @@ MonoBehaviour:
     processTypeName: SequenceNode
     parentId: 2
     childrenIds: 090000000a0000000b000000
-    editorPosition: {x: 700, y: 119.99998}
+    editorPosition: {x: 700, y: 75}
     comment: 
     parametersList: []
   - id: 9
     processTypeName: LogNode
     parentId: 8
     childrenIds: 
-    editorPosition: {x: 1000.0001, y: 0}
+    editorPosition: {x: 1000, y: -55}
     comment: 
     parametersList:
     - key: message
@@ -91,16 +97,22 @@ MonoBehaviour:
     processTypeName: WaitNode
     parentId: 8
     childrenIds: 
-    editorPosition: {x: 1000.0001, y: 119.99998}
+    editorPosition: {x: 1000, y: 55}
     comment: 
     parametersList:
     - key: duration
+      value: 5
+    - key: mode
+      value: RunCount
+    - key: time
+      value: 0
+    - key: count
       value: 5
   - id: 11
     processTypeName: LogNode
     parentId: 8
     childrenIds: 
-    editorPosition: {x: 1000.0001, y: 239.99995}
+    editorPosition: {x: 1000, y: 205}
     comment: 
     parametersList:
     - key: message
@@ -109,14 +121,14 @@ MonoBehaviour:
     processTypeName: SequenceNode
     parentId: 2
     childrenIds: 0d0000000e0000000f00000011000000
-    editorPosition: {x: 700, y: 600}
+    editorPosition: {x: 700, y: 575}
     comment: 
     parametersList: []
   - id: 13
     processTypeName: LogNode
     parentId: 12
     childrenIds: 
-    editorPosition: {x: 1000.0001, y: 360.00003}
+    editorPosition: {x: 1000, y: 315}
     comment: 
     parametersList:
     - key: message
@@ -125,16 +137,22 @@ MonoBehaviour:
     processTypeName: WaitNode
     parentId: 12
     childrenIds: 
-    editorPosition: {x: 1000.0001, y: 479.9999}
+    editorPosition: {x: 1000, y: 425}
     comment: 
     parametersList:
     - key: duration
+      value: 4
+    - key: mode
+      value: RunCount
+    - key: time
+      value: 0
+    - key: count
       value: 4
   - id: 15
     processTypeName: LogNode
     parentId: 12
     childrenIds: 
-    editorPosition: {x: 1000.0001, y: 600}
+    editorPosition: {x: 1000, y: 575}
     comment: 
     parametersList:
     - key: message
@@ -143,23 +161,29 @@ MonoBehaviour:
     processTypeName: SequenceNode
     parentId: 12
     childrenIds: 1200000013000000
-    editorPosition: {x: 1000.0001, y: 779.99994}
+    editorPosition: {x: 1000, y: 760}
     comment: 
     parametersList: []
   - id: 18
     processTypeName: WaitNode
     parentId: 17
     childrenIds: 
-    editorPosition: {x: 1300.0001, y: 720.00006}
+    editorPosition: {x: 1300, y: 685}
     comment: 
     parametersList:
     - key: duration
+      value: 1
+    - key: mode
+      value: RunCount
+    - key: time
+      value: 0
+    - key: count
       value: 1
   - id: 19
     processTypeName: LogNode
     parentId: 17
     childrenIds: 
-    editorPosition: {x: 1300.0001, y: 840}
+    editorPosition: {x: 1300, y: 835}
     comment: 
     parametersList:
     - key: message

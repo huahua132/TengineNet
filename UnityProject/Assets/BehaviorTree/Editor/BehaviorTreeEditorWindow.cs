@@ -1647,7 +1647,7 @@ namespace BehaviorTree.Editor
         }
         
         /// <summary>
-        /// 自动整理节点布局 - 横向从左到右的树状结构
+        /// 自动整理节点布局 - 横向从左到右的树状结构（考虑节点实际高度）
         /// </summary>
         private void AutoLayoutNodes()
         {
@@ -1670,13 +1670,13 @@ namespace BehaviorTree.Editor
             
             // 布局参数（横向布局）
             const float HORIZONTAL_SPACING = 300f;  // 横向间距（父节点到子节点）
-            const float VERTICAL_SPACING = 120f;    // 纵向间距（子节点之间）
+            const float VERTICAL_PADDING = 30f;     // 子节点之间的最小间距
             const float START_X = 100f;             // 起始X坐标（根节点最左边）
             const float START_Y = 300f;             // 起始Y坐标（垂直居中）
             
-            // 第一步：计算布局信息（递归计算每个子树的高度）
+            // 第一步：计算布局信息（递归计算每个子树的高度，考虑实际节点高度）
             Dictionary<int, HorizontalLayoutInfo> layoutInfos = new Dictionary<int, HorizontalLayoutInfo>();
-            CalculateHorizontalLayout(rootNode, layoutInfos, VERTICAL_SPACING);
+            CalculateHorizontalLayout(rootNode, layoutInfos, VERTICAL_PADDING);
             
             // 第二步：应用绝对位置（从根节点开始，横向布局）
             ApplyHorizontalPositions(rootNode, START_X, START_Y, HORIZONTAL_SPACING, layoutInfos);
@@ -1684,7 +1684,7 @@ namespace BehaviorTree.Editor
             MarkDirty();
             Repaint();
             
-            Debug.Log($"已自动整理为横向布局，共 {layoutInfos.Count} 个节点");
+            Debug.Log($"已自动整理为横向布局（考虑节点高度），共 {layoutInfos.Count} 个节点");
         }
         
         /// <summary>
@@ -1692,27 +1692,32 @@ namespace BehaviorTree.Editor
         /// </summary>
         private class HorizontalLayoutInfo
         {
-            public float subtreeHeight;          // 子树总高度
+            public float subtreeHeight;          // 子树总高度（包括节点实际高度和间距）
             public float relativeY;              // 相对于父节点的Y偏移
             public List<float> childrenOffsets;  // 子节点的相对Y偏移列表
+            public List<float> childNodeHeights; // 子节点的实际高度列表
         }
         
         /// <summary>
-        /// 递归计算横向布局信息
+        /// 递归计算横向布局信息（考虑节点实际高度）
         /// 子节点按ID从小到大纵向排列（从上到下）
         /// </summary>
-        private float CalculateHorizontalLayout(BehaviorNodeData node, Dictionary<int, HorizontalLayoutInfo> layoutInfos, float verticalSpacing)
+        private float CalculateHorizontalLayout(BehaviorNodeData node, Dictionary<int, HorizontalLayoutInfo> layoutInfos, float verticalPadding)
         {
             var info = new HorizontalLayoutInfo();
             info.childrenOffsets = new List<float>();
+            info.childNodeHeights = new List<float>();
             
-            // 没有子节点
+            // 获取当前节点的实际高度
+            float nodeHeight = CalculateNodeHeight(node);
+            
+            // 没有子节点，返回节点本身的高度加上padding
             if (node.childrenIds == null || node.childrenIds.Count == 0)
             {
-                info.subtreeHeight = verticalSpacing;
+                info.subtreeHeight = nodeHeight + verticalPadding;
                 info.relativeY = 0;
                 layoutInfos[node.id] = info;
-                return verticalSpacing;
+                return info.subtreeHeight;
             }
             
             // 获取所有子节点并按ID排序（从小到大，从上到下）
@@ -1722,31 +1727,34 @@ namespace BehaviorTree.Editor
                 .OrderBy(n => n.id)
                 .ToList();
             
-            // 递归计算所有子节点的高度
-            List<float> childHeights = new List<float>();
+            // 递归计算所有子节点子树的高度
+            List<float> childSubtreeHeights = new List<float>();
             foreach (var childNode in sortedChildNodes)
             {
-                float childHeight = CalculateHorizontalLayout(childNode, layoutInfos, verticalSpacing);
-                childHeights.Add(childHeight);
+                float childHeight = CalculateHorizontalLayout(childNode, layoutInfos, verticalPadding);
+                childSubtreeHeights.Add(childHeight);
+                info.childNodeHeights.Add(CalculateNodeHeight(childNode));
             }
             
-            // 计算总高度
+            // 计算所有子节点的总高度（子树高度之和）
             float totalHeight = 0;
-            foreach (var height in childHeights)
+            foreach (var height in childSubtreeHeights)
             {
                 totalHeight += height;
             }
             
             // 计算每个子节点的Y偏移量（从上到下排列，ID小的在上面）
             float currentOffset = -totalHeight / 2;
-            for (int i = 0; i < childHeights.Count; i++)
+            for (int i = 0; i < childSubtreeHeights.Count; i++)
             {
-                float childCenterOffset = currentOffset + childHeights[i] / 2;
+                // 子节点居中于其子树高度范围内
+                float childCenterOffset = currentOffset + childSubtreeHeights[i] / 2;
                 info.childrenOffsets.Add(childCenterOffset);
-                currentOffset += childHeights[i];
+                currentOffset += childSubtreeHeights[i];
             }
             
-            info.subtreeHeight = Mathf.Max(totalHeight, verticalSpacing);
+            // 子树总高度取：所有子节点子树高度之和 与 当前节点高度+padding 中的较大值
+            info.subtreeHeight = Mathf.Max(totalHeight, nodeHeight + verticalPadding);
             info.relativeY = 0; // 父节点垂直居中
             layoutInfos[node.id] = info;
             
@@ -1758,8 +1766,9 @@ namespace BehaviorTree.Editor
         /// </summary>
         private void ApplyHorizontalPositions(BehaviorNodeData node, float absoluteX, float absoluteY, float horizontalSpacing, Dictionary<int, HorizontalLayoutInfo> layoutInfos)
         {
-            // 设置当前节点的绝对位置
-            node.editorPosition = new Vector2(absoluteX, absoluteY);
+            // 设置当前节点的绝对位置（Y坐标考虑节点高度，使其居中）
+            float nodeHeight = CalculateNodeHeight(node);
+            node.editorPosition = new Vector2(absoluteX, absoluteY - nodeHeight / 2);
             
             // 没有子节点，直接返回
             if (node.childrenIds == null || node.childrenIds.Count == 0)
@@ -1781,7 +1790,7 @@ namespace BehaviorTree.Editor
             {
                 var childNode = sortedChildNodes[i];
                 float childX = absoluteX + horizontalSpacing;  // 子节点在父节点右边
-                float childY = absoluteY + info.childrenOffsets[i];  // Y坐标根据偏移量调整
+                float childY = absoluteY + info.childrenOffsets[i];  // Y坐标根据偏移量调整（已经是中心点）
                 ApplyHorizontalPositions(childNode, childX, childY, horizontalSpacing, layoutInfos);
             }
         }
