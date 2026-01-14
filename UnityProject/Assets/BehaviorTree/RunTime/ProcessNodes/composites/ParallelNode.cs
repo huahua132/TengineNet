@@ -4,44 +4,65 @@ using TEngine;
 namespace BehaviorTree
 {
     /// <summary>
-    /// 子节点执行状态数据（使用对象池重用）
+    /// 子节点执行栈（使用对象池重用，零GC）
+    /// 完全对应Lua版本的nodes表
     /// </summary>
-    public class ChildNodeState : IMemory
+    public class ChildExecutionStack : IMemory
     {
-        public Stack<IBehaviorNode> nodeStack = new Stack<IBehaviorNode>();  // 子节点的执行栈
-        public bool isCompleted = false;  // 是否已完成
+        // 使用List存储节点栈，对应Lua的nodes表
+        public List<IBehaviorNode> nodes = new List<IBehaviorNode>();
         
         public void Clear()
         {
-            nodeStack.Clear();
-            isCompleted = false;
+            nodes.Clear();
         }
+        
+        public int Count => nodes.Count;
     }
     
     /// <summary>
     /// 并行节点：同时执行所有子节点，全部成功才返回成功
-    /// 支持正确的嵌套执行栈保存和恢复，使用对象池优化内存
+    /// 完全按照Lua版本的behavior3.Parallel实现，保证零GC
     /// </summary>
     [BehaviorProcessNode("ParallelNode",
         "并行执行所有子节点，全部完成后返回成功",
         BehaviorProcessType.composite)]
     public class ParallelNode : BehaviorProcessNodeBase
     {
-        private Dictionary<int, ChildNodeState> _childrenStates = new Dictionary<int, ChildNodeState>();
+        // 日志开关（可在Inspector中配置）
+        public bool enableLog = false;
+        
+        // 子节点执行栈数组（对应Lua的last表）
+        private ChildExecutionStack[] _childStacks = null;
         
         public override void OnCreate()
         {
-            _childrenStates.Clear();
+            _childStacks = null;
         }
 
         public override void OnRemove()
         {
-            // 释放所有子节点状态到对象池
-            foreach (var state in _childrenStates.Values)
+            // 释放所有执行栈到对象池
+            if (_childStacks != null)
             {
-                MemoryPool.Release(state);
+                for (int i = 0; i < _childStacks.Length; i++)
+                {
+                    if (_childStacks[i] != null)
+                    {
+                        MemoryPool.Release(_childStacks[i]);
+                    }
+                }
+                _childStacks = null;
             }
-            _childrenStates.Clear();
+        }
+        
+        /// <summary>
+        /// 首次执行时初始化（对应Lua的 last = last or {}）
+        /// </summary>
+        public override void OnStart()
+        {
+            int childCount = _Node.Childrens?.Count ?? 0;
+            _childStacks = new ChildExecutionStack[childCount];
         }
 
         public override BehaviorRet OnTickRun()
@@ -51,132 +72,109 @@ namespace BehaviorTree
                 return BehaviorRet.SUCCESS;
             }
 
-            // 首次执行，初始化所有子节点状态（从对象池获取）
-            if (!_Node.IsResume())
-            {
-                // 先释放旧状态
-                foreach (var state in _childrenStates.Values)
-                {
-                    MemoryPool.Release(state);
-                }
-                _childrenStates.Clear();
-                
-                // 从对象池获取新状态
-                for (int i = 0; i < _Node.Childrens.Count; i++)
-                {
-                    _childrenStates[i] = MemoryPool.Acquire<ChildNodeState>();
-                }
-            }
+            int childCount = _Node.Childrens.Count;
+            int currentStackLevel = _Context.GetStackCount();  // 对应Lua的level
+            int completedCount = 0;  // 对应Lua的count
 
-            int completedCount = 0;
-            int currentStackLevel = _Context.GetStackCount();
-
-            // 执行所有子节点
-            for (int i = 0; i < _Node.Childrens.Count; i++)
+            // 遍历所有子节点（对应Lua的for i = 1, #node.children）
+            for (int i = 0; i < childCount; i++)
             {
-                var childState = _childrenStates[i];
                 BehaviorRet status;
-
-                // 子节点已完成，跳过
-                if (childState.isCompleted)
-                {
-                    completedCount++;
-                    continue;
-                }
-
                 var child = _Node.Childrens[i];
+                var childStack = _childStacks[i];  // 对应Lua的nodes = last[i]
 
-                // 如果有保存的执行栈，需要先恢复
-                if (childState.nodeStack.Count > 0)
+                // 三种状态判断（完全对应Lua的三个if分支）
+                if (childStack == null)
                 {
-                    // 从栈中恢复节点并执行
-                    while (childState.nodeStack.Count > 0)
+                    // 首次执行该子节点（对应Lua的 if nodes == nil）
+                    status = child.TickRun();
+                }
+                else if (childStack.Count > 0)
+                {
+                    // 有保存的执行栈，恢复执行（对应Lua的 elseif #nodes > 0）
+                    status = BehaviorRet.SUCCESS;  // 默认值，如果栈清空则返回SUCCESS
+                    
+                    while (childStack.Count > 0)
                     {
-                        var savedNode = childState.nodeStack.Pop();
+                        // table.remove(nodes) - 从尾部移除
+                        int lastIndex = childStack.nodes.Count - 1;
+                        var savedNode = childStack.nodes[lastIndex];
+                        childStack.nodes.RemoveAt(lastIndex);
+                        
                         _Context.PushStackNode((BehaviorNode)savedNode);
                         status = savedNode.TickRun();
 
                         if (status == BehaviorRet.RUNNING)
                         {
-                            // 还在运行中，保存当前执行栈
-                            SaveExecutionStack(childState, currentStackLevel);
+                            // 保存执行栈到当前位置（对应Lua的table.insert(nodes, p, ...)）
+                            int insertPos = childStack.Count;
+                            while (_Context.GetStackCount() > currentStackLevel)
+                            {
+                                var node = _Context.GetStackPeekNode();
+                                _Context.PopStackNode();
+                                childStack.nodes.Insert(insertPos, node);
+                            }
                             break;
                         }
-                        
-                        // 清理栈
-                        while (_Context.GetStackCount() > currentStackLevel)
-                        {
-                            _Context.PopStackNode();
-                        }
-                    }
-
-                    // 如果栈已清空，说明子树执行完成
-                    if (childState.nodeStack.Count == 0)
-                    {
-                        childState.isCompleted = true;
-                        completedCount++;
                     }
                 }
                 else
                 {
-                    // 首次执行该子节点
-                    status = child.TickRun();
+                    // childStack存在但为空，已完成（对应Lua的 else status = bret.SUCCESS）
+                    status = BehaviorRet.SUCCESS;
+                }
 
-                    if (status == BehaviorRet.RUNNING)
+                // 处理子节点执行结果（对应Lua的结果处理）
+                if (status == BehaviorRet.RUNNING)
+                {
+                    // 保存执行栈（对应Lua的 if status == bret.RUNNING）
+                    if (childStack == null)
                     {
-                        // 子节点挂起，保存执行栈
-                        SaveExecutionStack(childState, currentStackLevel);
+                        childStack = MemoryPool.Acquire<ChildExecutionStack>();
+                        _childStacks[i] = childStack;
                     }
-                    else if (status == BehaviorRet.ABORT)
+                    
+                    // 插入到位置0（栈底）
+                    while (_Context.GetStackCount() > currentStackLevel)
                     {
-                        return BehaviorRet.ABORT;
+                        var node = _Context.GetStackPeekNode();
+                        _Context.PopStackNode();
+                        childStack.nodes.Insert(0, node);
+                    }
+                }
+                else
+                {
+                    // 非RUNNING：清空栈，计数+1（对应Lua的 else nodes = {}; count = count + 1）
+                    if (childStack == null)
+                    {
+                        childStack = MemoryPool.Acquire<ChildExecutionStack>();
+                        _childStacks[i] = childStack;
                     }
                     else
                     {
-                        // SUCCESS 或 FAIL，标记完成
-                        childState.isCompleted = true;
-                        completedCount++;
+                        childStack.Clear();
                     }
+                    completedCount++;
                 }
             }
 
-            // 所有子节点都完成了
-            if (completedCount == _Node.Childrens.Count)
+            // 所有子节点完成（对应Lua的 if count == #node.children）
+            if (completedCount == childCount)
             {
-                // 释放所有子节点状态到对象池
-                foreach (var state in _childrenStates.Values)
+                // 释放资源
+                for (int i = 0; i < _childStacks.Length; i++)
                 {
-                    MemoryPool.Release(state);
+                    if (_childStacks[i] != null)
+                    {
+                        MemoryPool.Release(_childStacks[i]);
+                    }
                 }
-                _childrenStates.Clear();
+                _childStacks = null;
                 return BehaviorRet.SUCCESS;
             }
 
-            // 还有子节点在运行，挂起当前节点
+            // 还有子节点在运行（对应Lua的 return node:yield(env, last)）
             return _Node.Yield();
-        }
-
-        /// <summary>
-        /// 保存子节点的执行栈
-        /// </summary>
-        private void SaveExecutionStack(ChildNodeState childState, int baseStackLevel)
-        {
-            childState.nodeStack.Clear();
-            
-            // 从context栈中提取超出基准层级的节点
-            var tempStack = new Stack<IBehaviorNode>();
-            while (_Context.GetStackCount() > baseStackLevel)
-            {
-                tempStack.Push(_Context.GetStackPeekNode());
-                _Context.PopStackNode();
-            }
-            
-            // 反向存入childState的栈中（保持原有顺序）
-            while (tempStack.Count > 0)
-            {
-                childState.nodeStack.Push(tempStack.Pop());
-            }
         }
     }
 }
-

@@ -22,12 +22,14 @@ namespace BehaviorTree
         public List<IBehaviorNode> Childrens = new();                              //子节点
         public BehaviorProcessNodeBase ProcessNode {get; private set;}             //执行结点
         private bool _isYield  = false;                                            //是否挂起
+        private bool _hasStarted = false;                                          //是否已经执行过OnStart
         private IBehaviorContext _context;
 
         public void Clear()
         {
             ID = 0;
             _isYield = false;
+            _hasStarted = false;
             if (ProcessNode != null)
             {
                 MemoryPool.Release(ProcessNode);
@@ -118,6 +120,13 @@ namespace BehaviorTree
             if (!_isYield)
             {
                 _context.PushStackNode(this);
+                
+                // 首次执行，调用OnStart（整个生命周期只调用一次）
+                if (!_hasStarted)
+                {
+                    _hasStarted = true;
+                    ProcessNode.OnStart();
+                }
             }
             
             var ret = ProcessNode.OnTickRun();
@@ -130,6 +139,7 @@ namespace BehaviorTree
             if (ret != BehaviorRet.RUNNING)
             {
                 _isYield = false;
+                // 节点完成，不重置_hasStarted（整个生命周期只执行一次OnStart）
                 _context.PopStackNode();
             }
             else

@@ -31,21 +31,33 @@ namespace BehaviorTree
     {
         protected IBehaviorNode _Node;
         protected IBehaviorContext _Context;
+        
         public void Clear()
         {
             OnRemove();
             _Node = null;
             _Context = null;
         }
+        
         public void Create(IBehaviorNode node, IBehaviorContext context)
         {
             _Node = node;
             _Context = context;
             OnCreate();
         }
+        
         public BehaviorRet TickRun()
         {
             return TickRun();
+        }
+
+        /// <summary>
+        /// 首次执行时调用（在第一次OnTickRun之前）
+        /// 子类可以重写此方法进行初始化工作
+        /// </summary>
+        public virtual void OnStart()
+        {
+            // 默认空实现，子类可按需重写
         }
 
         public abstract BehaviorRet OnTickRun();
