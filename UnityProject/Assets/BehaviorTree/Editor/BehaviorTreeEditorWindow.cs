@@ -1139,21 +1139,48 @@ namespace BehaviorTree.Editor
         
         private string GetDefaultValue(FieldInfo field)
         {
+            // 优先使用Attribute标记的默认值
             var defaultAttr = field.GetCustomAttribute<System.ComponentModel.DefaultValueAttribute>();
             if (defaultAttr != null)
             {
                 return defaultAttr.Value?.ToString() ?? "";
             }
             
-            // 根据类型返回默认值
+            // 通过创建类型实例来获取字段的初始值
+            try
+            {
+                var instance = System.Activator.CreateInstance(field.DeclaringType);
+                var fieldValue = field.GetValue(instance);
+                if (fieldValue != null)
+                {
+                    return fieldValue.ToString();
+                }
+            }
+            catch (System.Exception ex)
+            {
+                Debug.LogWarning($"[BehaviorTree] 无法获取字段 {field.Name} 的初始值: {ex.Message}");
+            }
+            
+            // 如果无法获取实例值，使用类型默认值
             if (field.FieldType == typeof(string))
                 return "";
             if (field.FieldType == typeof(int))
                 return "0";
             if (field.FieldType == typeof(float))
-                return "0.0";
+                return "0";
             if (field.FieldType == typeof(bool))
-                return "false";
+                return "False";
+            if (field.FieldType == typeof(long))
+                return "0";
+            if (field.FieldType == typeof(double))
+                return "0";
+            
+            // 枚举类型返回第一个枚举值
+            if (field.FieldType.IsEnum)
+            {
+                var enumValues = System.Enum.GetNames(field.FieldType);
+                return enumValues.Length > 0 ? enumValues[0] : "";
+            }
             
             return "";
         }
@@ -1495,6 +1522,9 @@ namespace BehaviorTree.Editor
                 parametersList = new List<SerializableParameter>()
             };
 
+            // 自动填充默认参数值
+            InitializeNodeParameters(node, nodeInfo.Type);
+
             _currentAsset.AddNode(node);
             
             if (_currentAsset.nodes.Count == 1)
@@ -1504,6 +1534,52 @@ namespace BehaviorTree.Editor
 
             MarkDirty();
             Repaint();
+        }
+        
+        /// <summary>
+        /// 初始化节点的默认参数值
+        /// </summary>
+        private void InitializeNodeParameters(BehaviorNodeData node, System.Type nodeType)
+        {
+            if (node == null || nodeType == null) return;
+            
+            // 获取所有公共实例字段
+            var allFields = nodeType.GetFields(BindingFlags.Public | BindingFlags.Instance);
+            
+            // 过滤掉基类的字段
+            var fields = allFields.Where(f =>
+                f.DeclaringType != typeof(BehaviorProcessNodeBase) &&
+                !f.Name.StartsWith("_")
+            ).ToList();
+            
+            // 为每个字段设置默认值
+            foreach (var field in fields)
+            {
+                string fieldName = field.Name;
+                string defaultValue = GetDefaultValue(field);
+                
+                // 设置默认值（除了空字符串外都设置，因为空字符串是有效的string默认值）
+                // 对于string类型，即使是空字符串也不设置（避免显示空参数）
+                if (!string.IsNullOrEmpty(defaultValue) || field.FieldType != typeof(string))
+                {
+                    if (field.FieldType == typeof(string) && string.IsNullOrEmpty(defaultValue))
+                    {
+                        // string类型的空默认值不设置
+                        continue;
+                    }
+                    
+                    node.SetParameter(fieldName, defaultValue);
+                    
+                    // 调试日志
+                    Debug.Log($"[BehaviorTree] 节点 {nodeType.Name} 设置参数 {fieldName} = {defaultValue}");
+                }
+            }
+            
+            // 清除节点高度缓存，确保重新计算
+            if (_nodeHeights.ContainsKey(node.id))
+            {
+                _nodeHeights.Remove(node.id);
+            }
         }
 
         private void DeleteNode(BehaviorNodeData node)
