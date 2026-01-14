@@ -796,6 +796,100 @@ namespace BehaviorTree.Editor
                     DrawInfoRow("GameObject", transform.gameObject.name, new Color(0.4f, 0.6f, 0.4f));
                     DrawInfoRow("位置", transform.position.ToString(), new Color(0.4f, 0.5f, 0.6f));
                 });
+                
+                EditorGUILayout.Space(5);
+            }
+            
+            // 显示所有黑板数据
+            DrawBlackboardData(context);
+        }
+        
+        /// <summary>
+        /// 显示所有黑板数据
+        /// </summary>
+        private void DrawBlackboardData(BehaviorContext context)
+        {
+            try
+            {
+                // 通过反射获取_blackBoards字段
+                var blackBoardsField = typeof(BehaviorContext).GetField("_blackBoards",
+                    System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                
+                if (blackBoardsField != null)
+                {
+                    var blackBoards = blackBoardsField.GetValue(context) as System.Collections.IDictionary;
+                    
+                    if (blackBoards != null && blackBoards.Count > 0)
+                    {
+                        DrawSectionBox("黑板数据", new Color(1f, 0.9f, 0.85f), () =>
+                        {
+                            foreach (System.Collections.DictionaryEntry entry in blackBoards)
+                            {
+                                var type = entry.Key as System.Type;
+                                var blackboard = entry.Value as BlackboardBase;
+                                
+                                if (type != null && blackboard != null)
+                                {
+                                    // 显示黑板类型
+                                    GUIStyle blackboardTitleStyle = new GUIStyle(EditorStyles.boldLabel);
+                                    blackboardTitleStyle.normal.textColor = new Color(0.8f, 0.4f, 0.2f);
+                                    EditorGUILayout.LabelField($"◆ {type.Name}", blackboardTitleStyle);
+                                    
+                                    EditorGUI.indentLevel++;
+                                    
+                                    // 获取黑板的所有公共字段
+                                    var fields = type.GetFields(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance);
+                                    
+                                    if (fields.Length > 0)
+                                    {
+                                        foreach (var field in fields)
+                                        {
+                                            try
+                                            {
+                                                object value = field.GetValue(blackboard);
+                                                
+                                                // 如果是UnityEngine.Object类型，显示为ObjectField
+                                                if (value is UnityEngine.Object unityObj)
+                                                {
+                                                    EditorGUILayout.BeginHorizontal();
+                                                    GUIStyle labelStyle = new GUIStyle(EditorStyles.label);
+                                                    labelStyle.fontStyle = FontStyle.Bold;
+                                                    EditorGUILayout.LabelField(field.Name + ":", labelStyle, GUILayout.Width(100));
+                                                    EditorGUILayout.ObjectField(unityObj, field.FieldType, true);
+                                                    EditorGUILayout.EndHorizontal();
+                                                }
+                                                else
+                                                {
+                                                    string valueStr = value != null ? value.ToString() : "null";
+                                                    DrawInfoRow(field.Name, valueStr, new Color(0.6f, 0.4f, 0.2f));
+                                                }
+                                            }
+                                            catch (System.Exception ex)
+                                            {
+                                                DrawInfoRow(field.Name, "(读取失败)", Color.red);
+                                            }
+                                        }
+                                    }
+                                    else
+                                    {
+                                        EditorGUILayout.LabelField("  (无公共字段)", EditorStyles.miniLabel);
+                                    }
+                                    
+                                    EditorGUI.indentLevel--;
+                                    EditorGUILayout.Space(3);
+                                }
+                            }
+                        });
+                    }
+                    else
+                    {
+                        EditorGUILayout.HelpBox("当前没有黑板数据", MessageType.Info);
+                    }
+                }
+            }
+            catch (System.Exception ex)
+            {
+                EditorGUILayout.HelpBox($"读取黑板数据失败: {ex.Message}", MessageType.Warning);
             }
         }
 
