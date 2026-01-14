@@ -716,8 +716,12 @@ namespace BehaviorTree.Editor
 
         private void DrawContextInfo()
         {
-            EditorGUILayout.LabelField("上下文信息", EditorStyles.boldLabel);
-            EditorGUILayout.Space();
+            // 标题
+            GUIStyle titleStyle = new GUIStyle(EditorStyles.boldLabel);
+            titleStyle.fontSize = 14;
+            titleStyle.normal.textColor = new Color(0.3f, 0.6f, 1f); // 蓝色标题
+            EditorGUILayout.LabelField("上下文信息", titleStyle);
+            EditorGUILayout.Space(5);
 
             var context = _selectedTree.Tree?.GetContext();
             if (context == null)
@@ -726,27 +730,37 @@ namespace BehaviorTree.Editor
                 return;
             }
 
-            EditorGUILayout.LabelField("基本信息", EditorStyles.boldLabel);
-            EditorGUILayout.LabelField($"执行栈深度: {context.GetStackCount()}");
-            EditorGUILayout.LabelField($"最后结果: {context.GetLastRet()}");
-            EditorGUILayout.LabelField($"是否中断: {context.IsAbort()}");
+            // 基本信息区域
+            DrawSectionBox("基本信息", new Color(0.85f, 0.95f, 1f), () =>
+            {
+                DrawInfoRow("执行栈深度", context.GetStackCount().ToString(), new Color(0.2f, 0.5f, 0.8f));
+                DrawInfoRow("最后结果", context.GetLastRet().ToString(), GetResultColor(context.GetLastRet()));
+                DrawInfoRow("是否中断", context.IsAbort().ToString(), context.IsAbort() ? Color.red : Color.green);
+            });
 
-            EditorGUILayout.Space();
+            EditorGUILayout.Space(5);
 
+            // 绑定对象区域
             var transform = context.GetBindTransform();
             if (transform != null)
             {
-                EditorGUILayout.LabelField("绑定对象", EditorStyles.boldLabel);
-                EditorGUILayout.ObjectField("Transform", transform, typeof(Transform), true);
-                EditorGUILayout.LabelField($"GameObject: {transform.gameObject.name}");
-                EditorGUILayout.LabelField($"位置: {transform.position}");
+                DrawSectionBox("绑定对象", new Color(0.95f, 0.95f, 0.85f), () =>
+                {
+                    EditorGUILayout.ObjectField("Transform", transform, typeof(Transform), true);
+                    DrawInfoRow("GameObject", transform.gameObject.name, new Color(0.4f, 0.6f, 0.4f));
+                    DrawInfoRow("位置", transform.position.ToString(), new Color(0.4f, 0.5f, 0.6f));
+                });
             }
         }
 
         private void DrawNodeProperties()
         {
-            EditorGUILayout.LabelField("节点属性", EditorStyles.boldLabel);
-            EditorGUILayout.Space();
+            // 标题
+            GUIStyle titleStyle = new GUIStyle(EditorStyles.boldLabel);
+            titleStyle.fontSize = 14;
+            titleStyle.normal.textColor = new Color(0.3f, 0.85f, 0.3f); // 绿色标题
+            EditorGUILayout.LabelField("节点属性", titleStyle);
+            EditorGUILayout.Space(5);
 
             var nodeDict = _selectedTree.Tree?.GetNodeDict();
             if (nodeDict == null || !nodeDict.TryGetValue(_selectedNodeId, out var node))
@@ -755,58 +769,150 @@ namespace BehaviorTree.Editor
                 return;
             }
 
-            EditorGUILayout.LabelField("基本信息", EditorStyles.boldLabel);
-            EditorGUILayout.LabelField($"节点ID: {node.ID}");
-            EditorGUILayout.LabelField($"类型: {node.ProcessNode?.GetType().Name}");
-            EditorGUILayout.LabelField($"是否挂起: {node.IsResume()}");
+            // 基本信息区域
+            var nodeInfo = BehaviorNodeRegistry.GetNodeInfo(node.ProcessNode?.GetType().Name);
+            Color nodeColor = nodeInfo != null ? nodeInfo.Color : Color.gray;
+            
+            DrawSectionBox("基本信息", new Color(nodeColor.r * 0.3f + 0.7f, nodeColor.g * 0.3f + 0.7f, nodeColor.b * 0.3f + 0.7f), () =>
+            {
+                DrawInfoRow("节点ID", node.ID.ToString(), nodeColor);
+                DrawInfoRow("类型", node.ProcessNode?.GetType().Name, nodeColor);
+                DrawInfoRow("是否挂起", node.IsResume().ToString(), node.IsResume() ? new Color(0.3f, 0.6f, 1f) : Color.gray);
+            });
 
-            EditorGUILayout.Space();
+            EditorGUILayout.Space(5);
 
             if (node.ProcessNode != null)
             {
-                EditorGUILayout.LabelField("节点参数", EditorStyles.boldLabel);
-                
                 var processNode = node.ProcessNode;
-                var fields = processNode.GetType().GetFields(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance);
                 
-                if (fields.Length == 0)
+                // 获取所有字段（公共+私有）
+                var allFields = processNode.GetType().GetFields(
+                    System.Reflection.BindingFlags.Public |
+                    System.Reflection.BindingFlags.NonPublic |
+                    System.Reflection.BindingFlags.Instance);
+                
+                // 分类字段
+                var publicFields = allFields.Where(f => f.IsPublic).ToList();
+                var privateFields = allFields.Where(f => !f.IsPublic).ToList();
+                
+                // 显示公共字段
+                if (publicFields.Count > 0)
                 {
-                    EditorGUILayout.LabelField("(无公共字段)", EditorStyles.miniLabel);
-                }
-                else
-                {
-                    foreach (var field in fields)
+                    DrawSectionBox("公共字段", new Color(0.85f, 1f, 0.85f), () =>
                     {
-                        try
+                        foreach (var field in publicFields)
                         {
-                            object value = field.GetValue(processNode);
-                            EditorGUILayout.LabelField($"{field.Name}: {value ?? "null"}");
+                            try
+                            {
+                                object value = field.GetValue(processNode);
+                                DrawInfoRow(field.Name, value?.ToString() ?? "null", new Color(0.2f, 0.6f, 0.2f));
+                            }
+                            catch (System.Exception ex)
+                            {
+                                DrawInfoRow(field.Name, "(读取失败)", Color.red);
+                            }
                         }
-                        catch (System.Exception ex)
+                    });
+                    
+                    EditorGUILayout.Space(5);
+                }
+                
+                // 显示私有字段
+                if (privateFields.Count > 0)
+                {
+                    DrawSectionBox("私有字段", new Color(0.95f, 0.95f, 0.95f), () =>
+                    {
+                        foreach (var field in privateFields)
                         {
-                            EditorGUILayout.LabelField($"{field.Name}: (读取失败: {ex.Message})");
+                            try
+                            {
+                                object value = field.GetValue(processNode);
+                                DrawInfoRow(field.Name, value?.ToString() ?? "null", new Color(0.5f, 0.5f, 0.5f));
+                            }
+                            catch (System.Exception ex)
+                            {
+                                DrawInfoRow(field.Name, "(读取失败)", new Color(0.7f, 0.3f, 0.3f));
+                            }
                         }
-                    }
+                    });
+                    
+                    EditorGUILayout.Space(5);
                 }
             }
 
-            EditorGUILayout.Space();
-
-            EditorGUILayout.LabelField("子节点", EditorStyles.boldLabel);
-            if (node.Childrens == null || node.Childrens.Count == 0)
+            // 子节点区域
+            if (node.Childrens != null && node.Childrens.Count > 0)
             {
-                EditorGUILayout.LabelField("(无子节点)", EditorStyles.miniLabel);
-            }
-            else
-            {
-                foreach (var child in node.Childrens)
+                DrawSectionBox("子节点", new Color(1f, 0.95f, 0.85f), () =>
                 {
-                    var childNode = (BehaviorNode)child;
-                    if (GUILayout.Button($"节点 {childNode.ID} - {childNode.ProcessNode?.GetType().Name}", EditorStyles.miniButton))
+                    foreach (var child in node.Childrens)
                     {
-                        _selectedNodeId = childNode.ID;
+                        var childNode = (BehaviorNode)child;
+                        Color buttonColor = GUI.backgroundColor;
+                        GUI.backgroundColor = new Color(0.9f, 0.9f, 0.7f);
+                        if (GUILayout.Button($"节点 {childNode.ID} - {childNode.ProcessNode?.GetType().Name}", GUILayout.Height(25)))
+                        {
+                            _selectedNodeId = childNode.ID;
+                        }
+                        GUI.backgroundColor = buttonColor;
                     }
-                }
+                });
+            }
+        }
+        
+        // 辅助方法：绘制带背景的区域
+        private void DrawSectionBox(string title, Color backgroundColor, System.Action content)
+        {
+            // 区域标题
+            GUIStyle sectionTitleStyle = new GUIStyle(EditorStyles.boldLabel);
+            sectionTitleStyle.fontSize = 11;
+            EditorGUILayout.LabelField(title, sectionTitleStyle);
+            
+            // 带背景的内容区
+            Color oldBgColor = GUI.backgroundColor;
+            GUI.backgroundColor = backgroundColor;
+            EditorGUILayout.BeginVertical("box");
+            GUI.backgroundColor = oldBgColor;
+            
+            content?.Invoke();
+            
+            EditorGUILayout.EndVertical();
+        }
+        
+        // 辅助方法：绘制信息行
+        private void DrawInfoRow(string label, string value, Color valueColor)
+        {
+            EditorGUILayout.BeginHorizontal();
+            
+            // 标签
+            GUIStyle labelStyle = new GUIStyle(EditorStyles.label);
+            labelStyle.fontStyle = FontStyle.Bold;
+            EditorGUILayout.LabelField(label + ":", labelStyle, GUILayout.Width(100));
+            
+            // 值
+            GUIStyle valueStyle = new GUIStyle(EditorStyles.label);
+            valueStyle.normal.textColor = valueColor;
+            EditorGUILayout.LabelField(value, valueStyle);
+            
+            EditorGUILayout.EndHorizontal();
+        }
+        
+        // 辅助方法：根据结果获取颜色
+        private Color GetResultColor(BehaviorRet result)
+        {
+            switch (result)
+            {
+                case BehaviorRet.SUCCESS:
+                    return new Color(0.2f, 0.7f, 0.2f); // 绿色
+                case BehaviorRet.FAIL:
+                    return new Color(0.8f, 0.2f, 0.2f); // 红色
+                case BehaviorRet.RUNNING:
+                    return new Color(0.2f, 0.5f, 0.9f); // 蓝色
+                case BehaviorRet.ABORT:
+                    return new Color(0.9f, 0.5f, 0.1f); // 橙色
+                default:
+                    return Color.gray;
             }
         }
     }
