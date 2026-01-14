@@ -1,0 +1,168 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: da40eb0b01baf9f458cc9176f665d9d7, type: 3}
+  m_Name: TestParallelBtAsset
+  m_EditorClassIdentifier: 
+  rootId: 1
+  nodes:
+  - id: 1
+    processTypeName: SequenceNode
+    parentId: -1
+    childrenIds: 0200000003000000
+    editorPosition: {x: 99.999985, y: 300}
+    comment: 
+    parametersList: []
+  - id: 2
+    processTypeName: ParallelNode
+    parentId: 1
+    childrenIds: 04000000080000000c000000
+    editorPosition: {x: 399.99994, y: 239.99995}
+    comment: 
+    parametersList: []
+  - id: 3
+    processTypeName: LogNode
+    parentId: 1
+    childrenIds: 
+    editorPosition: {x: 399.99994, y: 959.9998}
+    comment: 
+    parametersList:
+    - key: message
+      value: Parallel done
+  - id: 4
+    processTypeName: SequenceNode
+    parentId: 2
+    childrenIds: 050000000600000007000000
+    editorPosition: {x: 700, y: -239.99995}
+    comment: 
+    parametersList: []
+  - id: 5
+    processTypeName: LogNode
+    parentId: 4
+    childrenIds: 
+    editorPosition: {x: 1000.0001, y: -360.00003}
+    comment: 
+    parametersList:
+    - key: message
+      value: hello1
+  - id: 6
+    processTypeName: WaitNode
+    parentId: 4
+    childrenIds: 
+    editorPosition: {x: 1000.0001, y: -239.99995}
+    comment: 
+    parametersList:
+    - key: duration
+      value: 3
+  - id: 7
+    processTypeName: LogNode
+    parentId: 4
+    childrenIds: 
+    editorPosition: {x: 1000.0001, y: -119.99998}
+    comment: 
+    parametersList:
+    - key: message
+      value: hello1 done
+  - id: 8
+    processTypeName: SequenceNode
+    parentId: 2
+    childrenIds: 090000000a0000000b000000
+    editorPosition: {x: 700, y: 119.99998}
+    comment: 
+    parametersList: []
+  - id: 9
+    processTypeName: LogNode
+    parentId: 8
+    childrenIds: 
+    editorPosition: {x: 1000.0001, y: 0}
+    comment: 
+    parametersList:
+    - key: message
+      value: heelo2
+  - id: 10
+    processTypeName: WaitNode
+    parentId: 8
+    childrenIds: 
+    editorPosition: {x: 1000.0001, y: 119.99998}
+    comment: 
+    parametersList:
+    - key: duration
+      value: 5
+  - id: 11
+    processTypeName: LogNode
+    parentId: 8
+    childrenIds: 
+    editorPosition: {x: 1000.0001, y: 239.99995}
+    comment: 
+    parametersList:
+    - key: message
+      value: hello2 done
+  - id: 12
+    processTypeName: SequenceNode
+    parentId: 2
+    childrenIds: 0d0000000e0000000f00000011000000
+    editorPosition: {x: 700, y: 600}
+    comment: 
+    parametersList: []
+  - id: 13
+    processTypeName: LogNode
+    parentId: 12
+    childrenIds: 
+    editorPosition: {x: 1000.0001, y: 360.00003}
+    comment: 
+    parametersList:
+    - key: message
+      value: hello3
+  - id: 14
+    processTypeName: WaitNode
+    parentId: 12
+    childrenIds: 
+    editorPosition: {x: 1000.0001, y: 479.9999}
+    comment: 
+    parametersList:
+    - key: duration
+      value: 4
+  - id: 15
+    processTypeName: LogNode
+    parentId: 12
+    childrenIds: 
+    editorPosition: {x: 1000.0001, y: 600}
+    comment: 
+    parametersList:
+    - key: message
+      value: hello3 done
+  - id: 17
+    processTypeName: SequenceNode
+    parentId: 12
+    childrenIds: 1200000013000000
+    editorPosition: {x: 1000.0001, y: 779.99994}
+    comment: 
+    parametersList: []
+  - id: 18
+    processTypeName: WaitNode
+    parentId: 17
+    childrenIds: 
+    editorPosition: {x: 1300.0001, y: 720.00006}
+    comment: 
+    parametersList:
+    - key: duration
+      value: 1
+  - id: 19
+    processTypeName: LogNode
+    parentId: 17
+    childrenIds: 
+    editorPosition: {x: 1300.0001, y: 840}
+    comment: 
+    parametersList:
+    - key: message
+      value: wait done
+  ownerAssembly: BehaviorTree.Test1
+  sharedAssemblies: []

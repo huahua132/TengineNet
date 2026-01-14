@@ -17,41 +17,72 @@ MonoBehaviour:
   - id: 1
     processTypeName: SequenceNode
     parentId: -1
-    childrenIds: 0200000004000000
-    editorPosition: {x: 452, y: 83}
+    childrenIds: 0200000003000000
+    editorPosition: {x: 100, y: 300}
     comment: "\u602A\u7269\u6D4B\u8BD5AI"
     parametersList: []
   - id: 2
     processTypeName: SelectorNode
     parentId: 1
-    childrenIds: 0500000006000000
-    editorPosition: {x: 202, y: 220}
+    childrenIds: 0500000004000000
+    editorPosition: {x: 400, y: 240}
     comment: "\u9009\u62E9\u6267\u884C"
     parametersList: []
-  - id: 4
+  - id: 3
     processTypeName: LogNode
     parentId: 1
     childrenIds: 
-    editorPosition: {x: 669, y: 211}
+    editorPosition: {x: 400, y: 540}
     comment: test
     parametersList:
     - key: message
       value: if true
+  - id: 4
+    processTypeName: SequenceNode
+    parentId: 2
+    childrenIds: 060000000700000008000000
+    editorPosition: {x: 700, y: 180}
+    comment: "\u987A\u5E8F\u6267\u884C"
+    parametersList: []
   - id: 5
     processTypeName: LogNode
     parentId: 2
     childrenIds: 
-    editorPosition: {x: 392, y: 371}
+    editorPosition: {x: 700, y: 420}
     comment: "\u9003\u8DD1"
     parametersList:
     - key: message
       value: Run
   - id: 6
-    processTypeName: SequenceNode
-    parentId: 2
+    processTypeName: CheckHealthNode
+    parentId: 4
     childrenIds: 
-    editorPosition: {x: 29, y: 371}
-    comment: "\u987A\u5E8F\u6267\u884C"
-    parametersList: []
+    editorPosition: {x: 1000, y: 60}
+    comment: 
+    parametersList:
+    - key: checkType
+      value: Self
+    - key: healthThreshold
+      value: 50
+    - key: compareType
+      value: GreaterThan
+  - id: 7
+    processTypeName: LogNode
+    parentId: 4
+    childrenIds: 
+    editorPosition: {x: 1000, y: 180}
+    comment: 
+    parametersList:
+    - key: message
+      value: attack!
+  - id: 8
+    processTypeName: WaitNode
+    parentId: 4
+    childrenIds: 
+    editorPosition: {x: 1000, y: 300}
+    comment: "\u7B49\u5F85"
+    parametersList:
+    - key: duration
+      value: 5
   ownerAssembly: BehaviorTree.Test1
   sharedAssemblies: []

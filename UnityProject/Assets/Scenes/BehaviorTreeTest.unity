@@ -684,7 +684,7 @@ MonoBehaviour:
   currentHP: 50
   attackPower: 5
   moveSpeed: 3
-  behaviorTreeAsset: {fileID: 0}
+  behaviorTreeAsset: {fileID: 11400000, guid: 05f5834514034e849b633c836defd1cf, type: 2}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0

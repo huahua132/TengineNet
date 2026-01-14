@@ -1647,7 +1647,7 @@ namespace BehaviorTree.Editor
         }
         
         /// <summary>
-        /// 自动整理节点布局 - 树状结构（防止重叠，保持ID不变）
+        /// 自动整理节点布局 - 横向从左到右的树状结构
         /// </summary>
         private void AutoLayoutNodes()
         {
@@ -1668,98 +1668,97 @@ namespace BehaviorTree.Editor
             // 清除高度缓存
             _nodeHeights.Clear();
             
-            // 布局参数
-            const float NODE_SPACING = 280f;      // 节点间距
-            const float VERTICAL_SPACING = 150f;  // 垂直间距
-            const float START_X = 500f;           // 起始X坐标（居中）
-            const float START_Y = 100f;           // 起始Y坐标
+            // 布局参数（横向布局）
+            const float HORIZONTAL_SPACING = 300f;  // 横向间距（父节点到子节点）
+            const float VERTICAL_SPACING = 120f;    // 纵向间距（子节点之间）
+            const float START_X = 100f;             // 起始X坐标（根节点最左边）
+            const float START_Y = 300f;             // 起始Y坐标（垂直居中）
             
-            // 第一步：计算布局信息（递归计算每个子树的宽度和相对位置）
-            Dictionary<int, LayoutNodeInfo> layoutInfos = new Dictionary<int, LayoutNodeInfo>();
-            CalculateLayout(rootNode, layoutInfos, NODE_SPACING);
+            // 第一步：计算布局信息（递归计算每个子树的高度）
+            Dictionary<int, HorizontalLayoutInfo> layoutInfos = new Dictionary<int, HorizontalLayoutInfo>();
+            CalculateHorizontalLayout(rootNode, layoutInfos, VERTICAL_SPACING);
             
-            // 第二步：应用绝对位置（从根节点开始）
-            // 注意：只修改节点的editorPosition，不修改ID、不修改childrenIds、不修改nodes列表顺序
-            ApplyAbsolutePositions(rootNode, START_X, START_Y, VERTICAL_SPACING, layoutInfos);
+            // 第二步：应用绝对位置（从根节点开始，横向布局）
+            ApplyHorizontalPositions(rootNode, START_X, START_Y, HORIZONTAL_SPACING, layoutInfos);
             
             MarkDirty();
             Repaint();
             
-            Debug.Log($"已自动整理布局（仅调整视觉位置），共 {layoutInfos.Count} 个节点");
+            Debug.Log($"已自动整理为横向布局，共 {layoutInfos.Count} 个节点");
         }
         
         /// <summary>
-        /// 节点布局信息
+        /// 横向布局信息
         /// </summary>
-        private class LayoutNodeInfo
+        private class HorizontalLayoutInfo
         {
-            public float subtreeWidth;           // 子树总宽度
-            public float relativeX;              // 相对于父节点的X偏移
-            public List<float> childrenOffsets;  // 子节点的相对X偏移列表
+            public float subtreeHeight;          // 子树总高度
+            public float relativeY;              // 相对于父节点的Y偏移
+            public List<float> childrenOffsets;  // 子节点的相对Y偏移列表
         }
         
         /// <summary>
-        /// 递归计算布局信息
-        /// 注意：同一层级的子节点按ID从小到大排列（从左到右）
+        /// 递归计算横向布局信息
+        /// 子节点按ID从小到大纵向排列（从上到下）
         /// </summary>
-        private float CalculateLayout(BehaviorNodeData node, Dictionary<int, LayoutNodeInfo> layoutInfos, float nodeSpacing)
+        private float CalculateHorizontalLayout(BehaviorNodeData node, Dictionary<int, HorizontalLayoutInfo> layoutInfos, float verticalSpacing)
         {
-            var info = new LayoutNodeInfo();
+            var info = new HorizontalLayoutInfo();
             info.childrenOffsets = new List<float>();
             
             // 没有子节点
             if (node.childrenIds == null || node.childrenIds.Count == 0)
             {
-                info.subtreeWidth = nodeSpacing;
-                info.relativeX = 0;
+                info.subtreeHeight = verticalSpacing;
+                info.relativeY = 0;
                 layoutInfos[node.id] = info;
-                return nodeSpacing;
+                return verticalSpacing;
             }
             
-            // 获取所有子节点并按ID排序（从小到大）
+            // 获取所有子节点并按ID排序（从小到大，从上到下）
             var sortedChildNodes = node.childrenIds
                 .Select(id => _currentAsset.GetNode(id))
                 .Where(n => n != null)
                 .OrderBy(n => n.id)
                 .ToList();
             
-            // 递归计算所有子节点的宽度（按ID排序后的顺序）
-            List<float> childWidths = new List<float>();
+            // 递归计算所有子节点的高度
+            List<float> childHeights = new List<float>();
             foreach (var childNode in sortedChildNodes)
             {
-                float childWidth = CalculateLayout(childNode, layoutInfos, nodeSpacing);
-                childWidths.Add(childWidth);
+                float childHeight = CalculateHorizontalLayout(childNode, layoutInfos, verticalSpacing);
+                childHeights.Add(childHeight);
             }
             
-            // 计算总宽度
-            float totalWidth = 0;
-            foreach (var width in childWidths)
+            // 计算总高度
+            float totalHeight = 0;
+            foreach (var height in childHeights)
             {
-                totalWidth += width;
+                totalHeight += height;
             }
             
-            // 计算每个子节点的偏移量（从左到右排列，ID小的在左边）
-            float currentOffset = -totalWidth / 2;
-            for (int i = 0; i < childWidths.Count; i++)
+            // 计算每个子节点的Y偏移量（从上到下排列，ID小的在上面）
+            float currentOffset = -totalHeight / 2;
+            for (int i = 0; i < childHeights.Count; i++)
             {
-                float childCenterOffset = currentOffset + childWidths[i] / 2;
+                float childCenterOffset = currentOffset + childHeights[i] / 2;
                 info.childrenOffsets.Add(childCenterOffset);
-                currentOffset += childWidths[i];
+                currentOffset += childHeights[i];
             }
             
-            info.subtreeWidth = Mathf.Max(totalWidth, nodeSpacing);
-            info.relativeX = 0; // 父节点居中
+            info.subtreeHeight = Mathf.Max(totalHeight, verticalSpacing);
+            info.relativeY = 0; // 父节点垂直居中
             layoutInfos[node.id] = info;
             
-            return info.subtreeWidth;
+            return info.subtreeHeight;
         }
         
         /// <summary>
-        /// 应用绝对位置（只修改editorPosition，不修改树结构）
+        /// 应用横向布局的绝对位置
         /// </summary>
-        private void ApplyAbsolutePositions(BehaviorNodeData node, float absoluteX, float absoluteY, float verticalSpacing, Dictionary<int, LayoutNodeInfo> layoutInfos)
+        private void ApplyHorizontalPositions(BehaviorNodeData node, float absoluteX, float absoluteY, float horizontalSpacing, Dictionary<int, HorizontalLayoutInfo> layoutInfos)
         {
-            // 设置当前节点的绝对位置（只修改视觉位置）
+            // 设置当前节点的绝对位置
             node.editorPosition = new Vector2(absoluteX, absoluteY);
             
             // 没有子节点，直接返回
@@ -1777,13 +1776,13 @@ namespace BehaviorTree.Editor
                 .OrderBy(n => n.id)
                 .ToList();
             
-            // 递归设置子节点位置（按ID排序，ID小的在左边）
+            // 递归设置子节点位置（子节点在父节点右边，纵向排列，ID小的在上面）
             for (int i = 0; i < sortedChildNodes.Count && i < info.childrenOffsets.Count; i++)
             {
                 var childNode = sortedChildNodes[i];
-                float childX = absoluteX + info.childrenOffsets[i];
-                float childY = absoluteY + verticalSpacing;
-                ApplyAbsolutePositions(childNode, childX, childY, verticalSpacing, layoutInfos);
+                float childX = absoluteX + horizontalSpacing;  // 子节点在父节点右边
+                float childY = absoluteY + info.childrenOffsets[i];  // Y坐标根据偏移量调整
+                ApplyHorizontalPositions(childNode, childX, childY, horizontalSpacing, layoutInfos);
             }
         }
         #endregion
