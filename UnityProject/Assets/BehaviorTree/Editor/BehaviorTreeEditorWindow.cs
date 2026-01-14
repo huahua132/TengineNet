@@ -1285,18 +1285,27 @@ namespace BehaviorTree.Editor
             Event e = Event.current;
             if (e == null) return;
 
-            // 节点选择
+            // 计算画布区域
+            float canvasX = _leftPanelFoldout ? _leftPanelWidth : 0;
+            float canvasWidth = position.width - canvasX - (_rightPanelFoldout ? _rightPanelWidth : 0);
+            Rect canvasRect = new Rect(canvasX, TOOLBAR_HEIGHT, canvasWidth, position.height - TOOLBAR_HEIGHT);
+
+            // 节点选择 - 只在画布区域内生效
             if (e.type == EventType.MouseDown && e.button == 0)
             {
-                BehaviorNodeData newSelectedNode = GetNodeAtPosition(e.mousePosition);
-                // 如果切换到不同的节点，清除GUI焦点
-                if (_selectedNode != newSelectedNode)
+                // 检查鼠标是否在画布区域内
+                if (canvasRect.Contains(e.mousePosition))
                 {
-                    GUI.FocusControl(null);
-                    GUIUtility.keyboardControl = 0;
+                    BehaviorNodeData newSelectedNode = GetNodeAtPosition(e.mousePosition);
+                    // 如果切换到不同的节点，清除GUI焦点
+                    if (_selectedNode != newSelectedNode)
+                    {
+                        GUI.FocusControl(null);
+                        GUIUtility.keyboardControl = 0;
+                    }
+                    _selectedNode = newSelectedNode;
+                    Repaint();
                 }
-                _selectedNode = newSelectedNode;
-                Repaint();
             }
 
             // 画布拖动
