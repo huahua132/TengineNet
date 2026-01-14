@@ -61,12 +61,39 @@ namespace BehaviorTree.Editor
         {
             _lastRefreshTime = EditorApplication.timeSinceStartup;
             EditorApplication.update += OnEditorUpdate;
+            Selection.selectionChanged += OnSelectionChanged;
             RefreshTreeList();
         }
 
         private void OnDisable()
         {
             EditorApplication.update -= OnEditorUpdate;
+            Selection.selectionChanged -= OnSelectionChanged;
+        }
+        
+        private void OnSelectionChanged()
+        {
+            // 只在运行时且选中了GameObject时处理
+            if (!EditorApplication.isPlaying) return;
+            if (Selection.activeGameObject == null) return;
+            
+            // 通过GameObject查找对应的行为树实例
+            if (_runningTrees != null)
+            {
+                var treeInstance = _runningTrees.Find(t =>
+                    t.BoundGameObject != null &&
+                    t.BoundGameObject == Selection.activeGameObject);
+                
+                if (treeInstance != null && treeInstance != _selectedTree)
+                {
+                    _selectedTree = treeInstance;
+                    _selectedNodeId = -1;
+                    _canvasOffset = Vector2.zero;
+                    _canvasZoom = 1.0f;
+                    CalculateNodeLayout();
+                    Repaint();
+                }
+            }
         }
 
         private void OnEditorUpdate()
