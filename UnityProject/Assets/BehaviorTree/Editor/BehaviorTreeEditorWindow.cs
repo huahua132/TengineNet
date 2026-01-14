@@ -582,6 +582,12 @@ namespace BehaviorTree.Editor
                     else
                     {
                         // 否则选中节点
+                        // 如果切换到不同的节点，清除GUI焦点
+                        if (_selectedNode != node)
+                        {
+                            GUI.FocusControl(null);
+                            GUIUtility.keyboardControl = 0;
+                        }
                         _selectedNode = node;
                         Repaint();
                     }
@@ -985,6 +991,11 @@ namespace BehaviorTree.Editor
             {
                 _selectedNode.comment = "";
             }
+            
+            // 使用唯一的控件名称来避免GUI状态残留
+            string commentControlName = $"Comment_{_selectedNode.id}";
+            GUI.SetNextControlName(commentControlName);
+            
             EditorGUI.BeginChangeCheck();
             _selectedNode.comment = EditorGUILayout.TextArea(_selectedNode.comment, GUILayout.Height(60));
             if (EditorGUI.EndChangeCheck())
@@ -1064,15 +1075,31 @@ namespace BehaviorTree.Editor
             foreach (var field in fields)
             {
                 string fieldName = field.Name;
-                string currentValue = _selectedNode.HasParameter(fieldName)
+                bool hasParameter = _selectedNode.HasParameter(fieldName);
+                string currentValue = hasParameter
                     ? _selectedNode.GetParameter(fieldName)
                     : GetDefaultValue(field);
+                
+                // 如果参数不存在且有默认值，自动设置默认值（只在第一次显示时）
+                if (!hasParameter && !string.IsNullOrEmpty(currentValue))
+                {
+                    _selectedNode.SetParameter(fieldName, currentValue);
+                    // 清除节点高度缓存
+                    if (_nodeHeights.ContainsKey(_selectedNode.id))
+                    {
+                        _nodeHeights.Remove(_selectedNode.id);
+                    }
+                }
                 
                 // 获取字段的描述信息用于Tooltip
                 string tooltip = GetFieldTooltip(field);
                 
                 EditorGUILayout.BeginHorizontal();
                 EditorGUILayout.LabelField(new GUIContent(fieldName, tooltip), GUILayout.Width(100));
+                
+                // 使用唯一的控件名称来避免GUI状态残留
+                string controlName = $"Param_{_selectedNode.id}_{fieldName}";
+                GUI.SetNextControlName(controlName);
                 
                 EditorGUI.BeginChangeCheck();
                 string newValue;
@@ -1234,7 +1261,14 @@ namespace BehaviorTree.Editor
             // 节点选择
             if (e.type == EventType.MouseDown && e.button == 0)
             {
-                _selectedNode = GetNodeAtPosition(e.mousePosition);
+                BehaviorNodeData newSelectedNode = GetNodeAtPosition(e.mousePosition);
+                // 如果切换到不同的节点，清除GUI焦点
+                if (_selectedNode != newSelectedNode)
+                {
+                    GUI.FocusControl(null);
+                    GUIUtility.keyboardControl = 0;
+                }
+                _selectedNode = newSelectedNode;
                 Repaint();
             }
 
