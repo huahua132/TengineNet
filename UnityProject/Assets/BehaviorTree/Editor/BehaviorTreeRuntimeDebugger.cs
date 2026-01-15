@@ -960,6 +960,11 @@ namespace BehaviorTree.Editor
             });
 
             EditorGUILayout.Space(5);
+            
+            // 显示黑板依赖关系
+            DrawNodeBlackboardIO(node, nodeInfo);
+
+            EditorGUILayout.Space(5);
 
             if (node.ProcessNode != null)
             {
@@ -1092,8 +1097,105 @@ namespace BehaviorTree.Editor
                     return new Color(0.9f, 0.5f, 0.1f); // 橙色
                 default:
                     return Color.gray;
-            }
-        }
-    }
+           }
+       }
+       
+       /// <summary>
+       /// 显示节点的黑板IO依赖关系
+       /// </summary>
+       private void DrawNodeBlackboardIO(BehaviorNode node, BehaviorNodeTypeInfo nodeInfo)
+       {
+           if (node == null || node.ProcessNode == null) return;
+           
+           // 获取节点类型上的BlackboardIO特性
+           var nodeType = node.ProcessNode.GetType();
+           var blackboardIOAttrs = nodeType.GetCustomAttributes(typeof(BehaviorTree.BlackboardIOAttribute), false);
+           
+           if (blackboardIOAttrs == null || blackboardIOAttrs.Length == 0)
+           {
+               // 没有黑板依赖，不显示该区域
+               return;
+           }
+           
+           // 分别显示输入和输出
+           var inputs = new System.Collections.Generic.List<BehaviorTree.BlackboardIOAttribute>();
+           var outputs = new System.Collections.Generic.List<BehaviorTree.BlackboardIOAttribute>();
+           
+           foreach (BehaviorTree.BlackboardIOAttribute attr in blackboardIOAttrs)
+           {
+               if (attr.Type == BehaviorTree.BlackboardIOAttribute.IOType.Read)
+                   inputs.Add(attr);
+               else
+                   outputs.Add(attr);
+           }
+           
+           DrawSectionBox("黑板依赖", new Color(1f, 0.95f, 0.85f), () =>
+           {
+               // 显示输入（读取）
+               if (inputs.Count > 0)
+               {
+                   GUIStyle inputLabelStyle = new GUIStyle(EditorStyles.boldLabel);
+                   inputLabelStyle.normal.textColor = new Color(0.3f, 0.6f, 1.0f); // 蓝色
+                   inputLabelStyle.fontSize = 11;
+                   
+                   EditorGUILayout.LabelField("📥 输入（读取）", inputLabelStyle);
+                   EditorGUI.indentLevel++;
+                   
+                   foreach (var input in inputs)
+                   {
+                       string displayText = $"{input.GetFullPath()}";
+                       if (!string.IsNullOrEmpty(input.Description))
+                       {
+                           displayText += $"\n  {input.Description}";
+                       }
+                       
+                       GUIStyle valueStyle = new GUIStyle(EditorStyles.label);
+                       valueStyle.normal.textColor = new Color(0.4f, 0.4f, 0.4f);
+                       valueStyle.fontSize = 10;
+                       valueStyle.wordWrap = true;
+                       EditorGUILayout.LabelField(displayText, valueStyle);
+                   }
+                   
+                   EditorGUI.indentLevel--;
+                   EditorGUILayout.Space(3);
+               }
+               
+               // 显示输出（写入）
+               if (outputs.Count > 0)
+               {
+                   GUIStyle outputLabelStyle = new GUIStyle(EditorStyles.boldLabel);
+                   outputLabelStyle.normal.textColor = new Color(1.0f, 0.6f, 0.2f); // 橙色
+                   outputLabelStyle.fontSize = 11;
+                   
+                   EditorGUILayout.LabelField("📤 输出（写入）", outputLabelStyle);
+                   EditorGUI.indentLevel++;
+                   
+                   foreach (var output in outputs)
+                   {
+                       string displayText = $"{output.GetFullPath()}";
+                       if (!string.IsNullOrEmpty(output.Description))
+                       {
+                           displayText += $"\n  {output.Description}";
+                       }
+                       
+                       GUIStyle valueStyle = new GUIStyle(EditorStyles.label);
+                       valueStyle.normal.textColor = new Color(0.4f, 0.4f, 0.4f);
+                       valueStyle.fontSize = 10;
+                       valueStyle.wordWrap = true;
+                       EditorGUILayout.LabelField(displayText, valueStyle);
+                   }
+                   
+                   EditorGUI.indentLevel--;
+                   EditorGUILayout.Space(3);
+               }
+               
+               // 提示信息
+               GUIStyle hintStyle = new GUIStyle(EditorStyles.miniLabel);
+               hintStyle.normal.textColor = new Color(0.5f, 0.5f, 0.5f);
+               hintStyle.fontStyle = FontStyle.Italic;
+               EditorGUILayout.LabelField("显示该节点读取和写入的黑板数据", hintStyle);
+           });
+       }
+   }
 }
 #endif
