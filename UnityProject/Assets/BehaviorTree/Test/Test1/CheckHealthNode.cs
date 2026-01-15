@@ -23,6 +23,7 @@ namespace BehaviorTree.Test1
     }
     
     [BehaviorProcessNode("Check Health", "检查血量是否满足条件", BehaviorProcessType.condition)]
+    [BlackboardIO(BlackboardIOAttribute.IOType.Read, "TargetBlackboard", "target", "当checkType=Target时，从黑板读取目标对象")]
     public class CheckHealthNode : BehaviorProcessNodeBase
     {
         [Tooltip("检查类型")]

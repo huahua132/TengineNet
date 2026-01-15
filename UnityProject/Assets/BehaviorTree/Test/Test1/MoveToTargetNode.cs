@@ -12,6 +12,7 @@ namespace BehaviorTree.Test1
     }
     
     [BehaviorProcessNode("Move To Target", "移动到目标位置（支持黑板目标或固定坐标）", BehaviorProcessType.action)]
+    [BlackboardIO(BlackboardIOAttribute.IOType.Read, "TargetBlackboard", "target", "当targetType=BlackboardTarget时，从黑板读取目标位置")]
     public class MoveToTargetNode : BehaviorProcessNodeBase
     {
         [Tooltip("目标类型")]

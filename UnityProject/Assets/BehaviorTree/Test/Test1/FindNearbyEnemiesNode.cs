@@ -4,6 +4,7 @@ using System.Collections.Generic;
 namespace BehaviorTree.Test1
 {
     [BehaviorProcessNode("Find Nearby Enemies", "在指定范围内查找敌人", BehaviorProcessType.condition)]
+    [BlackboardIO(BlackboardIOAttribute.IOType.Write, "TargetBlackboard", "target", "将最近的敌人Transform存储到黑板")]
     public class FindNearbyEnemiesNode : BehaviorProcessNodeBase
     {
         [Tooltip("搜索半径范围（单位）")]

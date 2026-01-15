@@ -3,6 +3,7 @@ using UnityEngine;
 namespace BehaviorTree.Test1
 {
     [BehaviorProcessNode("Attack", "攻击目标敌人", BehaviorProcessType.action)]
+    [BlackboardIO(BlackboardIOAttribute.IOType.Read, "TargetBlackboard", "target", "从黑板读取攻击目标")]
     public class AttackNode : BehaviorProcessNodeBase
     {
         [Tooltip("攻击范围（单位）")]
