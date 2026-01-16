@@ -5,7 +5,7 @@ namespace BehaviorTree
 {
     [BehaviorProcessNode("Repeat",
     "+ 只能有一个子节点，多个仅执行第一个\n+ 当子节点返回「失败」时，退出遍历并返回「失败」状态\n+ 其它情况返回成功/正在运行",
-    BehaviorProcessType.action)]
+    BehaviorProcessType.decorator)]
     public class RepeatNode : BehaviorProcessNodeBase
     {
         [Tooltip("重复次数")]

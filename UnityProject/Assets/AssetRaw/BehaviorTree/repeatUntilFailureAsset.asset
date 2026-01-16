@@ -12,46 +12,148 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: da40eb0b01baf9f458cc9176f665d9d7, type: 3}
   m_Name: repeatUntilFailureAsset
   m_EditorClassIdentifier: 
-  rootId: 1
+  rootId: 6
   nodes:
   - id: 1
-    processTypeName: SequenceNode
-    parentId: -1
-    childrenIds: 03000000040000000500000006000000
-    editorPosition: {x: 83, y: 318}
-    comment: 
-    parametersList: []
-  - id: 3
     processTypeName: LogNode
-    parentId: 1
+    parentId: 6
     childrenIds: 
-    editorPosition: {x: 380, y: 166}
+    editorPosition: {x: 399.99997, y: -80.00001}
     comment: 
     parametersList:
     - key: message
       value: Begin test repeat until failure
+  - id: 2
+    processTypeName: AlwaysSuccessNode
+    parentId: 6
+    childrenIds: 03000000
+    editorPosition: {x: 399.99997, y: 29.999994}
+    comment: 
+    parametersList: []
+  - id: 3
+    processTypeName: RepeatUntilFailureNode
+    parentId: 2
+    childrenIds: 04000000
+    editorPosition: {x: 699.99994, y: 29.999994}
+    comment: 
+    parametersList:
+    - key: maxLoop
+      value: 3
   - id: 4
-    processTypeName: AlwaysTrueNode
-    parentId: 1
-    childrenIds: 
-    editorPosition: {x: 390, y: 318}
+    processTypeName: AlwaysSuccessNode
+    parentId: 3
+    childrenIds: 05000000
+    editorPosition: {x: 1000.00037, y: 29.999994}
     comment: 
     parametersList: []
   - id: 5
-    processTypeName: AlwaysTrueNode
-    parentId: 1
+    processTypeName: LogNode
+    parentId: 4
     childrenIds: 
-    editorPosition: {x: 390, y: 466}
+    editorPosition: {x: 1299.9999, y: 29.999994}
+    comment: 
+    parametersList:
+    - key: message
+      value: '[1] run repeat until failure!!!'
+  - id: 6
+    processTypeName: SequenceNode
+    parentId: -1
+    childrenIds: 0100000010000000020000000c000000
+    editorPosition: {x: 100.00004, y: 260.00003}
     comment: 
     parametersList: []
-  - id: 6
+  - id: 7
+    processTypeName: AlwaysSuccessNode
+    parentId: 10
+    childrenIds: 08000000
+    editorPosition: {x: 1599.9999, y: 140.00005}
+    comment: 
+    parametersList: []
+  - id: 8
     processTypeName: LogNode
-    parentId: 1
+    parentId: 7
     childrenIds: 
-    editorPosition: {x: 392, y: 616}
+    editorPosition: {x: 1900.0004, y: 140.00005}
+    comment: 
+    parametersList:
+    - key: message
+      value: '[2] run repeat until failure!!!'
+  - id: 9
+    processTypeName: RepeatUntilFailureNode
+    parentId: 13
+    childrenIds: 0a000000
+    editorPosition: {x: 1000.00037, y: 260.00003}
+    comment: 
+    parametersList:
+    - key: maxLoop
+      value: 3
+  - id: 10
+    processTypeName: SequenceNode
+    parentId: 9
+    childrenIds: 070000000e000000
+    editorPosition: {x: 1299.9999, y: 260.00003}
+    comment: 
+    parametersList: []
+  - id: 11
+    processTypeName: WaitNode
+    parentId: 14
+    childrenIds: 
+    editorPosition: {x: 1900.0004, y: 250.00009}
+    comment: 
+    parametersList:
+    - key: mode
+      value: RunCount
+    - key: time
+      value: 1
+    - key: count
+      value: 1
+  - id: 12
+    processTypeName: AlwaysSuccessNode
+    parentId: 6
+    childrenIds: 0d000000
+    editorPosition: {x: 399.99997, y: 315.00006}
+    comment: 
+    parametersList: []
+  - id: 13
+    processTypeName: SequenceNode
+    parentId: 12
+    childrenIds: 0900000011000000
+    editorPosition: {x: 699.99994, y: 315.00006}
+    comment: 
+    parametersList: []
+  - id: 14
+    processTypeName: SequenceNode
+    parentId: 10
+    childrenIds: 0b0000000f000000
+    editorPosition: {x: 1599.9999, y: 315.00006}
+    comment: 
+    parametersList: []
+  - id: 15
+    processTypeName: LogNode
+    parentId: 14
+    childrenIds: 
+    editorPosition: {x: 1900.0004, y: 380.0001}
+    comment: 
+    parametersList:
+    - key: message
+      value: wait 1s
+  - id: 16
+    processTypeName: LogNode
+    parentId: 6
+    childrenIds: 
+    editorPosition: {x: 399.99997, y: 600.0001}
     comment: 
     parametersList:
     - key: message
       value: End test repeat until failure
+  - id: 17
+    processTypeName: LogNode
+    parentId: 13
+    childrenIds: 
+    editorPosition: {x: 1000.00037, y: 490.0001}
+    comment: 
+    parametersList:
+    - key: message
+      value: DO NOT LOG THIS!!!
   ownerAssembly: BehaviorTree.Test1
   sharedAssemblies: []
