@@ -18,7 +18,7 @@ MonoBehaviour:
     processTypeName: LogNode
     parentId: 6
     childrenIds: 
-    editorPosition: {x: 399.99997, y: -80.00001}
+    editorPosition: {x: 399.9999, y: -80.000015}
     comment: 
     parametersList:
     - key: message
@@ -27,14 +27,14 @@ MonoBehaviour:
     processTypeName: AlwaysSuccessNode
     parentId: 6
     childrenIds: 03000000
-    editorPosition: {x: 399.99997, y: 29.999994}
+    editorPosition: {x: 399.9999, y: 29.999989}
     comment: 
     parametersList: []
   - id: 3
     processTypeName: RepeatUntilFailureNode
-    parentId: 2
+    parentId: 0
     childrenIds: 04000000
-    editorPosition: {x: 699.99994, y: 29.999994}
+    editorPosition: {x: 700, y: 28.823517}
     comment: 
     parametersList:
     - key: maxLoop
@@ -43,14 +43,14 @@ MonoBehaviour:
     processTypeName: AlwaysSuccessNode
     parentId: 3
     childrenIds: 05000000
-    editorPosition: {x: 1000.00037, y: 29.999994}
+    editorPosition: {x: 1000.0006, y: 29.999989}
     comment: 
     parametersList: []
   - id: 5
     processTypeName: LogNode
     parentId: 4
     childrenIds: 
-    editorPosition: {x: 1299.9999, y: 29.999994}
+    editorPosition: {x: 1299.9999, y: 29.999989}
     comment: 
     parametersList:
     - key: message
@@ -59,21 +59,21 @@ MonoBehaviour:
     processTypeName: SequenceNode
     parentId: -1
     childrenIds: 0100000010000000020000000c000000
-    editorPosition: {x: 100.00004, y: 260.00003}
+    editorPosition: {x: 100.00005, y: 260.00003}
     comment: 
     parametersList: []
   - id: 7
     processTypeName: AlwaysSuccessNode
     parentId: 10
     childrenIds: 08000000
-    editorPosition: {x: 1599.9999, y: 140.00005}
+    editorPosition: {x: 1599.9996, y: 140.00005}
     comment: 
     parametersList: []
   - id: 8
     processTypeName: LogNode
     parentId: 7
     childrenIds: 
-    editorPosition: {x: 1900.0004, y: 140.00005}
+    editorPosition: {x: 1900, y: 140.00005}
     comment: 
     parametersList:
     - key: message
@@ -82,7 +82,7 @@ MonoBehaviour:
     processTypeName: RepeatUntilFailureNode
     parentId: 13
     childrenIds: 0a000000
-    editorPosition: {x: 1000.00037, y: 260.00003}
+    editorPosition: {x: 1000.0006, y: 260.00003}
     comment: 
     parametersList:
     - key: maxLoop
@@ -98,7 +98,7 @@ MonoBehaviour:
     processTypeName: WaitNode
     parentId: 14
     childrenIds: 
-    editorPosition: {x: 1900.0004, y: 250.00009}
+    editorPosition: {x: 1900, y: 250.00009}
     comment: 
     parametersList:
     - key: mode
@@ -108,31 +108,33 @@ MonoBehaviour:
     - key: count
       value: 1
   - id: 12
-    processTypeName: AlwaysSuccessNode
+    processTypeName: RepeatUntilFailureNode
     parentId: 6
     childrenIds: 0d000000
-    editorPosition: {x: 399.99997, y: 315.00006}
+    editorPosition: {x: 399.9999, y: 314.00003}
     comment: 
-    parametersList: []
+    parametersList:
+    - key: maxLoop
+      value: 0
   - id: 13
     processTypeName: SequenceNode
     parentId: 12
     childrenIds: 0900000011000000
-    editorPosition: {x: 699.99994, y: 315.00006}
+    editorPosition: {x: 700, y: 315.00003}
     comment: 
     parametersList: []
   - id: 14
     processTypeName: SequenceNode
     parentId: 10
     childrenIds: 0b0000000f000000
-    editorPosition: {x: 1599.9999, y: 315.00006}
+    editorPosition: {x: 1599.9996, y: 315.00003}
     comment: 
     parametersList: []
   - id: 15
     processTypeName: LogNode
     parentId: 14
     childrenIds: 
-    editorPosition: {x: 1900.0004, y: 380.0001}
+    editorPosition: {x: 1900, y: 380.00006}
     comment: 
     parametersList:
     - key: message
@@ -141,7 +143,7 @@ MonoBehaviour:
     processTypeName: LogNode
     parentId: 6
     childrenIds: 
-    editorPosition: {x: 399.99997, y: 600.0001}
+    editorPosition: {x: 399.9999, y: 600.0002}
     comment: 
     parametersList:
     - key: message
@@ -150,7 +152,7 @@ MonoBehaviour:
     processTypeName: LogNode
     parentId: 13
     childrenIds: 
-    editorPosition: {x: 1000.00037, y: 490.0001}
+    editorPosition: {x: 1000.0006, y: 489.9999}
     comment: 
     parametersList:
     - key: message

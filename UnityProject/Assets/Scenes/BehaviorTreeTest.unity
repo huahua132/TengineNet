@@ -236,7 +236,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!136 &371571615
 CapsuleCollider:
   m_ObjectHideFlags: 0
@@ -484,7 +484,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!114 &1392296949
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -497,7 +497,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: eb7a1ce175cc82243bab39bd83c64445, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  treeAsset: {fileID: 11400000, guid: 9d067137229d73b42931e5047603ac07, type: 2}
+  treeAsset: {fileID: 11400000, guid: c6074b20e52c8a540ae126e0f7938822, type: 2}
   bindTransform: {fileID: 0}
   autoRun: 0
   enableDebug: 1
@@ -631,7 +631,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!136 &2118858406
 CapsuleCollider:
   m_ObjectHideFlags: 0

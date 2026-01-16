@@ -970,7 +970,36 @@ namespace BehaviorTree.Editor
             
             // 基本信息
             EditorGUILayout.LabelField("基本信息", EditorStyles.boldLabel);
-            EditorGUILayout.LabelField("类型", _selectedNode.processTypeName);
+            
+            // 添加更换节点类型功能
+            EditorGUILayout.BeginHorizontal();
+            EditorGUILayout.LabelField("类型", GUILayout.Width(100));
+            
+            // 获取所有可用的节点类型
+            var allNodes = BehaviorNodeRegistry.GetAllNodes();
+            var nodeNames = allNodes.Select(n => n.Type.Name).ToList();
+            
+            // 查找当前选中的索引
+            int currentIndex = nodeNames.IndexOf(_selectedNode.processTypeName);
+            if (currentIndex < 0) currentIndex = 0;
+            
+            EditorGUI.BeginChangeCheck();
+            int newIndex = EditorGUILayout.Popup(currentIndex, nodeNames.ToArray());
+            if (EditorGUI.EndChangeCheck() && newIndex != currentIndex)
+            {
+                // 更换节点类型
+                string oldTypeName = _selectedNode.processTypeName;
+                string newTypeName = nodeNames[newIndex];
+                
+                if (EditorUtility.DisplayDialog("确认更换节点类型",
+                    $"将节点类型从 {oldTypeName} 更换为 {newTypeName}？\n\n注意：参数将被清空！",
+                    "确定", "取消"))
+                {
+                    ReplaceNodeType(_selectedNode, allNodes[newIndex]);
+                }
+            }
+            EditorGUILayout.EndHorizontal();
+            
             EditorGUILayout.LabelField("ID", _selectedNode.id.ToString());
             
             // 显示节点描述
@@ -1737,6 +1766,48 @@ namespace BehaviorTree.Editor
                 MarkDirty();
                 Repaint();
             }
+        }
+        
+        /// <summary>
+        /// 更换节点类型（保留位置和连接关系）
+        /// </summary>
+        private void ReplaceNodeType(BehaviorNodeData node, BehaviorNodeTypeInfo newTypeInfo)
+        {
+            if (node == null || newTypeInfo == null) return;
+            
+            // 保存原有的位置和连接关系
+            Vector2 position = node.editorPosition;
+            int nodeId = node.id;
+            int parentId = node.parentId;
+            List<int> childrenIds = new List<int>(node.childrenIds ?? new List<int>());
+            string comment = node.comment;
+            
+            // 更换节点类型名称
+            node.processTypeName = newTypeInfo.Type.Name;
+            
+            // 清空参数列表
+            node.parametersList = new List<SerializableParameter>();
+            
+            // 重新初始化默认参数
+            InitializeNodeParameters(node, newTypeInfo.Type);
+            
+            // 恢复位置和连接关系
+            node.editorPosition = position;
+            node.id = nodeId;
+            node.parentId = parentId;
+            node.childrenIds = childrenIds;
+            node.comment = comment;
+            
+            // 清除节点高度缓存
+            if (_nodeHeights.ContainsKey(node.id))
+            {
+                _nodeHeights.Remove(node.id);
+            }
+            
+            MarkDirty();
+            Repaint();
+            
+            Debug.Log($"节点 {nodeId} 类型已从更换为: {newTypeInfo.Type.Name}");
         }
         
         /// <summary>
